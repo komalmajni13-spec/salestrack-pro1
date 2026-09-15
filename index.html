@@ -9,162 +9,138 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
-  --bg: #f0f4f8;
-  --surface: #ffffff;
-  --surface2: #f8fafc;
-  --nav-bg: #1e3a5f;
-  --nav-text: #a8c4e0;
-  --nav-active: #ffffff;
-  --nav-active-bg: #2563eb;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --accent: #0ea5e9;
-  --success: #16a34a;
-  --success-bg: #f0fdf4;
-  --warning: #d97706;
-  --warning-bg: #fffbeb;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --text: #0f172a;
-  --text2: #475569;
-  --text3: #94a3b8;
-  --border: #e2e8f0;
-  --border2: #cbd5e1;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--nav-bg:#1e3a5f;--nav-text:#a8c4e0;
+  --nav-active:#fff;--nav-active-bg:#2563eb;--primary:#2563eb;--primary-hover:#1d4ed8;
+  --success:#16a34a;--success-bg:#f0fdf4;--warning:#d97706;--warning-bg:#fffbeb;
+  --danger:#dc2626;--danger-bg:#fef2f2;--text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-md:0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg:0 10px 25px rgba(0,0,0,0.1);--radius:10px;--radius-sm:6px;
+  --mdpe:#7c3aed;--upvc:#0369a1;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0a1628;
-    --surface: #111e35;
-    --surface2: #162440;
-    --nav-bg: #080f1f;
-    --nav-text: #7a9bbf;
-    --text: #e2e8f0;
-    --text2: #94a3b8;
-    --text3: #475569;
-    --border: #1e3a5f;
-    --border2: #2563eb33;
-    --success-bg: #052e16;
-    --warning-bg: #1c0a00;
-    --danger-bg: #1c0505;
-    --shadow: 0 1px 3px rgba(0,0,0,0.4);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0a1628;
-  --surface: #111e35;
-  --surface2: #162440;
-  --nav-bg: #080f1f;
-  --nav-text: #7a9bbf;
-  --text: #e2e8f0;
-  --text2: #94a3b8;
-  --text3: #475569;
-  --border: #1e3a5f;
-  --border2: #2563eb33;
-  --success-bg: #052e16;
-  --warning-bg: #1c0a00;
-  --danger-bg: #1c0505;
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a1628;--surface:#111e35;--surface2:#162440;--nav-bg:#080f1f;--nav-text:#7a9bbf;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;--border:#1e3a5f;
+  --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
+}}
+:root[data-theme="dark"]{
+  --bg:#0a1628;--surface:#111e35;--surface2:#162440;--nav-bg:#080f1f;--nav-text:#7a9bbf;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;--border:#1e3a5f;
+  --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 h1,h2,h3,h4{font-family:'Poppins',sans-serif;}
 
+/* LOGIN */
 #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e3a5f 0%,#1a5276 50%,#2563eb 100%);}
 .login-card{background:var(--surface);border-radius:16px;padding:40px;width:380px;box-shadow:var(--shadow-lg);}
-.login-logo{text-align:center;margin-bottom:32px;}
-.login-logo h1{font-size:26px;color:var(--primary);letter-spacing:-0.5px;}
-.login-logo p{color:var(--text2);font-size:13px;margin-top:4px;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo h1{font-size:24px;color:var(--primary);}
+.login-logo p{color:var(--text2);font-size:12px;margin-top:4px;}
 .login-logo .icon{font-size:40px;margin-bottom:8px;}
-.form-group{margin-bottom:16px;}
-.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
-.form-control{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);transition:border-color 0.2s,box-shadow 0.2s;outline:none;}
+.dept-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:6px;}
+.dept-mdpe{background:#ede9fe;color:var(--mdpe);}
+.dept-upvc{background:#e0f2fe;color:var(--upvc);}
+.dept-admin{background:#fef3c7;color:#92400e;}
+
+/* FORMS */
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
+.form-control{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
 .form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'Inter',sans-serif;border:none;cursor:pointer;transition:all 0.2s;text-decoration:none;}
-.btn-primary{background:var(--primary);color:#fff;}
-.btn-primary:hover{background:var(--primary-hover);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'Inter',sans-serif;border:none;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:var(--primary);color:#fff;}.btn-primary:hover{background:var(--primary-hover);}
 .btn-success{background:var(--success);color:#fff;}
 .btn-danger{background:var(--danger);color:#fff;}
-.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);}
-.btn-ghost:hover{background:var(--surface2);}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);}.btn-ghost:hover{background:var(--surface2);}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-full{width:100%;justify-content:center;padding:12px;}
-.error-msg{color:var(--danger);font-size:12px;margin-top:8px;}
+.error-msg{color:var(--danger);font-size:12px;margin-top:6px;}
+.help-text{font-size:11px;color:var(--text3);margin-top:4px;}
 
+/* LAYOUT */
 #app{display:none;height:100vh;overflow:hidden;}
 .layout{display:flex;height:100%;}
-
-.sidebar{width:230px;background:var(--nav-bg);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
-.sidebar-header{padding:20px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.sidebar{width:235px;background:var(--nav-bg);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar-header{padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.07);}
 .sidebar-header h2{font-size:16px;color:#fff;font-weight:700;}
 .sidebar-header p{font-size:11px;color:var(--nav-text);margin-top:2px;}
 .sidebar-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;}
-.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;}
-.user-info{flex:1;min-width:0;}
+.user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;}
+.av-mdpe{background:var(--mdpe);}
+.av-upvc{background:var(--upvc);}
+.av-admin{background:#d97706;}
 .user-info .name{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .user-info .role{font-size:10px;color:var(--nav-text);text-transform:uppercase;letter-spacing:0.5px;}
-.nav-section{padding:12px 10px 4px;}
+.user-info .dept-tag{font-size:10px;font-weight:600;margin-top:2px;}
+.nav-section{padding:10px 10px 4px;}
 .nav-label{font-size:10px;color:var(--nav-text);text-transform:uppercase;letter-spacing:0.8px;padding:0 8px;margin-bottom:4px;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;color:var(--nav-text);font-size:13px;font-weight:500;transition:all 0.15s;margin-bottom:2px;}
 .nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
-.nav-item.active{background:var(--nav-active-bg);color:var(--nav-active);}
-.nav-icon{font-size:16px;width:20px;text-align:center;}
+.nav-item.active{background:var(--nav-active-bg);color:#fff;}
+.nav-icon{font-size:15px;width:20px;text-align:center;}
 .sidebar-footer{margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,0.07);}
-
 .main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.topbar-title{font-size:16px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text);}
-.content{padding:24px;flex:1;}
+.topbar-title{font-size:16px;font-weight:700;font-family:'Poppins',sans-serif;}
+.content{padding:20px 24px;flex:1;}
 
-.page{display:none;}
-.page.active{display:block;}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:24px;}
-.stat-card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
-.stat-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
-.stat-value{font-size:26px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text);font-variant-numeric:tabular-nums;}
-.stat-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+/* PAGES */
+.page{display:none;}.page.active{display:block;}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
+.stat-value{font-size:24px;font-weight:700;font-family:'Poppins',sans-serif;font-variant-numeric:tabular-nums;}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
 .stat-card.green .stat-value{color:var(--success);}
 .stat-card.blue .stat-value{color:var(--primary);}
 .stat-card.amber .stat-value{color:var(--warning);}
+.stat-card.purple .stat-value{color:var(--mdpe);}
 
-.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .card-title{font-size:14px;font-weight:700;font-family:'Poppins',sans-serif;}
-.card-body{padding:20px;}
+.card-body{padding:18px;}
 
+/* TABLE */
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
-th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);background:var(--surface2);border-bottom:1px solid var(--border);}
+th{text-align:left;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);background:var(--surface2);border-bottom:1px solid var(--border);}
 td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:var(--surface2);}
+.amount{font-variant-numeric:tabular-nums;font-weight:600;}
+.date-chip{font-size:11px;color:var(--text3);white-space:nowrap;}
+
+/* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
 .badge-green{background:var(--success-bg);color:var(--success);}
 .badge-blue{background:#eff6ff;color:var(--primary);}
 .badge-amber{background:var(--warning-bg);color:var(--warning);}
 .badge-red{background:var(--danger-bg);color:var(--danger);}
 .badge-gray{background:var(--surface2);color:var(--text2);}
+.badge-purple{background:#ede9fe;color:var(--mdpe);}
+.badge-cyan{background:#e0f2fe;color:var(--upvc);}
 
-.search-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
-.search-input-wrap{position:relative;flex:1;min-width:200px;}
-.search-input-wrap .icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;}
-.search-input-wrap input{width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;}
-.search-input-wrap input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,0.08);}
+/* DEPT STRIPE */
+.dept-stripe-mdpe{border-left:3px solid var(--mdpe);}
+.dept-stripe-upvc{border-left:3px solid var(--upvc);}
 
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
-.modal-overlay.open{display:flex;}
-.modal{background:var(--surface);border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
-.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.modal-title{font-size:16px;font-weight:700;font-family:'Poppins',sans-serif;}
-.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);padding:4px;border-radius:4px;}
-.modal-close:hover{color:var(--text);}
-.modal-body{padding:24px;}
-.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+/* FILTERS */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.filter-bar select,.filter-bar input{padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;cursor:pointer;}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--primary);}
 
+/* SOURCE CHIPS */
+.source-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.source-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--text2);transition:all 0.2s;}
+.source-chip:hover{border-color:var(--primary);color:var(--primary);}
+.source-chip.selected{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+/* AUTOCOMPLETE */
 .autocomplete-wrap{position:relative;}
 .autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);box-shadow:var(--shadow-md);z-index:100;max-height:200px;overflow-y:auto;display:none;}
 .autocomplete-dropdown.open{display:block;}
@@ -174,50 +150,48 @@ tr:hover td{background:var(--surface2);}
 .autocomplete-item .ac-name{font-weight:600;}
 .autocomplete-item .ac-phone{font-size:11px;color:var(--text2);}
 
-.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
-.filter-bar select,.filter-bar input{padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;cursor:pointer;}
-.filter-bar select:focus,.filter-bar input:focus{border-color:var(--primary);}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:700;font-family:'Poppins',sans-serif;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);}
+.modal-body{padding:22px;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
 
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.grid-2{grid-template-columns:1fr;}}
+
+/* PROGRESS */
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px;}
+.progress-fill{height:100%;border-radius:3px;background:var(--primary);transition:width 0.4s;}
+
+/* USER CARD */
+.user-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.user-card .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;}
+.user-card .info .nm{font-weight:600;font-size:13px;}
+.user-card .info .un{font-size:11px;color:var(--text2);}
+
+/* TABS */
+.tab-bar{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:18px;}
+.tab-btn{padding:8px 16px;font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+
+/* TOAST */
 .toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
 .toast{background:var(--surface);border-left:4px solid var(--success);border-radius:var(--radius-sm);padding:12px 16px;box-shadow:var(--shadow-md);font-size:13px;font-weight:500;max-width:300px;animation:slideIn 0.3s ease;}
 .toast.error{border-color:var(--danger);}
 .toast.warning{border-color:var(--warning);}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
-
-.empty-state{text-align:center;padding:48px 24px;color:var(--text2);}
-.empty-state .icon{font-size:48px;margin-bottom:12px;}
-.empty-state p{font-size:14px;}
-
-.tab-bar{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:20px;}
-.tab-btn{padding:8px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;background:none;border:none;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;}
-.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
-.tab-btn:hover:not(.active){color:var(--text);}
-
-.source-chips{display:flex;gap:8px;flex-wrap:wrap;}
-.source-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--text2);transition:all 0.2s;}
-.source-chip:hover{border-color:var(--primary);color:var(--primary);}
-.source-chip.selected{background:var(--primary);color:#fff;border-color:var(--primary);}
-
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media(max-width:600px){.grid-2{grid-template-columns:1fr;}}
-
-.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px;}
-.progress-fill{height:100%;border-radius:3px;background:var(--primary);transition:width 0.4s;}
-
-.amount{font-variant-numeric:tabular-nums;font-weight:600;}
-.date-chip{font-size:11px;color:var(--text3);white-space:nowrap;}
-
-.user-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;}
-.user-card .av{width:38px;height:38px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;}
-.user-card .av.admin{background:#7c3aed;}
-.user-card .info{flex:1;}
-.user-card .info .nm{font-weight:600;font-size:13px;}
-.user-card .info .un{font-size:11px;color:var(--text2);}
-.help-text{font-size:11px;color:var(--text3);margin-top:4px;}
+.empty-state{text-align:center;padding:40px 24px;color:var(--text2);}
+.empty-state .icon{font-size:40px;margin-bottom:10px;}
 </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
@@ -233,31 +207,30 @@ tr:hover td{background:var(--surface2);}
       <label>Password</label>
       <input class="form-control" type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password">
     </div>
-    <div id="login-error" class="error-msg" style="display:none;margin-bottom:12px;"></div>
+    <div id="login-error" class="error-msg" style="display:none;margin-bottom:10px;"></div>
     <button class="btn btn-primary btn-full" onclick="doLogin()">Login →</button>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:16px;">Default: admin / admin123</p>
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px;">Admin: admin / admin@123</p>
   </div>
 </div>
 
+<!-- APP -->
 <div id="app">
   <div class="layout">
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2>SalesTrack</h2>
-        <p>Pro Edition</p>
-      </div>
+      <div class="sidebar-header"><h2>SalesTrack Pro</h2><p>Inside Sales System</p></div>
       <div class="sidebar-user">
         <div class="user-avatar" id="sb-avatar">A</div>
         <div class="user-info">
           <div class="name" id="sb-name">Admin</div>
           <div class="role" id="sb-role">Administrator</div>
+          <div class="dept-tag" id="sb-dept"></div>
         </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">Main</div>
         <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">🏠</span> Dashboard</div>
         <div class="nav-item" onclick="showPage('new-order')" id="nav-new-order"><span class="nav-icon">➕</span> New Order</div>
-        <div class="nav-item" onclick="showPage('orders')" id="nav-orders"><span class="nav-icon">📋</span> All Orders</div>
+        <div class="nav-item" onclick="showPage('orders')" id="nav-orders"><span class="nav-icon">📋</span> My Orders</div>
         <div class="nav-item" onclick="showPage('customers')" id="nav-customers"><span class="nav-icon">👥</span> Customers</div>
       </div>
       <div class="nav-section">
@@ -266,8 +239,8 @@ tr:hover td{background:var(--surface2);}
         <div class="nav-item" onclick="showPage('sources')" id="nav-sources"><span class="nav-icon">🎯</span> Lead Sources</div>
       </div>
       <div class="nav-section" id="admin-nav" style="display:none;">
-        <div class="nav-label">Admin</div>
-        <div class="nav-item" onclick="showPage('users')" id="nav-users"><span class="nav-icon">🔑</span> Users</div>
+        <div class="nav-label">Admin Panel</div>
+        <div class="nav-item" onclick="showPage('users')" id="nav-users"><span class="nav-icon">🔑</span> Manage Users</div>
       </div>
       <div class="sidebar-footer">
         <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
@@ -277,31 +250,50 @@ tr:hover td{background:var(--surface2);}
     <div class="main">
       <div class="topbar">
         <div class="topbar-title" id="page-title">Dashboard</div>
-        <span id="topbar-date" style="font-size:12px;color:var(--text2);"></span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="sb-dept-topbar"></span>
+          <span id="topbar-date" style="font-size:12px;color:var(--text2);"></span>
+        </div>
       </div>
       <div class="content">
 
+        <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
           <div class="stat-grid" id="dash-stats"></div>
-          <div class="card" style="margin-bottom:16px;" id="dash-exec-card">
-            <div class="card-header"><div class="card-title">Executive-wise Sales</div><div id="dash-exec-toggle" style="display:flex;gap:6px;"></div></div>
-            <div class="table-wrap"><table><thead><tr><th>Executive</th><th>Today Orders</th><th>Today Sales</th><th>Month Orders</th><th>Month Sales</th><th>Pending Payments</th><th>Pending Dispatch</th></tr></thead><tbody id="dash-exec-body"></tbody></table></div>
+          <!-- DEPT CARDS (admin only) -->
+          <div id="dash-dept-row" style="display:none;margin-bottom:16px;">
+            <div class="grid-2">
+              <div class="card dept-stripe-mdpe" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title" style="color:var(--mdpe);">🟣 MDPE/HDPE Department</div></div>
+                <div class="card-body" id="dash-mdpe-body" style="padding:12px 18px;"></div>
+              </div>
+              <div class="card dept-stripe-upvc" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title" style="color:var(--upvc);">🔵 UPVC/CPVC Department</div></div>
+                <div class="card-body" id="dash-upvc-body" style="padding:12px 18px;"></div>
+              </div>
+            </div>
+          </div>
+          <!-- EXECUTIVE TABLE -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">Executive-wise Sales</div></div>
+            <div class="table-wrap"><table><thead><tr><th>Executive</th><th>Department</th><th>Today Orders</th><th>Today Sales</th><th>Month Orders</th><th>Month Sales</th><th>Pay Pending</th><th>Dispatch Pending</th></tr></thead><tbody id="dash-exec-body"></tbody></table></div>
           </div>
           <div class="grid-2">
-            <div class="card">
+            <div class="card" style="margin-bottom:0;">
               <div class="card-header"><div class="card-title">Recent Orders</div></div>
-              <div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>Employee</th></tr></thead><tbody id="dash-recent-body"></tbody></table></div>
+              <div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>By</th></tr></thead><tbody id="dash-recent-body"></tbody></table></div>
             </div>
-            <div class="card">
+            <div class="card" style="margin-bottom:0;">
               <div class="card-header"><div class="card-title">Sources Today</div></div>
               <div class="card-body" id="dash-sources-chart"></div>
             </div>
           </div>
         </div>
 
+        <!-- NEW ORDER -->
         <div class="page" id="page-new-order">
           <div class="card" style="max-width:600px;">
-            <div class="card-header"><div class="card-title">New Order / Sale Entry</div></div>
+            <div class="card-header"><div class="card-title">New Order / Sale Entry</div><span id="new-order-dept-badge"></span></div>
             <div class="card-body">
               <div class="form-group">
                 <label>Customer Search (Name or Phone)</label>
@@ -309,27 +301,15 @@ tr:hover td{background:var(--surface2);}
                   <input class="form-control" type="text" id="order-cust-search" placeholder="Type customer name or phone..." oninput="searchCustomer(this.value)" autocomplete="off">
                   <div class="autocomplete-dropdown" id="cust-dropdown"></div>
                 </div>
-                <div class="help-text">Existing customer milne par auto-fill ho jaega. Naya hai to niche details bharo.</div>
+                <div class="help-text">Existing customer milne par auto-fill ho jaega.</div>
               </div>
               <div class="grid-2">
-                <div class="form-group">
-                  <label>Customer Name *</label>
-                  <input class="form-control" type="text" id="order-cust-name" placeholder="Full name">
-                </div>
-                <div class="form-group">
-                  <label>Phone Number *</label>
-                  <input class="form-control" type="tel" id="order-cust-phone" placeholder="10-digit number">
-                </div>
+                <div class="form-group"><label>Customer Name *</label><input class="form-control" type="text" id="order-cust-name" placeholder="Full name"></div>
+                <div class="form-group"><label>Phone Number *</label><input class="form-control" type="tel" id="order-cust-phone" placeholder="Phone number"></div>
               </div>
               <div class="grid-2">
-                <div class="form-group">
-                  <label>Sale Amount (₹) *</label>
-                  <input class="form-control" type="number" id="order-amount" placeholder="0.00" min="0" step="0.01">
-                </div>
-                <div class="form-group">
-                  <label>Date</label>
-                  <input class="form-control" type="date" id="order-date">
-                </div>
+                <div class="form-group"><label>Sale Amount (₹) *</label><input class="form-control" type="number" id="order-amount" placeholder="0.00" min="0" step="0.01"></div>
+                <div class="form-group"><label>Date</label><input class="form-control" type="date" id="order-date"></div>
               </div>
               <div class="form-group">
                 <label>Lead Source *</label>
@@ -358,11 +338,7 @@ tr:hover td{background:var(--surface2);}
                   </select>
                 </div>
               </div>
-              <div class="form-group">
-                <label>Notes (Optional)</label>
-                <textarea class="form-control" id="order-notes" rows="2" placeholder="Product details, remarks..."></textarea>
-              </div>
-              <input type="hidden" id="order-cust-id">
+              <div class="form-group"><label>Notes (Optional)</label><textarea class="form-control" id="order-notes" rows="2" placeholder="Product details, remarks..."></textarea></div>
               <div style="display:flex;gap:10px;margin-top:8px;">
                 <button class="btn btn-primary" onclick="submitOrder()">✅ Save Order</button>
                 <button class="btn btn-ghost" onclick="clearOrderForm()">Clear</button>
@@ -371,15 +347,21 @@ tr:hover td{background:var(--surface2);}
           </div>
         </div>
 
+        <!-- ORDERS -->
         <div class="page" id="page-orders">
           <div class="card">
             <div class="card-header">
-              <div class="card-title">All Orders</div>
+              <div class="card-title">Orders</div>
               <button class="btn btn-ghost btn-sm" onclick="exportOrders()">📥 Export Excel</button>
             </div>
             <div class="card-body" style="padding-bottom:0;">
               <div class="filter-bar">
-                <input type="text" placeholder="🔍 Search customer..." id="ord-search" oninput="renderOrders()" style="flex:1;min-width:160px;">
+                <input type="text" placeholder="🔍 Search customer..." id="ord-search" oninput="renderOrders()" style="flex:1;min-width:150px;">
+                <select id="ord-dept-filter" onchange="renderOrders()" style="display:none;">
+                  <option value="">All Departments</option>
+                  <option value="MDPE/HDPE">MDPE/HDPE</option>
+                  <option value="UPVC/CPVC">UPVC/CPVC</option>
+                </select>
                 <select id="ord-emp-filter" onchange="renderOrders()"></select>
                 <select id="ord-src-filter" onchange="renderOrders()">
                   <option value="">All Sources</option>
@@ -400,12 +382,13 @@ tr:hover td{background:var(--surface2);}
               </div>
             </div>
             <div class="table-wrap">
-              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Employee</th><th>Notes</th><th>Actions</th></tr></thead>
+              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Dept</th><th>Executive</th><th>Notes</th><th>Actions</th></tr></thead>
               <tbody id="orders-body"></tbody></table>
             </div>
           </div>
         </div>
 
+        <!-- CUSTOMERS -->
         <div class="page" id="page-customers">
           <div class="card">
             <div class="card-header">
@@ -413,11 +396,8 @@ tr:hover td{background:var(--surface2);}
               <button class="btn btn-primary btn-sm" onclick="openAddCustomer()">+ Add Customer</button>
             </div>
             <div class="card-body" style="padding-bottom:0;">
-              <div class="search-bar">
-                <div class="search-input-wrap">
-                  <span class="icon">🔍</span>
-                  <input type="text" placeholder="Search by name or phone..." id="cust-search" oninput="renderCustomers()">
-                </div>
+              <div class="filter-bar">
+                <input type="text" placeholder="🔍 Search by name or phone..." id="cust-search" oninput="renderCustomers()" style="flex:1;">
               </div>
             </div>
             <div class="table-wrap">
@@ -427,13 +407,19 @@ tr:hover td{background:var(--surface2);}
           </div>
         </div>
 
+        <!-- REPORTS -->
         <div class="page" id="page-reports">
           <div class="tab-bar">
             <button class="tab-btn active" onclick="switchReportTab('daily',this)">Daily</button>
             <button class="tab-btn" onclick="switchReportTab('weekly',this)">Weekly</button>
             <button class="tab-btn" onclick="switchReportTab('monthly',this)">Monthly</button>
           </div>
-          <div class="filter-bar" style="margin-bottom:20px;">
+          <div class="filter-bar">
+            <select id="rep-dept-filter" onchange="renderReport()" style="display:none;">
+              <option value="">All Departments</option>
+              <option value="MDPE/HDPE">MDPE/HDPE</option>
+              <option value="UPVC/CPVC">UPVC/CPVC</option>
+            </select>
             <select id="rep-emp-filter" onchange="renderReport()"></select>
             <input type="month" id="rep-month" onchange="renderReport()">
             <button class="btn btn-ghost btn-sm" onclick="exportReport()">📥 Export</button>
@@ -441,37 +427,51 @@ tr:hover td{background:var(--surface2);}
           <div id="report-content"></div>
         </div>
 
+        <!-- LEAD SOURCES -->
         <div class="page" id="page-sources">
-          <div class="filter-bar" style="margin-bottom:20px;">
+          <div class="filter-bar">
+            <select id="src-dept-filter" onchange="renderSources()" style="display:none;">
+              <option value="">All Departments</option>
+              <option value="MDPE/HDPE">MDPE/HDPE</option>
+              <option value="UPVC/CPVC">UPVC/CPVC</option>
+            </select>
             <select id="src-emp-filter" onchange="renderSources()"></select>
             <input type="month" id="src-month" onchange="renderSources()">
           </div>
           <div id="sources-content"></div>
         </div>
 
+        <!-- USERS (Admin) -->
         <div class="page" id="page-users">
           <div class="grid-2">
             <div>
-              <div class="card" style="margin-bottom:16px;">
-                <div class="card-header"><div class="card-title">Team Members</div></div>
-                <div class="card-body" id="users-list"></div>
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">🟣 MDPE/HDPE Team</div>
+                </div>
+                <div class="card-body" id="users-mdpe"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">🔵 UPVC/CPVC Team</div>
+                </div>
+                <div class="card-body" id="users-upvc"></div>
               </div>
             </div>
             <div>
               <div class="card">
-                <div class="card-header"><div class="card-title">Add New User</div></div>
+                <div class="card-header"><div class="card-title">Add / Edit User</div></div>
                 <div class="card-body">
+                  <input type="hidden" id="edit-user-id">
+                  <div class="form-group"><label>Full Name *</label><input class="form-control" type="text" id="new-name" placeholder="Employee name"></div>
+                  <div class="form-group"><label>Username *</label><input class="form-control" type="text" id="new-uname" placeholder="Login username"></div>
+                  <div class="form-group"><label>Password *</label><input class="form-control" type="password" id="new-pass" placeholder="Set password"></div>
                   <div class="form-group">
-                    <label>Full Name *</label>
-                    <input class="form-control" type="text" id="new-name" placeholder="Employee name">
-                  </div>
-                  <div class="form-group">
-                    <label>Username *</label>
-                    <input class="form-control" type="text" id="new-uname" placeholder="Login username">
-                  </div>
-                  <div class="form-group">
-                    <label>Password *</label>
-                    <input class="form-control" type="password" id="new-pass" placeholder="Set password">
+                    <label>Department *</label>
+                    <select class="form-control" id="new-dept">
+                      <option value="MDPE/HDPE">MDPE/HDPE</option>
+                      <option value="UPVC/CPVC">UPVC/CPVC</option>
+                    </select>
                   </div>
                   <div class="form-group">
                     <label>Role</label>
@@ -480,7 +480,10 @@ tr:hover td{background:var(--surface2);}
                       <option value="admin">Admin</option>
                     </select>
                   </div>
-                  <button class="btn btn-primary" onclick="addUser()">Add User</button>
+                  <div style="display:flex;gap:8px;">
+                    <button class="btn btn-primary" id="user-save-btn" onclick="saveUser()">Add User</button>
+                    <button class="btn btn-ghost" id="user-cancel-btn" onclick="cancelEditUser()" style="display:none;">Cancel</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -492,54 +495,31 @@ tr:hover td{background:var(--surface2);}
   </div>
 </div>
 
+<!-- EDIT ORDER MODAL -->
 <div class="modal-overlay" id="edit-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Edit Order</div>
-      <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Edit Order</div><button class="modal-close" onclick="closeModal('edit-modal')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="edit-order-id">
-      <div class="form-group">
-        <label>Customer</label>
-        <input class="form-control" type="text" id="edit-cust-name" readonly style="opacity:0.7;">
-      </div>
+      <div class="form-group"><label>Customer</label><input class="form-control" type="text" id="edit-cust-name" readonly style="opacity:0.7;"></div>
       <div class="grid-2">
-        <div class="form-group">
-          <label>Amount (₹) *</label>
-          <input class="form-control" type="number" id="edit-amount" min="0" step="0.01">
-        </div>
-        <div class="form-group">
-          <label>Date</label>
-          <input class="form-control" type="date" id="edit-date">
-        </div>
+        <div class="form-group"><label>Amount (₹) *</label><input class="form-control" type="number" id="edit-amount" min="0" step="0.01"></div>
+        <div class="form-group"><label>Date</label><input class="form-control" type="date" id="edit-date"></div>
       </div>
-      <div class="form-group">
-        <label>Lead Source</label>
+      <div class="form-group"><label>Lead Source</label>
         <select class="form-control" id="edit-source">
           <option>Google</option><option>IndiaMart</option><option>Trade India</option><option>Website</option><option>Reference</option><option>Other</option>
         </select>
       </div>
       <div class="grid-2">
-        <div class="form-group">
-          <label>Payment Status</label>
-          <select class="form-control" id="edit-payment">
-            <option value="Pending">⏳ Payment Pending</option>
-            <option value="Received">✅ Payment Received</option>
-          </select>
+        <div class="form-group"><label>Payment Status</label>
+          <select class="form-control" id="edit-payment"><option value="Pending">⏳ Pending</option><option value="Received">✅ Received</option></select>
         </div>
-        <div class="form-group">
-          <label>Dispatch Status</label>
-          <select class="form-control" id="edit-dispatch">
-            <option value="Pending">⏳ Dispatch Pending</option>
-            <option value="Done">🚚 Dispatched</option>
-          </select>
+        <div class="form-group"><label>Dispatch Status</label>
+          <select class="form-control" id="edit-dispatch"><option value="Pending">⏳ Pending</option><option value="Done">🚚 Done</option></select>
         </div>
       </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea class="form-control" id="edit-notes" rows="2"></textarea>
-      </div>
+      <div class="form-group"><label>Notes</label><textarea class="form-control" id="edit-notes" rows="2"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
@@ -548,25 +528,14 @@ tr:hover td{background:var(--surface2);}
   </div>
 </div>
 
+<!-- ADD CUSTOMER MODAL -->
 <div class="modal-overlay" id="add-cust-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Add New Customer</div>
-      <button class="modal-close" onclick="closeModal('add-cust-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Add New Customer</div><button class="modal-close" onclick="closeModal('add-cust-modal')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group">
-        <label>Full Name *</label>
-        <input class="form-control" type="text" id="nc-name" placeholder="Customer name">
-      </div>
-      <div class="form-group">
-        <label>Phone *</label>
-        <input class="form-control" type="tel" id="nc-phone" placeholder="Phone number">
-      </div>
-      <div class="form-group">
-        <label>Address</label>
-        <input class="form-control" type="text" id="nc-addr" placeholder="Optional">
-      </div>
+      <div class="form-group"><label>Full Name *</label><input class="form-control" type="text" id="nc-name" placeholder="Customer name"></div>
+      <div class="form-group"><label>Phone *</label><input class="form-control" type="tel" id="nc-phone" placeholder="Phone number"></div>
+      <div class="form-group"><label>Address</label><input class="form-control" type="text" id="nc-addr" placeholder="Optional"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('add-cust-modal')">Cancel</button>
@@ -578,74 +547,63 @@ tr:hover td{background:var(--surface2);}
 <div class="toast-container" id="toast-container"></div>
 
 <script>
-let currentUser = null;
-let reportPeriod = 'daily';
-let users = [];
-let customers = [];
-let orders = [];
+let currentUser=null, reportPeriod='daily';
+let users=[], customers=[], orders=[];
 
-function loadFromLocal() {
-  users = JSON.parse(localStorage.getItem('st_users')||'[]');
-  customers = JSON.parse(localStorage.getItem('st_customers')||'[]');
-  orders = JSON.parse(localStorage.getItem('st_orders')||'[]');
+// ── DATA ──────────────────────────────────────────────
+function loadFromLocal(){
+  users=JSON.parse(localStorage.getItem('st_users')||'[]');
+  customers=JSON.parse(localStorage.getItem('st_customers')||'[]');
+  orders=JSON.parse(localStorage.getItem('st_orders')||'[]');
 }
-
-function saveLocal() {
-  localStorage.setItem('st_users', JSON.stringify(users));
-  localStorage.setItem('st_customers', JSON.stringify(customers));
-  localStorage.setItem('st_orders', JSON.stringify(orders));
+function saveLocal(){
+  localStorage.setItem('st_users',JSON.stringify(users));
+  localStorage.setItem('st_customers',JSON.stringify(customers));
+  localStorage.setItem('st_orders',JSON.stringify(orders));
 }
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
-function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-
-function seedDefaults() {
-  users = [
-    {id:'u1',name:'Admin',username:'admin',password:'admin123',role:'admin'},
-    {id:'u2',name:'Rahul Sharma',username:'rahul',password:'rahul123',role:'employee'},
-    {id:'u3',name:'Priya Singh',username:'priya',password:'priya123',role:'employee'},
+function seedDefaults(){
+  users=[
+    {id:'u0',name:'Admin',username:'admin',password:'admin@123',role:'admin',dept:'admin'},
+    // MDPE/HDPE
+    {id:'u1',name:'Dhruvi Sodha',username:'dhruvi',password:'dhruvi@123',role:'employee',dept:'MDPE/HDPE'},
+    {id:'u2',name:'Sapna Bhuva',username:'sapna',password:'sapna@123',role:'employee',dept:'MDPE/HDPE'},
+    {id:'u3',name:'Daxa Palaliya',username:'daxa',password:'daxa@123',role:'employee',dept:'MDPE/HDPE'},
+    {id:'u4',name:'User 4',username:'user4',password:'user4@123',role:'employee',dept:'MDPE/HDPE'},
+    // UPVC/CPVC
+    {id:'u5',name:'Sanjana',username:'sanjana',password:'sanjana@123',role:'employee',dept:'UPVC/CPVC'},
+    {id:'u6',name:'Tanisha',username:'tanisha',password:'tanisha@123',role:'employee',dept:'UPVC/CPVC'},
+    {id:'u7',name:'Rutvi',username:'rutvi',password:'rutvi@123',role:'employee',dept:'UPVC/CPVC'},
+    {id:'u8',name:'User 8',username:'user8',password:'user8@123',role:'employee',dept:'UPVC/CPVC'},
   ];
-  customers = [
-    {id:'c1',name:'Amit Gupta',phone:'9876543210',address:'Mumbai',createdAt:Date.now()},
-    {id:'c2',name:'Sunita Patel',phone:'8765432109',address:'Ahmedabad',createdAt:Date.now()},
-    {id:'c3',name:'Vikram Mehta',phone:'7654321098',address:'Delhi',createdAt:Date.now()},
-  ];
-  const today = new Date().toISOString().slice(0,10);
-  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
-  orders = [
-    {id:'o1',customerId:'c1',customerName:'Amit Gupta',customerPhone:'9876543210',amount:25000,source:'IndiaMart',employeeId:'u2',employeeName:'Rahul Sharma',notes:'Product A',date:today,createdAt:Date.now()-300},
-    {id:'o2',customerId:'c2',customerName:'Sunita Patel',customerPhone:'8765432109',amount:18500,source:'Google',employeeId:'u3',employeeName:'Priya Singh',notes:'Product B',date:today,createdAt:Date.now()-200},
-    {id:'o3',customerId:'c3',customerName:'Vikram Mehta',customerPhone:'7654321098',amount:42000,source:'Reference',employeeId:'u2',employeeName:'Rahul Sharma',notes:'Bulk order',date:yesterday,createdAt:Date.now()-100},
-  ];
+  customers=[];
+  orders=[];
   saveLocal();
 }
 
-function init() {
+function init(){
   loadFromLocal();
-  if(users.length===0 || !users.find(u=>u.username==='admin')) seedDefaults();
-  const sess = sessionStorage.getItem('st_session');
-  if(sess) {
-    try {
-      const u = JSON.parse(sess);
-      const fresh = users.find(x=>x.id===u.id);
-      if(fresh) { currentUser=fresh; startApp(); return; }
-    } catch(e){}
-  }
+  if(!users.find(u=>u.username==='admin')) seedDefaults();
+  const sess=sessionStorage.getItem('st_session');
+  if(sess){try{const u=JSON.parse(sess);const f=users.find(x=>x.id===u.id);if(f){currentUser=f;startApp();return;}}catch(e){}}
 }
 
-function doLogin() {
-  const uname = document.getElementById('login-user').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const err = document.getElementById('login-error');
+// ── AUTH ──────────────────────────────────────────────
+function doLogin(){
+  const uname=document.getElementById('login-user').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-error');
   err.style.display='none';
-  const user = users.find(u=>u.username===uname && u.password===pass);
-  if(!user) { err.textContent='Invalid username or password.'; err.style.display='block'; return; }
-  currentUser = user;
-  sessionStorage.setItem('st_session', JSON.stringify(user));
+  const user=users.find(u=>u.username===uname&&u.password===pass);
+  if(!user){err.textContent='Invalid username or password.';err.style.display='block';return;}
+  currentUser=user;
+  sessionStorage.setItem('st_session',JSON.stringify(user));
   startApp();
 }
 
-function doLogout() {
-  currentUser = null;
+function doLogout(){
+  currentUser=null;
   sessionStorage.removeItem('st_session');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -653,120 +611,155 @@ function doLogout() {
   document.getElementById('login-pass').value='';
 }
 
-function startApp() {
+function startApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
-  document.getElementById('sb-name').textContent = currentUser.name;
-  document.getElementById('sb-role').textContent = currentUser.role==='admin'?'Administrator':'Sales Executive';
-  document.getElementById('sb-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
-  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-  if(currentUser.role==='admin') document.getElementById('admin-nav').style.display='block';
-  setDefaultDates();
+  const av=document.getElementById('sb-avatar');
+  av.textContent=currentUser.name.charAt(0).toUpperCase();
+  av.className='user-avatar '+(currentUser.dept==='MDPE/HDPE'?'av-mdpe':currentUser.dept==='UPVC/CPVC'?'av-upvc':'av-admin');
+  document.getElementById('sb-name').textContent=currentUser.name;
+  document.getElementById('sb-role').textContent=currentUser.role==='admin'?'Administrator':'Sales Executive';
+  const deptEl=document.getElementById('sb-dept');
+  if(currentUser.dept&&currentUser.dept!=='admin'){
+    deptEl.innerHTML=`<span class="badge ${currentUser.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}" style="font-size:10px;">${currentUser.dept}</span>`;
+    document.getElementById('sb-dept-topbar').innerHTML=`<span class="badge ${currentUser.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${currentUser.dept}</span>`;
+  }
+  document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  if(currentUser.role==='admin'){
+    document.getElementById('admin-nav').style.display='block';
+    document.getElementById('ord-dept-filter').style.display='block';
+    document.getElementById('rep-dept-filter').style.display='block';
+    document.getElementById('src-dept-filter').style.display='block';
+  }
+  document.getElementById('nav-orders').querySelector('span+*')||null;
+  document.getElementById('nav-orders').innerHTML='<span class="nav-icon">📋</span> '+(currentUser.role==='admin'?'All Orders':'My Orders');
+  const today=new Date().toISOString().slice(0,10);
+  const ym=today.slice(0,7);
+  const od=document.getElementById('order-date');if(od)od.value=today;
+  const rm=document.getElementById('rep-month');if(rm)rm.value=ym;
+  const sm=document.getElementById('src-month');if(sm)sm.value=ym;
   populateEmpFilters();
   showPage('dashboard');
 }
 
-function setDefaultDates() {
-  const today = new Date().toISOString().slice(0,10);
-  const ym = today.slice(0,7);
-  const d=document.getElementById('order-date'); if(d) d.value=today;
-  const rm=document.getElementById('rep-month'); if(rm) rm.value=ym;
-  const sm=document.getElementById('src-month'); if(sm) sm.value=ym;
-}
-
-function populateEmpFilters() {
-  const allOpt = '<option value="">All Employees</option>';
-  const opts = allOpt + users.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
-  ['ord-emp-filter','rep-emp-filter','src-emp-filter'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.innerHTML=opts;
-  });
-}
-
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pg=document.getElementById(`page-${id}`);
-  const nav=document.getElementById(`nav-${id}`);
-  if(pg) pg.classList.add('active');
-  if(nav) nav.classList.add('active');
-  const titles={dashboard:'Dashboard',orders:'All Orders','new-order':'New Order',customers:'Customers',reports:'Sales Reports',sources:'Lead Sources',users:'User Management'};
-  document.getElementById('page-title').textContent=titles[id]||'';
-  if(id==='dashboard') renderDashboard();
-  if(id==='orders') renderOrders();
-  if(id==='customers') renderCustomers();
-  if(id==='reports') renderReport();
-  if(id==='sources') renderSources();
-  if(id==='users') renderUsers();
-  if(id==='new-order') clearOrderForm();
-}
-
-function getVisibleOrders() {
+function getMyOrders(){
   if(currentUser.role==='admin') return orders;
   return orders.filter(o=>o.employeeId===currentUser.id);
 }
 
-function renderDashboard() {
-  const vis=getVisibleOrders();
+function populateEmpFilters(){
+  const empList=currentUser.role==='admin'?users.filter(u=>u.role==='employee'):[currentUser];
+  const allOpt='<option value="">All Executives</option>';
+  const opts=allOpt+empList.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  ['ord-emp-filter','rep-emp-filter','src-emp-filter'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
+}
+
+// ── NAVIGATION ────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById(`page-${id}`);
+  const nav=document.getElementById(`nav-${id}`);
+  if(pg)pg.classList.add('active');
+  if(nav)nav.classList.add('active');
+  const titles={dashboard:'Dashboard',orders:currentUser.role==='admin'?'All Orders':'My Orders','new-order':'New Order',customers:'Customers',reports:'Sales Reports',sources:'Lead Sources',users:'Manage Users'};
+  document.getElementById('page-title').textContent=titles[id]||'';
+  if(id==='new-order'){
+    clearOrderForm();
+    const b=document.getElementById('new-order-dept-badge');
+    if(b&&currentUser.dept&&currentUser.dept!=='admin') b.innerHTML=`<span class="badge ${currentUser.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${currentUser.dept}</span>`;
+  }
+  if(id==='dashboard')renderDashboard();
+  if(id==='orders')renderOrders();
+  if(id==='customers')renderCustomers();
+  if(id==='reports')renderReport();
+  if(id==='sources')renderSources();
+  if(id==='users')renderUsers();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+function renderDashboard(){
+  const vis=getMyOrders();
   const today=new Date().toISOString().slice(0,10);
   const thisMonth=today.slice(0,7);
   const todayOrd=vis.filter(o=>o.date===today);
   const monthOrd=vis.filter(o=>o.date&&o.date.startsWith(thisMonth));
   const todaySales=todayOrd.reduce((s,o)=>s+Number(o.amount),0);
   const monthSales=monthOrd.reduce((s,o)=>s+Number(o.amount),0);
-  const totalCustomers=currentUser.role==='admin'?customers.length:[...new Set(vis.map(o=>o.customerId))].length;
-  document.getElementById('dash-stats').innerHTML=`
-    <div class="stat-card green"><div class="stat-label">Today's Sales</div><div class="stat-value">₹${fmt(todaySales)}</div><div class="stat-sub">${todayOrd.length} orders today</div></div>
-    <div class="stat-card blue"><div class="stat-label">Monthly Sales</div><div class="stat-value">₹${fmt(monthSales)}</div><div class="stat-sub">${monthOrd.length} orders this month</div></div>
-    <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">${vis.length}</div><div class="stat-sub">All time</div></div>
-    <div class="stat-card amber"><div class="stat-label">Customers</div><div class="stat-value">${totalCustomers}</div><div class="stat-sub">Unique customers</div></div>`;
-  // Executive-wise table (admin sees all, employee sees only self)
-  const execUsers = currentUser.role==='admin' ? users : [currentUser];
-  const execBody = document.getElementById('dash-exec-body');
-  if(execBody) {
-    execBody.innerHTML = execUsers.map(u=>{
-      const uOrd = orders.filter(o=>o.employeeId===u.id);
-      const uToday = uOrd.filter(o=>o.date===today);
-      const uMonth = uOrd.filter(o=>o.date&&o.date.startsWith(thisMonth));
-      const todayAmt = uToday.reduce((s,o)=>s+Number(o.amount),0);
-      const monthAmt = uMonth.reduce((s,o)=>s+Number(o.amount),0);
-      const pendPay = uOrd.filter(o=>(o.payment||'Pending')==='Pending').length;
-      const pendDis = uOrd.filter(o=>(o.dispatch||'Pending')==='Pending').length;
-      return `<tr>
-        <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${u.name.charAt(0)}</div><strong>${esc(u.name)}</strong></div></td>
-        <td>${uToday.length}</td>
-        <td class="amount" style="color:var(--success);">₹${fmt(todayAmt)}</td>
-        <td>${uMonth.length}</td>
-        <td class="amount" style="color:var(--primary);">₹${fmt(monthAmt)}</td>
-        <td><span class="badge ${pendPay>0?'badge-amber':'badge-green'}">${pendPay} pending</span></td>
-        <td><span class="badge ${pendDis>0?'badge-red':'badge-green'}">${pendDis} pending</span></td>
-      </tr>`;
-    }).join('') || `<tr><td colspan="7"><div class="empty-state"><div class="icon">👤</div><p>No executives found</p></div></td></tr>`;
-  }
 
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card green"><div class="stat-label">Today's Sales</div><div class="stat-value">₹${fmt(todaySales)}</div><div class="stat-sub">${todayOrd.length} orders</div></div>
+    <div class="stat-card blue"><div class="stat-label">Monthly Sales</div><div class="stat-value">₹${fmt(monthSales)}</div><div class="stat-sub">${monthOrd.length} orders</div></div>
+    <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">${vis.length}</div><div class="stat-sub">All time</div></div>
+    <div class="stat-card amber"><div class="stat-label">Pay Pending</div><div class="stat-value">${vis.filter(o=>(o.payment||'Pending')==='Pending').length}</div><div class="stat-sub">Orders</div></div>
+    <div class="stat-card purple"><div class="stat-label">Dispatch Pending</div><div class="stat-value">${vis.filter(o=>(o.dispatch||'Pending')==='Pending').length}</div><div class="stat-sub">Orders</div></div>`;
+
+  // Dept summary (admin only)
+  const deptRow=document.getElementById('dash-dept-row');
+  if(currentUser.role==='admin'){
+    deptRow.style.display='block';
+    ['MDPE/HDPE','UPVC/CPVC'].forEach(dept=>{
+      const dOrd=orders.filter(o=>o.employeeDept===dept);
+      const dToday=dOrd.filter(o=>o.date===today);
+      const dMonth=dOrd.filter(o=>o.date&&o.date.startsWith(thisMonth));
+      const elId=dept==='MDPE/HDPE'?'dash-mdpe-body':'dash-upvc-body';
+      document.getElementById(elId).innerHTML=`
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--text2);font-size:12px;">Today</span><strong>₹${fmt(dToday.reduce((s,o)=>s+Number(o.amount),0))}</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--text2);font-size:12px;">This Month</span><strong>₹${fmt(dMonth.reduce((s,o)=>s+Number(o.amount),0))}</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);font-size:12px;">Total Orders</span><strong>${dOrd.length}</strong></div>`;
+    });
+  } else { deptRow.style.display='none'; }
+
+  // Executive table
+  const execList=currentUser.role==='admin'?users.filter(u=>u.role==='employee'):[currentUser];
+  document.getElementById('dash-exec-body').innerHTML=execList.map(u=>{
+    const uOrd=orders.filter(o=>o.employeeId===u.id);
+    const uToday=uOrd.filter(o=>o.date===today);
+    const uMonth=uOrd.filter(o=>o.date&&o.date.startsWith(thisMonth));
+    const pendPay=uOrd.filter(o=>(o.payment||'Pending')==='Pending').length;
+    const pendDis=uOrd.filter(o=>(o.dispatch||'Pending')==='Pending').length;
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:26px;height:26px;border-radius:50%;background:${u.dept==='MDPE/HDPE'?'var(--mdpe)':'var(--upvc)'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${u.name.charAt(0)}</div><strong>${esc(u.name)}</strong></div></td>
+      <td><span class="badge ${u.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(u.dept)}</span></td>
+      <td>${uToday.length}</td>
+      <td class="amount" style="color:var(--success);">₹${fmt(uToday.reduce((s,o)=>s+Number(o.amount),0))}</td>
+      <td>${uMonth.length}</td>
+      <td class="amount" style="color:var(--primary);">₹${fmt(uMonth.reduce((s,o)=>s+Number(o.amount),0))}</td>
+      <td><span class="badge ${pendPay>0?'badge-amber':'badge-green'}">${pendPay}</span></td>
+      <td><span class="badge ${pendDis>0?'badge-red':'badge-green'}">${pendDis}</span></td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="8"><div class="empty-state"><div class="icon">👤</div><p>No data</p></div></td></tr>`;
+
+  // Recent
   const recent=[...vis].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
   document.getElementById('dash-recent-body').innerHTML=recent.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">📋</div><p>No orders yet</p></div></td></tr>`:
     recent.map(o=>`<tr><td><strong>${esc(o.customerName)}</strong></td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('');
+
+  // Sources
   const srcMap={};
   todayOrd.forEach(o=>{srcMap[o.source]=(srcMap[o.source]||0)+Number(o.amount);});
-  const sources=['Google','IndiaMart','Trade India','Website','Reference','Other'];
-  const colors=['#3b82f6','#f59e0b','#10b981','#8b5cf6','#ec4899','#6b7280'];
+  const srcs=['Google','IndiaMart','Trade India','Website','Reference','Other'];
+  const cols=['#3b82f6','#f59e0b','#10b981','#8b5cf6','#ec4899','#6b7280'];
   const maxV=Math.max(...Object.values(srcMap),1);
-  document.getElementById('dash-sources-chart').innerHTML=sources.map((s,i)=>{
+  document.getElementById('dash-sources-chart').innerHTML=srcs.map((s,i)=>{
     const v=srcMap[s]||0;
-    return `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="color:var(--text2);">${s}</span><span class="amount" style="font-size:12px;">₹${fmt(v)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(v/maxV*100)}%;background:${colors[i]};"></div></div></div>`;
+    return `<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span style="color:var(--text2);">${s}</span><span class="amount" style="font-size:12px;">₹${fmt(v)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(v/maxV*100)}%;background:${cols[i]};"></div></div></div>`;
   }).join('');
 }
 
-function renderOrders() {
+// ── ORDERS ────────────────────────────────────────────
+function renderOrders(){
   const search=(document.getElementById('ord-search')||{}).value||'';
   const empF=(document.getElementById('ord-emp-filter')||{}).value||'';
+  const deptF=(document.getElementById('ord-dept-filter')||{}).value||'';
   const srcF=(document.getElementById('ord-src-filter')||{}).value||'';
   const payF=(document.getElementById('ord-pay-filter')||{}).value||'';
   const disF=(document.getElementById('ord-dis-filter')||{}).value||'';
   const fromF=(document.getElementById('ord-from')||{}).value||'';
   const toF=(document.getElementById('ord-to')||{}).value||'';
-  let vis=getVisibleOrders();
+  let vis=getMyOrders();
   if(empF) vis=vis.filter(o=>o.employeeId===empF);
+  if(deptF) vis=vis.filter(o=>o.employeeDept===deptF);
   if(srcF) vis=vis.filter(o=>o.source===srcF);
   if(payF) vis=vis.filter(o=>(o.payment||'Pending')===payF);
   if(disF) vis=vis.filter(o=>(o.dispatch||'Pending')===disF);
@@ -774,7 +767,7 @@ function renderOrders() {
   if(toF) vis=vis.filter(o=>o.date<=toF);
   if(search) vis=vis.filter(o=>(o.customerName+o.customerPhone).toLowerCase().includes(search.toLowerCase()));
   vis=[...vis].sort((a,b)=>b.createdAt-a.createdAt);
-  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="10"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
+  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="11"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
     vis.map(o=>`<tr>
       <td class="date-chip">${o.date||''}</td>
       <td><strong>${esc(o.customerName)}</strong></td>
@@ -783,17 +776,18 @@ function renderOrders() {
       <td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td>
       <td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${(o.payment||'Pending')==='Received'?'✅ Received':'⏳ Pending'}</span></td>
       <td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${(o.dispatch||'Pending')==='Done'?'🚚 Done':'⏳ Pending'}</span></td>
+      <td><span class="badge ${(o.employeeDept||'')==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(o.employeeDept||'')}</span></td>
       <td>${esc(o.employeeName)}</td>
-      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.notes||'')}</td>
-      <td>
+      <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.notes||'')}</td>
+      <td style="white-space:nowrap;">
         <button class="btn btn-ghost btn-sm" onclick="openEditOrder('${o.id}')">✏️</button>
         ${currentUser.role==='admin'||o.employeeId===currentUser.id?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteOrder('${o.id}')">🗑️</button>`:''}
       </td>
     </tr>`).join('');
 }
 
-function openEditOrder(id) {
-  const o=orders.find(x=>x.id===id); if(!o) return;
+function openEditOrder(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
   document.getElementById('edit-order-id').value=id;
   document.getElementById('edit-cust-name').value=o.customerName;
   document.getElementById('edit-amount').value=o.amount;
@@ -805,33 +799,34 @@ function openEditOrder(id) {
   openModal('edit-modal');
 }
 
-function saveEdit() {
+function saveEdit(){
   const id=document.getElementById('edit-order-id').value;
   const amt=parseFloat(document.getElementById('edit-amount').value);
   if(!amt||amt<=0){toast('Valid amount enter karo','error');return;}
-  const idx=orders.findIndex(o=>o.id===id); if(idx<0) return;
+  const idx=orders.findIndex(o=>o.id===id);if(idx<0)return;
   orders[idx]={...orders[idx],amount:amt,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
-  saveLocal(); closeModal('edit-modal'); renderOrders(); toast('Order updated!');
+  saveLocal();closeModal('edit-modal');renderOrders();toast('Order updated!');
 }
 
-function deleteOrder(id) {
-  if(!confirm('Is order ko delete karna chahte ho?')) return;
-  orders=orders.filter(o=>o.id!==id); saveLocal(); renderOrders(); toast('Order deleted','warning');
+function deleteOrder(id){
+  if(!confirm('Is order ko delete karna chahte ho?'))return;
+  orders=orders.filter(o=>o.id!==id);saveLocal();renderOrders();toast('Order deleted','warning');
 }
 
+// ── NEW ORDER ─────────────────────────────────────────
 let selectedCustomerId=null;
 
-function searchCustomer(val) {
+function searchCustomer(val){
   const dd=document.getElementById('cust-dropdown');
   if(!val||val.length<2){dd.classList.remove('open');return;}
   const matches=customers.filter(c=>(c.name+c.phone).toLowerCase().includes(val.toLowerCase())).slice(0,6);
-  if(matches.length===0){dd.classList.remove('open');return;}
+  if(!matches.length){dd.classList.remove('open');return;}
   dd.innerHTML=matches.map(c=>`<div class="autocomplete-item" onclick="selectCustomer('${c.id}')"><div class="ac-name">${esc(c.name)}</div><div class="ac-phone">${esc(c.phone)}</div></div>`).join('');
   dd.classList.add('open');
 }
 
-function selectCustomer(id) {
-  const c=customers.find(x=>x.id===id); if(!c) return;
+function selectCustomer(id){
+  const c=customers.find(x=>x.id===id);if(!c)return;
   selectedCustomerId=id;
   document.getElementById('order-cust-name').value=c.name;
   document.getElementById('order-cust-phone').value=c.phone;
@@ -841,26 +836,28 @@ function selectCustomer(id) {
   toast(`${c.name} selected — sirf amount bharo!`);
 }
 
-function selectSource(el) {
+function selectSource(el){
   document.querySelectorAll('#order-source-chips .source-chip').forEach(x=>x.classList.remove('selected'));
   el.classList.add('selected');
 }
 
-function clearOrderForm() {
+function clearOrderForm(){
   selectedCustomerId=null;
   ['order-cust-search','order-cust-name','order-cust-phone','order-amount','order-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('order-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('order-payment').value='Pending';
   document.getElementById('order-dispatch').value='Pending';
-  document.getElementById('order-date').value=new Date().toISOString().slice(0,10);
-  document.querySelectorAll('#order-source-chips .source-chip').forEach((x,i)=>{x.classList.toggle('selected',i===0);});
+  document.querySelectorAll('#order-source-chips .source-chip').forEach((x,i)=>x.classList.toggle('selected',i===0));
 }
 
-function submitOrder() {
+function submitOrder(){
   const name=document.getElementById('order-cust-name').value.trim();
   const phone=document.getElementById('order-cust-phone').value.trim();
   const amount=parseFloat(document.getElementById('order-amount').value);
   const date=document.getElementById('order-date').value;
   const notes=document.getElementById('order-notes').value.trim();
+  const payment=document.getElementById('order-payment').value;
+  const dispatch=document.getElementById('order-dispatch').value;
   const sourceEl=document.querySelector('#order-source-chips .source-chip.selected');
   const source=sourceEl?sourceEl.dataset.val:'Other';
   if(!name){toast('Customer name bharo','error');return;}
@@ -872,158 +869,205 @@ function submitOrder() {
     if(existing){custId=existing.id;}
     else{const nc={id:uid(),name,phone,address:'',createdAt:Date.now()};customers.push(nc);custId=nc.id;}
   }
-  const payment=document.getElementById('order-payment').value;
-  const dispatch=document.getElementById('order-dispatch').value;
-  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,notes,date,createdAt:Date.now()};
-  orders.push(order); saveLocal(); clearOrderForm(); toast('Order save ho gaya! ✅'); showPage('orders');
+  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,employeeDept:currentUser.dept||'',notes,date,createdAt:Date.now()};
+  orders.push(order);saveLocal();clearOrderForm();toast('Order save ho gaya! ✅');showPage('orders');
 }
 
-function renderCustomers() {
+// ── CUSTOMERS ─────────────────────────────────────────
+function renderCustomers(){
   const search=(document.getElementById('cust-search')||{}).value||'';
-  let vis=currentUser.role==='admin'?customers:[...new Set(orders.filter(o=>o.employeeId===currentUser.id).map(o=>o.customerId))].map(id=>customers.find(c=>c.id===id)).filter(Boolean);
+  const myOrdCustIds=currentUser.role==='admin'?null:[...new Set(getMyOrders().map(o=>o.customerId))];
+  let vis=currentUser.role==='admin'?customers:customers.filter(c=>myOrdCustIds.includes(c.id));
   if(search) vis=vis.filter(c=>(c.name+c.phone).toLowerCase().includes(search.toLowerCase()));
   vis=[...vis].sort((a,b)=>a.name.localeCompare(b.name));
-  document.getElementById('customers-body').innerHTML=vis.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div><p>No customers yet</p></div></td></tr>`:
+  document.getElementById('customers-body').innerHTML=vis.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div><p>No customers</p></div></td></tr>`:
     vis.map(c=>{
-      const co=orders.filter(o=>o.customerId===c.id);
+      const co=getMyOrders().filter(o=>o.customerId===c.id);
       const total=co.reduce((s,o)=>s+Number(o.amount),0);
-      const last=co.sort((a,b)=>b.createdAt-a.createdAt)[0];
+      const last=[...co].sort((a,b)=>b.createdAt-a.createdAt)[0];
       return `<tr><td><strong>${esc(c.name)}</strong></td><td>${esc(c.phone)}</td><td>${co.length}</td><td class="amount">₹${fmt(total)}</td><td class="date-chip">${last?last.date:'-'}</td></tr>`;
     }).join('');
 }
 
 function openAddCustomer(){openModal('add-cust-modal');}
 
-function saveNewCustomer() {
+function saveNewCustomer(){
   const name=document.getElementById('nc-name').value.trim();
   const phone=document.getElementById('nc-phone').value.trim();
   const addr=document.getElementById('nc-addr').value.trim();
   if(!name||!phone){toast('Name aur phone bharo','error');return;}
   if(customers.find(c=>c.phone===phone)){toast('Yeh phone already exist karta hai','error');return;}
   const c={id:uid(),name,phone,address:addr,createdAt:Date.now()};
-  customers.push(c); saveLocal(); closeModal('add-cust-modal');
-  document.getElementById('nc-name').value='';
-  document.getElementById('nc-phone').value='';
-  document.getElementById('nc-addr').value='';
-  renderCustomers(); toast('Customer added!');
+  customers.push(c);saveLocal();closeModal('add-cust-modal');
+  ['nc-name','nc-phone','nc-addr'].forEach(id=>document.getElementById(id).value='');
+  renderCustomers();toast('Customer added!');
 }
 
-function switchReportTab(period,btn) {
+// ── REPORTS ───────────────────────────────────────────
+function switchReportTab(period,btn){
   reportPeriod=period;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderReport();
 }
 
-function renderReport() {
+function renderReport(){
   const empId=(document.getElementById('rep-emp-filter')||{}).value||'';
+  const deptF=(document.getElementById('rep-dept-filter')||{}).value||'';
   const month=(document.getElementById('rep-month')||{}).value||new Date().toISOString().slice(0,7);
-  let vis=getVisibleOrders();
+  let vis=getMyOrders();
   if(empId) vis=vis.filter(o=>o.employeeId===empId);
+  if(deptF) vis=vis.filter(o=>o.employeeDept===deptF);
   vis=vis.filter(o=>o.date&&o.date.startsWith(month));
   const content=document.getElementById('report-content');
-  if(reportPeriod==='daily') {
+
+  if(reportPeriod==='daily'){
     const days={};
     vis.forEach(o=>{if(!days[o.date])days[o.date]={orders:[],total:0};days[o.date].orders.push(o);days[o.date].total+=Number(o.amount);});
     const sorted=Object.entries(days).sort((a,b)=>b[0].localeCompare(a[0]));
-    content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Is month mein koi order nahi</p></div>`:
-      sorted.map(([date,{orders:od,total}])=>`<div class="card" style="margin-bottom:16px;"><div class="card-header"><div class="card-title">${formatDate(date)}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>Employee</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
-  } else if(reportPeriod==='weekly') {
+    content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi is month mein</p></div>`:
+      sorted.map(([date,{orders:od,total}])=>`<div class="card"><div class="card-header"><div class="card-title">${formatDate(date)}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Dept</th><th>Executive</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${o.payment||'Pending'}</span></td><td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${o.dispatch||'Pending'}</span></td><td><span class="badge ${(o.employeeDept||'')==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(o.employeeDept||'')}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
+  } else if(reportPeriod==='weekly'){
     const weeks={};
     vis.forEach(o=>{const d=new Date(o.date);const w=getWeekNum(d);if(!weeks[w])weeks[w]={label:weekLabel(d),orders:[],total:0};weeks[w].orders.push(o);weeks[w].total+=Number(o.amount);});
     const sorted=Object.entries(weeks).sort((a,b)=>b[0]-a[0]);
-    content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Is month mein koi order nahi</p></div>`:
-      sorted.map(([,{label,orders:od,total}])=>`<div class="card" style="margin-bottom:16px;"><div class="card-header"><div class="card-title">${label}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>Employee</th><th>Date</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td><td class="date-chip">${o.date}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
+    content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi</p></div>`:
+      sorted.map(([,{label,orders:od,total}])=>`<div class="card"><div class="card-header"><div class="card-title">${label}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>Dept</th><th>Executive</th><th>Date</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td><span class="badge ${(o.employeeDept||'')==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(o.employeeDept||'')}</span></td><td>${esc(o.employeeName)}</td><td class="date-chip">${o.date}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
   } else {
     const emps={};
-    vis.forEach(o=>{if(!emps[o.employeeId])emps[o.employeeId]={name:o.employeeName,orders:[],total:0};emps[o.employeeId].orders.push(o);emps[o.employeeId].total+=Number(o.amount);});
+    vis.forEach(o=>{if(!emps[o.employeeId])emps[o.employeeId]={name:o.employeeName,dept:o.employeeDept||'',orders:[],total:0};emps[o.employeeId].orders.push(o);emps[o.employeeId].total+=Number(o.amount);});
     const sorted=Object.values(emps).sort((a,b)=>b.total-a.total);
     const grandTotal=vis.reduce((s,o)=>s+Number(o.amount),0);
-    content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Is month mein koi order nahi</p></div>`:`
-      <div class="stat-grid"><div class="stat-card green"><div class="stat-label">Month Total</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">${vis.length} orders</div></div><div class="stat-card blue"><div class="stat-label">Active Team</div><div class="stat-value">${sorted.length}</div><div class="stat-sub">Employees with sales</div></div></div>
-      <div class="card"><div class="card-header"><div class="card-title">Employee-wise Monthly Breakdown</div></div><div class="table-wrap"><table><thead><tr><th>Employee</th><th>Orders</th><th>Total Sales</th><th>Avg Order</th></tr></thead><tbody>${sorted.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td>${e.orders.length}</td><td class="amount">₹${fmt(e.total)}</td><td class="amount">₹${fmt(e.total/e.orders.length)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi</p></div>`:`
+      <div class="stat-grid">
+        <div class="stat-card green"><div class="stat-label">Month Total</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">${vis.length} orders</div></div>
+        <div class="stat-card blue"><div class="stat-label">Active Executives</div><div class="stat-value">${sorted.length}</div></div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">Executive-wise Monthly Breakdown</div></div><div class="table-wrap"><table><thead><tr><th>Executive</th><th>Department</th><th>Orders</th><th>Total Sales</th><th>Avg Order</th></tr></thead><tbody>${sorted.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td><span class="badge ${e.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(e.dept)}</span></td><td>${e.orders.length}</td><td class="amount">₹${fmt(e.total)}</td><td class="amount">₹${fmt(e.total/e.orders.length)}</td></tr>`).join('')}</tbody></table></div></div>`;
   }
 }
 
-function renderSources() {
+// ── LEAD SOURCES ──────────────────────────────────────
+function renderSources(){
   const empId=(document.getElementById('src-emp-filter')||{}).value||'';
+  const deptF=(document.getElementById('src-dept-filter')||{}).value||'';
   const month=(document.getElementById('src-month')||{}).value||new Date().toISOString().slice(0,7);
-  let vis=getVisibleOrders();
+  let vis=getMyOrders();
   if(empId) vis=vis.filter(o=>o.employeeId===empId);
+  if(deptF) vis=vis.filter(o=>o.employeeDept===deptF);
   vis=vis.filter(o=>o.date&&o.date.startsWith(month));
-  const sources=['Google','IndiaMart','Trade India','Website','Reference','Other'];
-  const colors=['#3b82f6','#f59e0b','#10b981','#8b5cf6','#ec4899','#6b7280'];
-  const srcData=sources.map((s,i)=>({name:s,color:colors[i],orders:vis.filter(o=>o.source===s),total:vis.filter(o=>o.source===s).reduce((sum,o)=>sum+Number(o.amount),0)}));
+  const srcs=['Google','IndiaMart','Trade India','Website','Reference','Other'];
+  const cols=['#3b82f6','#f59e0b','#10b981','#8b5cf6','#ec4899','#6b7280'];
+  const srcData=srcs.map((s,i)=>({name:s,color:cols[i],orders:vis.filter(o=>o.source===s),total:vis.filter(o=>o.source===s).reduce((sum,o)=>sum+Number(o.amount),0)}));
   const grandTotal=vis.reduce((s,o)=>s+Number(o.amount),0)||1;
   document.getElementById('sources-content').innerHTML=`
-    <div class="stat-grid">${srcData.map(s=>`<div class="stat-card"><div class="stat-label">${s.name}</div><div class="stat-value" style="color:${s.color};font-size:22px;">₹${fmt(s.total)}</div><div class="stat-sub">${s.orders.length} orders</div><div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${Math.round(s.total/grandTotal*100)}%;background:${s.color};"></div></div></div>`).join('')}</div>
-    <div class="card"><div class="card-header"><div class="card-title">Source Comparison</div></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Orders</th><th>Revenue</th><th>Share</th></tr></thead><tbody>${srcData.sort((a,b)=>b.total-a.total).map(s=>`<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${s.color};margin-right:8px;"></span>${s.name}</td><td>${s.orders.length}</td><td class="amount">₹${fmt(s.total)}</td><td>${Math.round(s.total/grandTotal*100)}%</td></tr>`).join('')}</tbody></table></div></div>`;
+    <div class="stat-grid">${srcData.map(s=>`<div class="stat-card"><div class="stat-label">${s.name}</div><div class="stat-value" style="color:${s.color};font-size:20px;">₹${fmt(s.total)}</div><div class="stat-sub">${s.orders.length} orders</div><div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:${Math.round(s.total/grandTotal*100)}%;background:${s.color};"></div></div></div>`).join('')}</div>
+    <div class="card"><div class="card-header"><div class="card-title">Source Comparison</div></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Orders</th><th>Revenue</th><th>Share</th></tr></thead><tbody>${srcData.sort((a,b)=>b.total-a.total).map(s=>`<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${s.color};margin-right:8px;"></span>${s.name}</td><td>${s.orders.length}</td><td class="amount">₹${fmt(s.total)}</td><td>${Math.round(s.total/grandTotal*100)}%</td></tr>`).join('')}</tbody></table></div></div>`;
 }
 
-function renderUsers() {
-  document.getElementById('users-list').innerHTML=users.map(u=>`
-    <div class="user-card">
-      <div class="av ${u.role==='admin'?'admin':''}">${u.name.charAt(0).toUpperCase()}</div>
-      <div class="info"><div class="nm">${esc(u.name)} ${u.role==='admin'?'<span class="badge badge-blue" style="font-size:10px;">Admin</span>':''}</div><div class="un">@${esc(u.username)}</div></div>
-      ${u.id!==currentUser.id?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);font-size:11px;" onclick="removeUser('${u.id}')">Remove</button>`:''}
-    </div>`).join('');
+// ── USERS (Admin) ─────────────────────────────────────
+function renderUsers(){
+  ['MDPE/HDPE','UPVC/CPVC'].forEach(dept=>{
+    const elId=dept==='MDPE/HDPE'?'users-mdpe':'users-upvc';
+    const deptUsers=users.filter(u=>u.dept===dept);
+    document.getElementById(elId).innerHTML=deptUsers.length===0?'<p style="color:var(--text3);font-size:13px;">No users yet</p>':
+      deptUsers.map(u=>`
+        <div class="user-card">
+          <div class="av ${dept==='MDPE/HDPE'?'av-mdpe':'av-upvc'}">${u.name.charAt(0)}</div>
+          <div class="info" style="flex:1;">
+            <div class="nm">${esc(u.name)}</div>
+            <div class="un">@${esc(u.username)} · ${esc(u.password)}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="editUser('${u.id}')" style="margin-right:4px;">✏️</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeUser('${u.id}')">🗑️</button>
+        </div>`).join('');
+  });
 }
 
-function addUser() {
+function editUser(id){
+  const u=users.find(x=>x.id===id);if(!u)return;
+  document.getElementById('edit-user-id').value=id;
+  document.getElementById('new-name').value=u.name;
+  document.getElementById('new-uname').value=u.username;
+  document.getElementById('new-pass').value=u.password;
+  document.getElementById('new-dept').value=u.dept;
+  document.getElementById('new-role').value=u.role;
+  document.getElementById('user-save-btn').textContent='Update User';
+  document.getElementById('user-cancel-btn').style.display='inline-flex';
+  toast('User details loaded — edit karo aur Update karo');
+}
+
+function cancelEditUser(){
+  document.getElementById('edit-user-id').value='';
+  ['new-name','new-uname','new-pass'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('user-save-btn').textContent='Add User';
+  document.getElementById('user-cancel-btn').style.display='none';
+}
+
+function saveUser(){
+  const editId=document.getElementById('edit-user-id').value;
   const name=document.getElementById('new-name').value.trim();
   const uname=document.getElementById('new-uname').value.trim();
   const pass=document.getElementById('new-pass').value;
+  const dept=document.getElementById('new-dept').value;
   const role=document.getElementById('new-role').value;
   if(!name||!uname||!pass){toast('Sab fields bharo','error');return;}
-  if(users.find(u=>u.username===uname)){toast('Username already exists','error');return;}
-  const u={id:uid(),name,username:uname,password:pass,role};
-  users.push(u); saveLocal();
-  document.getElementById('new-name').value='';
-  document.getElementById('new-uname').value='';
-  document.getElementById('new-pass').value='';
-  renderUsers(); populateEmpFilters(); toast(`${name} add ho gaya!`);
+  if(editId){
+    const idx=users.findIndex(u=>u.id===editId);if(idx<0)return;
+    const conflict=users.find(u=>u.username===uname&&u.id!==editId);
+    if(conflict){toast('Username already exists','error');return;}
+    users[idx]={...users[idx],name,username:uname,password:pass,dept,role};
+    saveLocal();cancelEditUser();renderUsers();populateEmpFilters();toast(`${name} updated!`);
+  } else {
+    if(users.find(u=>u.username===uname)){toast('Username already exists','error');return;}
+    const u={id:uid(),name,username:uname,password:pass,dept,role};
+    users.push(u);saveLocal();cancelEditUser();renderUsers();populateEmpFilters();toast(`${name} add ho gaya!`);
+  }
 }
 
-function removeUser(id) {
-  if(!confirm('Is user ko remove karna chahte ho?')) return;
-  users=users.filter(u=>u.id!==id); saveLocal(); renderUsers(); populateEmpFilters(); toast('User removed','warning');
+function removeUser(id){
+  if(id===currentUser.id){toast('Apne aap ko delete nahi kar sakte','error');return;}
+  if(!confirm('Is user ko remove karna chahte ho?'))return;
+  users=users.filter(u=>u.id!==id);saveLocal();renderUsers();populateEmpFilters();toast('User removed','warning');
 }
 
-function exportOrders() {
-  const vis=getVisibleOrders().sort((a,b)=>b.createdAt-a.createdAt);
-  const rows=[['Date','Customer Name','Phone','Amount','Source','Payment','Dispatch','Employee','Notes']];
-  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeName,o.notes||'']));
+// ── EXPORT ────────────────────────────────────────────
+function exportOrders(){
+  const vis=getMyOrders().sort((a,b)=>b.createdAt-a.createdAt);
+  const rows=[['Date','Customer','Phone','Amount','Source','Payment','Dispatch','Department','Executive','Notes']];
+  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeDept||'',o.employeeName,o.notes||'']));
   downloadXLSX(rows,'Orders');
 }
 
-function exportReport() {
+function exportReport(){
   const empId=(document.getElementById('rep-emp-filter')||{}).value||'';
   const month=(document.getElementById('rep-month')||{}).value||new Date().toISOString().slice(0,7);
-  let vis=getVisibleOrders();
+  let vis=getMyOrders();
   if(empId) vis=vis.filter(o=>o.employeeId===empId);
   vis=vis.filter(o=>o.date&&o.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date));
-  const rows=[['Date','Customer','Phone','Amount','Source','Employee','Notes']];
-  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.employeeName,o.notes||'']));
+  const rows=[['Date','Customer','Phone','Amount','Source','Payment','Dispatch','Department','Executive','Notes']];
+  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeDept||'',o.employeeName,o.notes||'']));
   downloadXLSX(rows,`Report_${month}`);
 }
 
-function downloadXLSX(rows,name) {
-  try {
+function downloadXLSX(rows,name){
+  try{
     const wb=XLSX.utils.book_new();
     const ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=rows[0].map(()=>({wch:20}));
+    ws['!cols']=rows[0].map(()=>({wch:18}));
     XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
     XLSX.writeFile(wb,`${name}_${new Date().toISOString().slice(0,10)}.xlsx`);
     toast('Excel download ho raha hai 📥');
-  } catch(e) { toast('Export error: '+e.message,'error'); }
+  }catch(e){toast('Export error','error');}
 }
 
+// ── HELPERS ───────────────────────────────────────────
 function fmt(n){n=Number(n)||0;if(n>=100000)return(n/100000).toFixed(2)+'L';if(n>=1000)return n.toLocaleString('en-IN');return n.toFixed(n%1?2:0);}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function srcBadge(s){const m={Google:'badge-blue',IndiaMart:'badge-amber','Trade India':'badge-green',Website:'badge-blue',Reference:'badge-green',Other:'badge-gray'};return m[s]||'badge-gray';}
 function formatDate(d){try{return new Date(d).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
 function getWeekNum(d){const s=new Date(d.getFullYear(),d.getMonth(),1);return Math.ceil((d.getDate()+s.getDay())/7);}
-function weekLabel(d){const w=getWeekNum(d);return`Week ${w} - ${d.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}`;}
+function weekLabel(d){return`Week ${getWeekNum(d)} — ${d.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}`;}
 function toast(msg,type=''){const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;document.getElementById('toast-container').appendChild(t);setTimeout(()=>t.remove(),3000);}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
