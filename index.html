@@ -338,6 +338,22 @@ tr:hover td{background:var(--surface2);}
                   <div class="source-chip" data-val="Other" onclick="selectSource(this)">📌 Other</div>
                 </div>
               </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>Payment Status</label>
+                  <select class="form-control" id="order-payment">
+                    <option value="Pending">⏳ Payment Pending</option>
+                    <option value="Received">✅ Payment Received</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Dispatch Status</label>
+                  <select class="form-control" id="order-dispatch">
+                    <option value="Pending">⏳ Dispatch Pending</option>
+                    <option value="Done">🚚 Dispatched</option>
+                  </select>
+                </div>
+              </div>
               <div class="form-group">
                 <label>Notes (Optional)</label>
                 <textarea class="form-control" id="order-notes" rows="2" placeholder="Product details, remarks..."></textarea>
@@ -365,12 +381,22 @@ tr:hover td{background:var(--surface2);}
                   <option value="">All Sources</option>
                   <option>Google</option><option>IndiaMart</option><option>Trade India</option><option>Website</option><option>Reference</option><option>Other</option>
                 </select>
+                <select id="ord-pay-filter" onchange="renderOrders()">
+                  <option value="">All Payments</option>
+                  <option value="Pending">⏳ Pending</option>
+                  <option value="Received">✅ Received</option>
+                </select>
+                <select id="ord-dis-filter" onchange="renderOrders()">
+                  <option value="">All Dispatch</option>
+                  <option value="Pending">⏳ Pending</option>
+                  <option value="Done">🚚 Done</option>
+                </select>
                 <input type="date" id="ord-from" onchange="renderOrders()">
                 <input type="date" id="ord-to" onchange="renderOrders()">
               </div>
             </div>
             <div class="table-wrap">
-              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Source</th><th>Employee</th><th>Notes</th><th>Actions</th></tr></thead>
+              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Employee</th><th>Notes</th><th>Actions</th></tr></thead>
               <tbody id="orders-body"></tbody></table>
             </div>
           </div>
@@ -489,6 +515,22 @@ tr:hover td{background:var(--surface2);}
         <select class="form-control" id="edit-source">
           <option>Google</option><option>IndiaMart</option><option>Trade India</option><option>Website</option><option>Reference</option><option>Other</option>
         </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Payment Status</label>
+          <select class="form-control" id="edit-payment">
+            <option value="Pending">⏳ Payment Pending</option>
+            <option value="Received">✅ Payment Received</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Dispatch Status</label>
+          <select class="form-control" id="edit-dispatch">
+            <option value="Pending">⏳ Dispatch Pending</option>
+            <option value="Done">🚚 Dispatched</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label>Notes</label>
@@ -691,22 +733,28 @@ function renderOrders() {
   const search=(document.getElementById('ord-search')||{}).value||'';
   const empF=(document.getElementById('ord-emp-filter')||{}).value||'';
   const srcF=(document.getElementById('ord-src-filter')||{}).value||'';
+  const payF=(document.getElementById('ord-pay-filter')||{}).value||'';
+  const disF=(document.getElementById('ord-dis-filter')||{}).value||'';
   const fromF=(document.getElementById('ord-from')||{}).value||'';
   const toF=(document.getElementById('ord-to')||{}).value||'';
   let vis=getVisibleOrders();
   if(empF) vis=vis.filter(o=>o.employeeId===empF);
   if(srcF) vis=vis.filter(o=>o.source===srcF);
+  if(payF) vis=vis.filter(o=>(o.payment||'Pending')===payF);
+  if(disF) vis=vis.filter(o=>(o.dispatch||'Pending')===disF);
   if(fromF) vis=vis.filter(o=>o.date>=fromF);
   if(toF) vis=vis.filter(o=>o.date<=toF);
   if(search) vis=vis.filter(o=>(o.customerName+o.customerPhone).toLowerCase().includes(search.toLowerCase()));
   vis=[...vis].sort((a,b)=>b.createdAt-a.createdAt);
-  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
+  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="10"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
     vis.map(o=>`<tr>
       <td class="date-chip">${o.date||''}</td>
       <td><strong>${esc(o.customerName)}</strong></td>
       <td>${esc(o.customerPhone||'')}</td>
       <td class="amount">₹${fmt(o.amount)}</td>
       <td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td>
+      <td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${(o.payment||'Pending')==='Received'?'✅ Received':'⏳ Pending'}</span></td>
+      <td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${(o.dispatch||'Pending')==='Done'?'🚚 Done':'⏳ Pending'}</span></td>
       <td>${esc(o.employeeName)}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.notes||'')}</td>
       <td>
@@ -723,6 +771,8 @@ function openEditOrder(id) {
   document.getElementById('edit-amount').value=o.amount;
   document.getElementById('edit-date').value=o.date||'';
   document.getElementById('edit-source').value=o.source;
+  document.getElementById('edit-payment').value=o.payment||'Pending';
+  document.getElementById('edit-dispatch').value=o.dispatch||'Pending';
   document.getElementById('edit-notes').value=o.notes||'';
   openModal('edit-modal');
 }
@@ -732,7 +782,7 @@ function saveEdit() {
   const amt=parseFloat(document.getElementById('edit-amount').value);
   if(!amt||amt<=0){toast('Valid amount enter karo','error');return;}
   const idx=orders.findIndex(o=>o.id===id); if(idx<0) return;
-  orders[idx]={...orders[idx],amount:amt,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
+  orders[idx]={...orders[idx],amount:amt,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
   saveLocal(); closeModal('edit-modal'); renderOrders(); toast('Order updated!');
 }
 
@@ -771,6 +821,8 @@ function selectSource(el) {
 function clearOrderForm() {
   selectedCustomerId=null;
   ['order-cust-search','order-cust-name','order-cust-phone','order-amount','order-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('order-payment').value='Pending';
+  document.getElementById('order-dispatch').value='Pending';
   document.getElementById('order-date').value=new Date().toISOString().slice(0,10);
   document.querySelectorAll('#order-source-chips .source-chip').forEach((x,i)=>{x.classList.toggle('selected',i===0);});
 }
@@ -792,7 +844,9 @@ function submitOrder() {
     if(existing){custId=existing.id;}
     else{const nc={id:uid(),name,phone,address:'',createdAt:Date.now()};customers.push(nc);custId=nc.id;}
   }
-  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount,source,employeeId:currentUser.id,employeeName:currentUser.name,notes,date,createdAt:Date.now()};
+  const payment=document.getElementById('order-payment').value;
+  const dispatch=document.getElementById('order-dispatch').value;
+  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,notes,date,createdAt:Date.now()};
   orders.push(order); saveLocal(); clearOrderForm(); toast('Order save ho gaya! ✅'); showPage('orders');
 }
 
@@ -909,8 +963,8 @@ function removeUser(id) {
 
 function exportOrders() {
   const vis=getVisibleOrders().sort((a,b)=>b.createdAt-a.createdAt);
-  const rows=[['Date','Customer Name','Phone','Amount','Source','Employee','Notes']];
-  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.employeeName,o.notes||'']));
+  const rows=[['Date','Customer Name','Phone','Amount','Source','Payment','Dispatch','Employee','Notes']];
+  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeName,o.notes||'']));
   downloadXLSX(rows,'Orders');
 }
 
