@@ -283,6 +283,10 @@ tr:hover td{background:var(--surface2);}
 
         <div class="page active" id="page-dashboard">
           <div class="stat-grid" id="dash-stats"></div>
+          <div class="card" style="margin-bottom:16px;" id="dash-exec-card">
+            <div class="card-header"><div class="card-title">Executive-wise Sales</div><div id="dash-exec-toggle" style="display:flex;gap:6px;"></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Executive</th><th>Today Orders</th><th>Today Sales</th><th>Month Orders</th><th>Month Sales</th><th>Pending Payments</th><th>Pending Dispatch</th></tr></thead><tbody id="dash-exec-body"></tbody></table></div>
+          </div>
           <div class="grid-2">
             <div class="card">
               <div class="card-header"><div class="card-title">Recent Orders</div></div>
@@ -715,6 +719,30 @@ function renderDashboard() {
     <div class="stat-card blue"><div class="stat-label">Monthly Sales</div><div class="stat-value">₹${fmt(monthSales)}</div><div class="stat-sub">${monthOrd.length} orders this month</div></div>
     <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">${vis.length}</div><div class="stat-sub">All time</div></div>
     <div class="stat-card amber"><div class="stat-label">Customers</div><div class="stat-value">${totalCustomers}</div><div class="stat-sub">Unique customers</div></div>`;
+  // Executive-wise table (admin sees all, employee sees only self)
+  const execUsers = currentUser.role==='admin' ? users : [currentUser];
+  const execBody = document.getElementById('dash-exec-body');
+  if(execBody) {
+    execBody.innerHTML = execUsers.map(u=>{
+      const uOrd = orders.filter(o=>o.employeeId===u.id);
+      const uToday = uOrd.filter(o=>o.date===today);
+      const uMonth = uOrd.filter(o=>o.date&&o.date.startsWith(thisMonth));
+      const todayAmt = uToday.reduce((s,o)=>s+Number(o.amount),0);
+      const monthAmt = uMonth.reduce((s,o)=>s+Number(o.amount),0);
+      const pendPay = uOrd.filter(o=>(o.payment||'Pending')==='Pending').length;
+      const pendDis = uOrd.filter(o=>(o.dispatch||'Pending')==='Pending').length;
+      return `<tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${u.name.charAt(0)}</div><strong>${esc(u.name)}</strong></div></td>
+        <td>${uToday.length}</td>
+        <td class="amount" style="color:var(--success);">₹${fmt(todayAmt)}</td>
+        <td>${uMonth.length}</td>
+        <td class="amount" style="color:var(--primary);">₹${fmt(monthAmt)}</td>
+        <td><span class="badge ${pendPay>0?'badge-amber':'badge-green'}">${pendPay} pending</span></td>
+        <td><span class="badge ${pendDis>0?'badge-red':'badge-green'}">${pendDis} pending</span></td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="7"><div class="empty-state"><div class="icon">👤</div><p>No executives found</p></div></td></tr>`;
+  }
+
   const recent=[...vis].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
   document.getElementById('dash-recent-body').innerHTML=recent.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">📋</div><p>No orders yet</p></div></td></tr>`:
     recent.map(o=>`<tr><td><strong>${esc(o.customerName)}</strong></td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('');
