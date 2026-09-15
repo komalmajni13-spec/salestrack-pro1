@@ -592,13 +592,29 @@ function init(){
 }
 
 // ── AUTH ──────────────────────────────────────────────
+const DEFAULT_USERS=[
+  {id:'u0',name:'Admin',username:'admin',password:'admin123',role:'admin',dept:'admin'},
+  {id:'u1',name:'Dhruvi Sodha',username:'dhruvi',password:'dhruvi123',role:'employee',dept:'MDPE/HDPE'},
+  {id:'u2',name:'Sapna Bhuva',username:'sapna',password:'sapna123',role:'employee',dept:'MDPE/HDPE'},
+  {id:'u3',name:'Daxa Palaliya',username:'daxa',password:'daxa123',role:'employee',dept:'MDPE/HDPE'},
+  {id:'u4',name:'User 4',username:'user4',password:'user4123',role:'employee',dept:'MDPE/HDPE'},
+  {id:'u5',name:'Sanjana',username:'sanjana',password:'sanjana123',role:'employee',dept:'UPVC/CPVC'},
+  {id:'u6',name:'Tanisha',username:'tanisha',password:'tanisha123',role:'employee',dept:'UPVC/CPVC'},
+  {id:'u7',name:'Rutvi',username:'rutvi',password:'rutvi123',role:'employee',dept:'UPVC/CPVC'},
+  {id:'u8',name:'User 8',username:'user8',password:'user8123',role:'employee',dept:'UPVC/CPVC'},
+];
+
 function doLogin(){
   const uname=document.getElementById('login-user').value.trim();
   const pass=document.getElementById('login-pass').value;
   const err=document.getElementById('login-error');
   err.style.display='none';
-  const user=users.find(u=>u.username===uname&&u.password===pass);
+  // Check localStorage users first, then fallback to defaults
+  let user=users.find(u=>u.username===uname&&u.password===pass);
+  if(!user) user=DEFAULT_USERS.find(u=>u.username===uname&&u.password===pass);
   if(!user){err.textContent='Invalid username or password.';err.style.display='block';return;}
+  // Ensure this user is in localStorage
+  if(!users.find(u=>u.id===user.id)){users.push(user);saveLocal();}
   currentUser=user;
   sessionStorage.setItem('st_session',JSON.stringify(user));
   startApp();
