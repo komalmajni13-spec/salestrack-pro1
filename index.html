@@ -584,7 +584,11 @@ function seedDefaults(){
 
 function init(){
   loadFromLocal();
-  if(!users.find(u=>u.username==='admin')) seedDefaults();
+  const ver=localStorage.getItem('st_ver');
+  if(ver!=='v2' || !users.find(u=>u.username==='admin' && u.password==='admin@123')) {
+    seedDefaults();
+    localStorage.setItem('st_ver','v2');
+  }
   const sess=sessionStorage.getItem('st_session');
   if(sess){try{const u=JSON.parse(sess);const f=users.find(x=>x.id===u.id);if(f){currentUser=f;startApp();return;}}catch(e){}}
 }
