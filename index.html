@@ -617,7 +617,7 @@ function seedDefaults() {
 
 function init() {
   loadFromLocal();
-  if(users.length===0) seedDefaults();
+  if(users.length===0 || !users.find(u=>u.username==='admin')) seedDefaults();
   const sess = sessionStorage.getItem('st_session');
   if(sess) {
     try {
