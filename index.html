@@ -613,9 +613,10 @@ function doLogin(){
   let user=users.find(u=>u.username===uname&&u.password===pass);
   if(!user) user=DEFAULT_USERS.find(u=>u.username===uname&&u.password===pass);
   if(!user){err.textContent='Invalid username or password.';err.style.display='block';return;}
-  // Ensure this user is in localStorage
-  if(!users.find(u=>u.id===user.id)){users.push(user);saveLocal();}
-  currentUser=user;
+  // Ensure ALL default users are in localStorage
+  DEFAULT_USERS.forEach(du=>{if(!users.find(u=>u.id===du.id)){users.push(du);}});
+  saveLocal();
+  currentUser=users.find(u=>u.id===user.id)||user;
   sessionStorage.setItem('st_session',JSON.stringify(user));
   startApp();
 }
