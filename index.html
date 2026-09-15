@@ -209,7 +209,8 @@ tr:hover td{background:var(--surface2);}
     </div>
     <div id="login-error" class="error-msg" style="display:none;margin-bottom:10px;"></div>
     <button class="btn btn-primary btn-full" onclick="doLogin()">Login →</button>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px;">Admin: admin / admin@123</p>
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px;">Admin: admin / admin123</p>
+    <p style="text-align:center;margin-top:10px;"><a href="#" onclick="hardReset()" style="font-size:11px;color:var(--danger);">⚠️ Login nahi ho raha? Yahan click karo (Reset)</a></p>
   </div>
 </div>
 
@@ -565,7 +566,7 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 
 function seedDefaults(){
   users=[
-    {id:'u0',name:'Admin',username:'admin',password:'admin@123',role:'admin',dept:'admin'},
+    {id:'u0',name:'Admin',username:'admin',password:'admin123',role:'admin',dept:'admin'},
     // MDPE/HDPE
     {id:'u1',name:'Dhruvi Sodha',username:'dhruvi',password:'dhruvi@123',role:'employee',dept:'MDPE/HDPE'},
     {id:'u2',name:'Sapna Bhuva',username:'sapna',password:'sapna@123',role:'employee',dept:'MDPE/HDPE'},
@@ -1071,6 +1072,13 @@ function weekLabel(d){return`Week ${getWeekNum(d)} — ${d.toLocaleDateString('e
 function toast(msg,type=''){const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;document.getElementById('toast-container').appendChild(t);setTimeout(()=>t.remove(),3000);}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function hardReset(){
+  if(!confirm('Yeh action browser ka sabhi SalesTrack data clear karega aur fresh start karega. Continue?')) return;
+  localStorage.clear();
+  sessionStorage.clear();
+  location.reload();
+}
 
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.querySelectorAll('.autocomplete-dropdown').forEach(d=>d.classList.remove('open'));});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
