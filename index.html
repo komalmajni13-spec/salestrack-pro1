@@ -552,14 +552,14 @@ let users=[], customers=[], orders=[];
 
 // ── DATA ──────────────────────────────────────────────
 function loadFromLocal(){
-  users=JSON.parse(localStorage.getItem('st_users')||'[]');
-  customers=JSON.parse(localStorage.getItem('st_customers')||'[]');
-  orders=JSON.parse(localStorage.getItem('st_orders')||'[]');
+  users=JSON.parse(localStorage.getItem('stp_users')||'[]');
+  customers=JSON.parse(localStorage.getItem('stp_customers')||'[]');
+  orders=JSON.parse(localStorage.getItem('stp_orders')||'[]');
 }
 function saveLocal(){
-  localStorage.setItem('st_users',JSON.stringify(users));
-  localStorage.setItem('st_customers',JSON.stringify(customers));
-  localStorage.setItem('st_orders',JSON.stringify(orders));
+  localStorage.setItem('stp_users',JSON.stringify(users));
+  localStorage.setItem('stp_customers',JSON.stringify(customers));
+  localStorage.setItem('stp_orders',JSON.stringify(orders));
 }
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
@@ -584,11 +584,7 @@ function seedDefaults(){
 
 function init(){
   loadFromLocal();
-  const ver=localStorage.getItem('st_ver');
-  if(ver!=='v2' || !users.find(u=>u.username==='admin' && u.password==='admin@123')) {
-    seedDefaults();
-    localStorage.setItem('st_ver','v2');
-  }
+  if(!users.find(u=>u.username==='admin')) seedDefaults();
   const sess=sessionStorage.getItem('st_session');
   if(sess){try{const u=JSON.parse(sess);const f=users.find(x=>x.id===u.id);if(f){currentUser=f;startApp();return;}}catch(e){}}
 }
