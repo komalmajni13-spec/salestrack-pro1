@@ -584,6 +584,7 @@ function seedDefaults(){
 }
 
 function init(){
+  if(location.search.includes('reset=1')){localStorage.clear();sessionStorage.clear();location.href=location.pathname;return;}
   loadFromLocal();
   if(!users.find(u=>u.username==='admin')) seedDefaults();
   const sess=sessionStorage.getItem('st_session');
