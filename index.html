@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--nav-bg:#1e3a5f;--nav-text:#a8c4e0;
@@ -210,7 +212,6 @@ tr:hover td{background:var(--surface2);}
     <div id="login-error" class="error-msg" style="display:none;margin-bottom:10px;"></div>
     <button class="btn btn-primary btn-full" onclick="doLogin()">Login →</button>
     <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px;">Admin: admin / admin123</p>
-    <p style="text-align:center;margin-top:10px;"><a href="#" onclick="hardReset()" style="font-size:11px;color:var(--danger);">⚠️ Login nahi ho raha? Yahan click karo (Reset)</a></p>
   </div>
 </div>
 
@@ -548,51 +549,39 @@ tr:hover td{background:var(--surface2);}
 <div class="toast-container" id="toast-container"></div>
 
 <script>
+// ── FIREBASE ──────────────────────────────────────────
+firebase.initializeApp({
+  apiKey:"AIzaSyC5M5SvKs5wgnDvACcG2I47gdMV3mxXNEE",
+  authDomain:"salestrack-pro-270c6.firebaseapp.com",
+  projectId:"salestrack-pro-270c6",
+  storageBucket:"salestrack-pro-270c6.firebasestorage.app",
+  messagingSenderId:"270237129064",
+  appId:"1:270237129064:web:898d42e200860ee3d09edd"
+});
+const db=firebase.firestore();
+
 let currentUser=null, reportPeriod='daily';
 let users=[], customers=[], orders=[];
+let unsubOrders=null, unsubCustomers=null;
 
-// ── DATA ──────────────────────────────────────────────
-function loadFromLocal(){
-  users=JSON.parse(localStorage.getItem('stp_users')||'[]');
-  customers=JSON.parse(localStorage.getItem('stp_customers')||'[]');
-  orders=JSON.parse(localStorage.getItem('stp_orders')||'[]');
-}
-function saveLocal(){
-  localStorage.setItem('stp_users',JSON.stringify(users));
-  localStorage.setItem('stp_customers',JSON.stringify(customers));
-  localStorage.setItem('stp_orders',JSON.stringify(orders));
-}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
-function seedDefaults(){
-  users=[
-    {id:'u0',name:'Admin',username:'admin',password:'admin123',role:'admin',dept:'admin'},
-    // MDPE/HDPE
-    {id:'u1',name:'Dhruvi Sodha',username:'dhruvi',password:'dhruvi123',role:'employee',dept:'MDPE/HDPE'},
-    {id:'u2',name:'Sapna Bhuva',username:'sapna',password:'sapna123',role:'employee',dept:'MDPE/HDPE'},
-    {id:'u3',name:'Daxa Palaliya',username:'daxa',password:'daxa123',role:'employee',dept:'MDPE/HDPE'},
-    {id:'u4',name:'User 4',username:'user4',password:'user4123',role:'employee',dept:'MDPE/HDPE'},
-    // UPVC/CPVC
-    {id:'u5',name:'Sanjana',username:'sanjana',password:'sanjana123',role:'employee',dept:'UPVC/CPVC'},
-    {id:'u6',name:'Tanisha',username:'tanisha',password:'tanisha123',role:'employee',dept:'UPVC/CPVC'},
-    {id:'u7',name:'Rutvi',username:'rutvi',password:'rutvi123',role:'employee',dept:'UPVC/CPVC'},
-    {id:'u8',name:'User 8',username:'user8',password:'user8123',role:'employee',dept:'UPVC/CPVC'},
-  ];
-  customers=[];
-  orders=[];
-  saveLocal();
+// ── FIRESTORE HELPERS ─────────────────────────────────
+async function fsGetAll(col){
+  const snap=await db.collection(col).get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+async function fsSet(col,id,data){
+  await db.collection(col).doc(id).set(data);
+}
+async function fsDelete(col,id){
+  await db.collection(col).doc(id).delete();
+}
+async function fsUpdate(col,id,data){
+  await db.collection(col).doc(id).update(data);
 }
 
-function init(){
-  if(location.search.includes('reset=1')){localStorage.clear();sessionStorage.clear();location.href=location.pathname;return;}
-  loadFromLocal();
-  if(!users.find(u=>u.username==='admin')) seedDefaults();
-  const sess=sessionStorage.getItem('st_session');
-  if(sess){try{const u=JSON.parse(sess);const f=users.find(x=>x.id===u.id);if(f){currentUser=f;startApp();return;}}catch(e){}}
-}
-
-// ── AUTH ──────────────────────────────────────────────
-const DEFAULT_USERS=[
+const DEFAULT_SEED=[
   {id:'u0',name:'Admin',username:'admin',password:'admin123',role:'admin',dept:'admin'},
   {id:'u1',name:'Dhruvi Sodha',username:'dhruvi',password:'dhruvi123',role:'employee',dept:'MDPE/HDPE'},
   {id:'u2',name:'Sapna Bhuva',username:'sapna',password:'sapna123',role:'employee',dept:'MDPE/HDPE'},
@@ -604,26 +593,83 @@ const DEFAULT_USERS=[
   {id:'u8',name:'User 8',username:'user8',password:'user8123',role:'employee',dept:'UPVC/CPVC'},
 ];
 
-function doLogin(){
+async function seedDefaults(){
+  for(const u of DEFAULT_SEED){await fsSet('users',u.id,u);}
+  users=[...DEFAULT_SEED];
+}
+
+async function init(){
+  showLoading(true);
+  try{
+    users=await fsGetAll('users');
+    if(!users.find(u=>u.username==='admin')) await seedDefaults();
+    // Merge any missing default users
+    for(const du of DEFAULT_SEED){
+      if(!users.find(u=>u.id===du.id)){await fsSet('users',du.id,du);users.push(du);}
+    }
+  }catch(e){
+    // Firestore offline fallback
+    users=[...DEFAULT_SEED];
+  }
+  showLoading(false);
+  const sess=sessionStorage.getItem('stp_session');
+  if(sess){try{const u=JSON.parse(sess);const f=users.find(x=>x.id===u.id);if(f){currentUser=f;await loadAppData();startApp();return;}}catch(e){}}
+}
+
+function showLoading(show){
+  let el=document.getElementById('loading-overlay');
+  if(show&&!el){el=document.createElement('div');el.id='loading-overlay';el.style.cssText='position:fixed;inset:0;background:#1e3a5f;display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-family:Poppins,sans-serif;';el.innerHTML='<div style="text-align:center;"><div style="font-size:40px;margin-bottom:12px;">📊</div><div>SalesTrack Pro</div><div style="font-size:13px;opacity:0.7;margin-top:6px;">Loading...</div></div>';document.body.appendChild(el);}
+  else if(!show&&el) el.remove();
+}
+
+async function loadAppData(){
+  try{
+    [customers,orders]=await Promise.all([fsGetAll('customers'),fsGetAll('orders')]);
+  }catch(e){customers=[];orders=[];}
+}
+
+function startRealtime(){
+  if(unsubOrders) unsubOrders();
+  if(unsubCustomers) unsubCustomers();
+  unsubOrders=db.collection('orders').onSnapshot(snap=>{
+    orders=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+    if(pg&&pg.id==='page-orders') renderOrders();
+  });
+  unsubCustomers=db.collection('customers').onSnapshot(snap=>{
+    customers=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-customers') renderCustomers();
+  });
+}
+
+// ── AUTH ──────────────────────────────────────────────
+async function doLogin(){
   const uname=document.getElementById('login-user').value.trim();
   const pass=document.getElementById('login-pass').value;
   const err=document.getElementById('login-error');
   err.style.display='none';
-  // Check localStorage users first, then fallback to defaults
-  let user=users.find(u=>u.username===uname&&u.password===pass);
-  if(!user) user=DEFAULT_USERS.find(u=>u.username===uname&&u.password===pass);
-  if(!user){err.textContent='Invalid username or password.';err.style.display='block';return;}
-  // Ensure ALL default users are in localStorage
-  DEFAULT_USERS.forEach(du=>{if(!users.find(u=>u.id===du.id)){users.push(du);}});
-  saveLocal();
-  currentUser=users.find(u=>u.id===user.id)||user;
-  sessionStorage.setItem('st_session',JSON.stringify(user));
-  startApp();
+  const btn=document.querySelector('#login-screen .btn-primary');
+  btn.textContent='Logging in...';btn.disabled=true;
+  try{
+    let user=users.find(u=>u.username===uname&&u.password===pass);
+    if(!user) user=DEFAULT_SEED.find(u=>u.username===uname&&u.password===pass);
+    if(!user){err.textContent='Invalid username or password.';err.style.display='block';btn.textContent='Login →';btn.disabled=false;return;}
+    currentUser=user;
+    sessionStorage.setItem('stp_session',JSON.stringify(user));
+    await loadAppData();
+    startApp();
+    startRealtime();
+  }catch(e){err.textContent='Connection error. Check internet.';err.style.display='block';}
+  btn.textContent='Login →';btn.disabled=false;
 }
 
 function doLogout(){
+  if(unsubOrders){unsubOrders();unsubOrders=null;}
+  if(unsubCustomers){unsubCustomers();unsubCustomers=null;}
   currentUser=null;
-  sessionStorage.removeItem('st_session');
+  sessionStorage.removeItem('stp_session');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-user').value='';
@@ -658,6 +704,7 @@ function startApp(){
   const rm=document.getElementById('rep-month');if(rm)rm.value=ym;
   const sm=document.getElementById('src-month');if(sm)sm.value=ym;
   populateEmpFilters();
+  startRealtime();
   showPage('dashboard');
 }
 
@@ -818,18 +865,18 @@ function openEditOrder(id){
   openModal('edit-modal');
 }
 
-function saveEdit(){
+async function saveEdit(){
   const id=document.getElementById('edit-order-id').value;
   const amt=parseFloat(document.getElementById('edit-amount').value);
   if(!amt||amt<=0){toast('Valid amount enter karo','error');return;}
-  const idx=orders.findIndex(o=>o.id===id);if(idx<0)return;
-  orders[idx]={...orders[idx],amount:amt,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
-  saveLocal();closeModal('edit-modal');renderOrders();toast('Order updated!');
+  const updates={amount:amt,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
+  await fsUpdate('orders',id,updates);
+  closeModal('edit-modal');toast('Order updated!');
 }
 
-function deleteOrder(id){
+async function deleteOrder(id){
   if(!confirm('Is order ko delete karna chahte ho?'))return;
-  orders=orders.filter(o=>o.id!==id);saveLocal();renderOrders();toast('Order deleted','warning');
+  await fsDelete('orders',id);toast('Order deleted','warning');
 }
 
 // ── NEW ORDER ─────────────────────────────────────────
@@ -869,7 +916,7 @@ function clearOrderForm(){
   document.querySelectorAll('#order-source-chips .source-chip').forEach((x,i)=>x.classList.toggle('selected',i===0));
 }
 
-function submitOrder(){
+async function submitOrder(){
   const name=document.getElementById('order-cust-name').value.trim();
   const phone=document.getElementById('order-cust-phone').value.trim();
   const amount=parseFloat(document.getElementById('order-amount').value);
@@ -886,10 +933,11 @@ function submitOrder(){
   if(!custId){
     const existing=customers.find(c=>c.phone===phone);
     if(existing){custId=existing.id;}
-    else{const nc={id:uid(),name,phone,address:'',createdAt:Date.now()};customers.push(nc);custId=nc.id;}
+    else{const nc={id:uid(),name,phone,address:'',createdAt:Date.now()};await fsSet('customers',nc.id,nc);customers.push(nc);custId=nc.id;}
   }
   const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,employeeDept:currentUser.dept||'',notes,date,createdAt:Date.now()};
-  orders.push(order);saveLocal();clearOrderForm();toast('Order save ho gaya! ✅');showPage('orders');
+  await fsSet('orders',order.id,order);
+  clearOrderForm();toast('Order save ho gaya! ✅');showPage('orders');
 }
 
 // ── CUSTOMERS ─────────────────────────────────────────
@@ -910,16 +958,17 @@ function renderCustomers(){
 
 function openAddCustomer(){openModal('add-cust-modal');}
 
-function saveNewCustomer(){
+async function saveNewCustomer(){
   const name=document.getElementById('nc-name').value.trim();
   const phone=document.getElementById('nc-phone').value.trim();
   const addr=document.getElementById('nc-addr').value.trim();
   if(!name||!phone){toast('Name aur phone bharo','error');return;}
   if(customers.find(c=>c.phone===phone)){toast('Yeh phone already exist karta hai','error');return;}
   const c={id:uid(),name,phone,address:addr,createdAt:Date.now()};
-  customers.push(c);saveLocal();closeModal('add-cust-modal');
+  await fsSet('customers',c.id,c);
+  closeModal('add-cust-modal');
   ['nc-name','nc-phone','nc-addr'].forEach(id=>document.getElementById(id).value='');
-  renderCustomers();toast('Customer added!');
+  toast('Customer added!');
 }
 
 // ── REPORTS ───────────────────────────────────────────
@@ -1023,7 +1072,7 @@ function cancelEditUser(){
   document.getElementById('user-cancel-btn').style.display='none';
 }
 
-function saveUser(){
+async function saveUser(){
   const editId=document.getElementById('edit-user-id').value;
   const name=document.getElementById('new-name').value.trim();
   const uname=document.getElementById('new-uname').value.trim();
@@ -1032,22 +1081,24 @@ function saveUser(){
   const role=document.getElementById('new-role').value;
   if(!name||!uname||!pass){toast('Sab fields bharo','error');return;}
   if(editId){
-    const idx=users.findIndex(u=>u.id===editId);if(idx<0)return;
     const conflict=users.find(u=>u.username===uname&&u.id!==editId);
     if(conflict){toast('Username already exists','error');return;}
-    users[idx]={...users[idx],name,username:uname,password:pass,dept,role};
-    saveLocal();cancelEditUser();renderUsers();populateEmpFilters();toast(`${name} updated!`);
+    const updated={...users.find(u=>u.id===editId),name,username:uname,password:pass,dept,role};
+    await fsSet('users',editId,updated);
+    users=users.map(u=>u.id===editId?updated:u);
   } else {
     if(users.find(u=>u.username===uname)){toast('Username already exists','error');return;}
     const u={id:uid(),name,username:uname,password:pass,dept,role};
-    users.push(u);saveLocal();cancelEditUser();renderUsers();populateEmpFilters();toast(`${name} add ho gaya!`);
+    await fsSet('users',u.id,u);users.push(u);
   }
+  cancelEditUser();renderUsers();populateEmpFilters();toast(`${name} saved!`);
 }
 
-function removeUser(id){
+async function removeUser(id){
   if(id===currentUser.id){toast('Apne aap ko delete nahi kar sakte','error');return;}
   if(!confirm('Is user ko remove karna chahte ho?'))return;
-  users=users.filter(u=>u.id!==id);saveLocal();renderUsers();populateEmpFilters();toast('User removed','warning');
+  await fsDelete('users',id);
+  users=users.filter(u=>u.id!==id);renderUsers();populateEmpFilters();toast('User removed','warning');
 }
 
 // ── EXPORT ────────────────────────────────────────────
@@ -1090,13 +1141,6 @@ function weekLabel(d){return`Week ${getWeekNum(d)} — ${d.toLocaleDateString('e
 function toast(msg,type=''){const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;document.getElementById('toast-container').appendChild(t);setTimeout(()=>t.remove(),3000);}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-
-function hardReset(){
-  if(!confirm('Yeh action browser ka sabhi SalesTrack data clear karega aur fresh start karega. Continue?')) return;
-  localStorage.clear();
-  sessionStorage.clear();
-  location.reload();
-}
 
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.querySelectorAll('.autocomplete-dropdown').forEach(d=>d.classList.remove('open'));});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
