@@ -185,7 +185,7 @@ tr:hover td{background:var(--surface2);}
     <div class="login-logo">
       <div class="icon">📊</div>
       <h1>SalesTrack Pro</h1>
-      <p>Kalpataru Poly Plast — Sales Management System</p>
+      <p>Kalpataru Poly Plast — Clampon Department</p>
     </div>
     <div class="form-group">
       <label>Username</label>
@@ -197,7 +197,7 @@ tr:hover td{background:var(--surface2);}
     </div>
     <div id="login-error" class="error-msg" style="display:none;margin-bottom:10px;"></div>
     <button class="btn btn-primary btn-full" onclick="doLogin()">Login →</button>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px;">Admin: admin / admin123</p>
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px;">Admin: admin / kalpataru123</p>
   </div>
 </div>
 
@@ -205,7 +205,7 @@ tr:hover td{background:var(--surface2);}
 <div id="app">
   <div class="layout">
     <aside class="sidebar">
-      <div class="sidebar-header"><h2>SalesTrack Pro</h2><p>Kalpataru Poly Plast</p></div>
+      <div class="sidebar-header"><h2>SalesTrack Pro</h2><p>Kalpataru Poly Plast</p><p style="font-size:10px;color:var(--primary);font-weight:600;margin-top:2px;">Clampon Department</p></div>
       <div class="sidebar-user">
         <div class="user-avatar" id="sb-avatar">A</div>
         <div class="user-info">
@@ -504,7 +504,8 @@ firebase.initializeApp({
   appId:"1:270237129064:web:898d42e200860ee3d09edd"
 });
 const db=firebase.firestore();
-const COL={users:'kalpataru_users',customers:'kalpataru_customers',orders:'kalpataru_orders'};
+const COL={users:'kalpataru_users',customers:'kalpataru_customers',orders:'kalpataru_orders',meta:'kalpataru_meta'};
+const SEED_VERSION=2;
 
 let currentUser=null, reportPeriod='daily';
 let users=[], customers=[], orders=[];
@@ -528,10 +529,17 @@ async function fsUpdate(col,id,data){
 }
 
 const DEFAULT_SEED=[
-  {id:'u0',name:'Admin',username:'admin',password:'admin123',role:'admin'},
-  {id:'u1',name:'Employee 1',username:'employee1',password:'employee123',role:'employee'},
-  {id:'u2',name:'Employee 2',username:'employee2',password:'employee123',role:'employee'},
-  {id:'u3',name:'Employee 3',username:'employee3',password:'employee123',role:'employee'},
+  {id:'u0',name:'Admin',username:'admin',password:'kalpataru123',role:'admin',dept:'admin'},
+  {id:'u1',name:'Employee 1',username:'employee1',password:'employee1123',role:'employee',dept:'Clampon'},
+  {id:'u2',name:'Employee 2',username:'employee2',password:'employee2123',role:'employee',dept:'Clampon'},
+  {id:'u3',name:'Employee 3',username:'employee3',password:'employee3123',role:'employee',dept:'Clampon'},
+  {id:'u4',name:'Employee 4',username:'employee4',password:'employee4123',role:'employee',dept:'Clampon'},
+  {id:'u5',name:'Employee 5',username:'employee5',password:'employee5123',role:'employee',dept:'Clampon'},
+  {id:'u6',name:'Employee 6',username:'employee6',password:'employee6123',role:'employee',dept:'Clampon'},
+  {id:'u7',name:'Employee 7',username:'employee7',password:'employee7123',role:'employee',dept:'Clampon'},
+  {id:'u8',name:'Employee 8',username:'employee8',password:'employee8123',role:'employee',dept:'Clampon'},
+  {id:'u9',name:'Employee 9',username:'employee9',password:'employee9123',role:'employee',dept:'Clampon'},
+  {id:'u10',name:'Employee 10',username:'employee10',password:'employee10123',role:'employee',dept:'Clampon'},
 ];
 
 async function seedDefaults(){
@@ -543,10 +551,13 @@ async function init(){
   showLoading(true);
   try{
     users=await fsGetAll(COL.users);
-    if(!users.find(u=>u.username==='admin')) await seedDefaults();
-    // Merge any missing default users
-    for(const du of DEFAULT_SEED){
-      if(!users.find(u=>u.id===du.id)){await fsSet(COL.users,du.id,du);users.push(du);}
+    const metaSnap=await db.collection(COL.meta).doc('seed').get();
+    const seededVersion=metaSnap.exists?metaSnap.data().version:0;
+    if(!users.find(u=>u.username==='admin')||seededVersion<SEED_VERSION){
+      // First run, or a newer default seed (new admin/users) needs to overwrite old data
+      for(const du of DEFAULT_SEED){await fsSet(COL.users,du.id,du);}
+      await db.collection(COL.meta).doc('seed').set({version:SEED_VERSION});
+      users=await fsGetAll(COL.users);
     }
   }catch(e){
     // Firestore offline fallback
@@ -989,7 +1000,7 @@ async function saveUser(){
     users=users.map(u=>u.id===editId?updated:u);
   } else {
     if(users.find(u=>u.username===uname)){toast('Username already exists','error');return;}
-    const u={id:uid(),name,username:uname,password:pass,role};
+    const u={id:uid(),name,username:uname,password:pass,role,dept:role==='admin'?'admin':'Clampon'};
     await fsSet(COL.users,u.id,u);users.push(u);
   }
   cancelEditUser();renderUsers();populateEmpFilters();toast(`${name} saved!`);
