@@ -256,7 +256,8 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           <div class="card">
             <div class="card-header"><div class="card-title">Mark / Review Attendance</div></div>
             <div class="card-body" style="padding-bottom:4px;">
-              <p class="help-text" style="margin-bottom:10px;">Employee khud login karke check-in/check-out karega to yahan automatically dikhega. Agar system na chale ya employee login na kar paye, to admin yahan manually status set kar sakta hai.</p>
+              <p class="help-text" style="margin-bottom:4px;">Office time: 9:30 AM – 6:30 PM. Employee check-in/check-out se status automatic calculate hota hai (1:30 PM cutoff se half-day decide hota hai). Agar system na chale ya employee login na kar paye, admin yahan manually status set kar sakta hai.</p>
+              <p class="help-text" style="margin-bottom:10px;">Employee khud login karke check-in/check-out karega to yahan automatically dikhega.</p>
             </div>
             <div class="table-wrap"><table>
               <thead><tr><th>Employee</th><th>Check-In</th><th>Check-Out</th><th>Status</th><th>Marked By</th></tr></thead>
@@ -272,6 +273,9 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="page" id="page-my-attendance">
           <div class="card" style="max-width:460px;">
             <div class="card-header"><div class="card-title" id="my-att-date-title">Today</div></div>
+            <div class="card-body" style="padding-bottom:0;">
+              <p class="help-text">Office time: 9:30 AM – 6:30 PM. 1:30 PM se pehle check-in aur 1:30 PM ke baad check-out karne par full day present count hoga. Sirf ek half (pehle ya baad wala) cover hua to half-day lagega.</p>
+            </div>
             <div class="card-body" style="text-align:center;">
               <div id="my-att-status" style="font-size:15px;font-weight:600;margin-bottom:16px;"></div>
               <button class="btn btn-primary btn-full" id="my-checkin-btn" onclick="employeeCheckIn()">✅ Check In</button>
@@ -332,6 +336,25 @@ const db=firebase.firestore();
 const COL={employees:'flowrain_employees',leaves:'flowrain_leaves',meta:'flowrain_meta',attendance:'flowrain_attendance'};
 const SEED_VERSION=1;
 const MONTHLY_ALLOWANCE=1.5;
+const OFFICE_START_MIN=9*60+30;   // 9:30 AM
+const OFFICE_HALF_MIN=13*60+30;   // 1:30 PM cutoff between first/second half
+const OFFICE_END_MIN=18*60+30;    // 6:30 PM
+
+function minutesOfDay(ts){const d=new Date(ts);return d.getHours()*60+d.getMinutes();}
+
+// Decides present / half-day / absent from check-in & check-out times.
+// First half = 9:30–1:30, second half = 1:30–6:30. Checked in by 1:30 counts
+// the first half present; checked out at/after 1:30 counts the second half
+// present. One half present => half-day; both => present; neither => absent.
+function computeAutoStatus(checkIn,checkOut){
+  if(!checkIn) return 'absent';
+  const firstHalfPresent=minutesOfDay(checkIn)<=OFFICE_HALF_MIN;
+  if(!checkOut) return firstHalfPresent?'present':'half-day';
+  const secondHalfPresent=minutesOfDay(checkOut)>=OFFICE_HALF_MIN;
+  if(firstHalfPresent&&secondHalfPresent) return 'present';
+  if(firstHalfPresent||secondHalfPresent) return 'half-day';
+  return 'absent';
+}
 
 let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
@@ -655,12 +678,14 @@ function renderMyAttendance(){
     inBtn.style.display='block'; outBtn.style.display='none';
   }else if(rec.checkIn && !rec.checkOut){
     const t=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    statusEl.innerHTML=`<span class="badge badge-green">Checked in at ${t}</span>`;
+    const hint=rec.status==='half-day'?' <span class="badge badge-amber">1:30 ke baad — half-day</span>':'';
+    statusEl.innerHTML=`<span class="badge badge-green">Checked in at ${t}</span>${hint}`;
     inBtn.style.display='none'; outBtn.style.display='block';
   }else{
     const ti=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     const to=new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    statusEl.innerHTML=`<span class="badge badge-blue">Done for today: ${ti} → ${to}</span>`;
+    const badgeMap={present:'badge-green',absent:'badge-red','half-day':'badge-amber'};
+    statusEl.innerHTML=`<span class="badge ${badgeMap[rec.status]||'badge-blue'}">Done for today: ${ti} → ${to} (${esc(rec.status)})</span>`;
     inBtn.style.display='none'; outBtn.style.display='none';
   }
   const ym=curMonth();
@@ -677,17 +702,21 @@ function renderMyAttendance(){
 async function employeeCheckIn(){
   const date=todayStr();
   const id=attendanceId(currentUser.id,date);
-  await fsSet(COL.attendance,id,{id,employeeId:currentUser.id,date,status:'present',checkIn:Date.now(),checkOut:null,source:'self',updatedAt:Date.now()});
-  toast('Check-in done!');
+  const now=Date.now();
+  const status=computeAutoStatus(now,null);
+  await fsSet(COL.attendance,id,{id,employeeId:currentUser.id,date,status,checkIn:now,checkOut:null,source:'self',updatedAt:now});
+  toast(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!');
 }
 
 async function employeeCheckOut(){
   const date=todayStr();
   const id=attendanceId(currentUser.id,date);
   const existing=attendance.find(a=>a.id===id);
-  if(!existing){toast('Pehle check-in karo','error');return;}
-  await fsUpdate(COL.attendance,id,{checkOut:Date.now(),updatedAt:Date.now()});
-  toast('Check-out done!');
+  if(!existing||!existing.checkIn){toast('Pehle check-in karo','error');return;}
+  const now=Date.now();
+  const status=computeAutoStatus(existing.checkIn,now);
+  await fsUpdate(COL.attendance,id,{checkOut:now,status,updatedAt:now});
+  toast(status==='half-day'?'Check-out done! (Half-day count hua)':status==='present'?'Check-out done! Full day present.':'Check-out done!');
 }
 
 function countAttendanceLeaveDays(empId,ym){
