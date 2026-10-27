@@ -181,6 +181,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
       <div class="nav-section" id="employee-nav-section" style="display:none;">
         <div class="nav-label">Main</div>
         <div class="nav-item active" onclick="showPage('my-attendance')" id="nav-my-attendance"><span class="nav-icon">🕒</span> My Attendance</div>
+        <div class="nav-item" onclick="showPage('my-salary')" id="nav-my-salary"><span class="nav-icon">💰</span> My Salary</div>
       </div>
       <div class="sidebar-footer">
         <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
@@ -287,6 +288,21 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
             <div class="table-wrap"><table>
               <thead><tr><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th></tr></thead>
               <tbody id="my-att-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- MY SALARY (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-my-salary">
+          <div class="filter-bar">
+            <input type="month" id="my-salary-month" onchange="renderMySalary()">
+          </div>
+          <div class="stat-grid" id="my-salary-stats"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Leave & Salary Breakdown</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Total Available</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th></tr></thead>
+              <tbody id="my-salary-body"></tbody>
             </table></div>
           </div>
         </div>
@@ -423,11 +439,13 @@ function startRealtime(){
     if(pg&&pg.id==='page-dashboard') renderDashboard();
     if(pg&&pg.id==='page-leave') renderLeaveEntry();
     if(pg&&pg.id==='page-attendance') renderAttendance();
+    if(pg&&pg.id==='page-my-salary') renderMySalary();
   });
   unsubLeaves=db.collection(COL.leaves).onSnapshot(snap=>{
     leaves=snap.docs.map(d=>({id:d.id,...d.data()}));
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-dashboard') renderDashboard();
+    if(pg&&pg.id==='page-my-salary') renderMySalary();
   });
   unsubAttendance=db.collection(COL.attendance).onSnapshot(snap=>{
     attendance=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -485,6 +503,7 @@ function startApp(){
   const dm=document.getElementById('dash-month');if(dm)dm.value=ym;
   const lm=document.getElementById('leave-month');if(lm)lm.value=ym;
   const ad=document.getElementById('att-date');if(ad)ad.value=todayStr();
+  const msm=document.getElementById('my-salary-month');if(msm)msm.value=ym;
   if(currentUser.role==='admin'){
     document.getElementById('admin-nav-section').style.display='block';
     document.getElementById('employee-nav-section').style.display='none';
@@ -501,13 +520,14 @@ function showPage(id){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
   const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
-  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance'};
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
   if(id==='leave')renderLeaveEntry();
   if(id==='employees')renderEmployees();
   if(id==='attendance')renderAttendance();
   if(id==='my-attendance')renderMyAttendance();
+  if(id==='my-salary')renderMySalary();
 }
 
 // ── LEAVE CALCULATION CORE ─────────────────────────────
@@ -576,6 +596,32 @@ function exportDashboard(){
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Salary-'+ym);
   XLSX.writeFile(wb,`Flowrain_Salary_${ym}.xlsx`);
+}
+
+// ── MY SALARY (EMPLOYEE SELF-SERVICE) ──────────────────
+function renderMySalary(){
+  const ym=document.getElementById('my-salary-month').value||curMonth();
+  const emp=employees.find(e=>e.id===currentUser.id);
+  if(!emp) return;
+  const c=computeLeaveForMonth(emp.id,ym);
+  const salary=Number(emp.salary||0);
+  const perDay=salary/30;
+  const deduction=c.unpaidDays*perDay;
+  const net=salary-deduction;
+
+  document.getElementById('my-salary-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Monthly Salary</div><div class="stat-value">₹${fmt(salary)}</div><div class="stat-sub">Gross</div></div>
+    <div class="stat-card red"><div class="stat-label">Deduction</div><div class="stat-value">₹${fmt(deduction)}</div><div class="stat-sub">${fmt(c.unpaidDays)} unpaid days</div></div>
+    <div class="stat-card green"><div class="stat-label">Net Payable</div><div class="stat-value">₹${fmt(net)}</div><div class="stat-sub">After deductions</div></div>`;
+
+  document.getElementById('my-salary-body').innerHTML=`<tr>
+    <td>${fmt(c.carryIn)}</td>
+    <td>${fmt(c.allowance)}</td>
+    <td><strong>${fmt(c.available)}</strong></td>
+    <td>${fmt(c.taken)}</td>
+    <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span></td>
+    <td>${c.unpaidDays>0?`<span class="badge badge-amber">${fmt(c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+  </tr>`;
 }
 
 // ── MONTHLY LEAVE ENTRY ────────────────────────────────
