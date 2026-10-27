@@ -284,7 +284,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><div class="card-title">This Month's Attendance</div></div>
+            <div class="card-header"><div class="card-title">This Month's Attendance</div><span id="my-att-late-count" class="badge badge-amber"></span></div>
             <div class="table-wrap"><table>
               <thead><tr><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th></tr></thead>
               <tbody id="my-att-body"></tbody>
@@ -359,8 +359,10 @@ const MONTHLY_ALLOWANCE=1.5;
 const OFFICE_START_MIN=9*60+30;   // 9:30 AM
 const OFFICE_HALF_MIN=13*60+30;   // 1:30 PM cutoff between first/second half
 const OFFICE_END_MIN=18*60+30;    // 6:30 PM
+const LATE_PUNCH_MIN=10*60+45;    // after 10:45 AM counts as a late punch-in (tracking only, no salary effect)
 
 function minutesOfDay(ts){const d=new Date(ts);return d.getHours()*60+d.getMinutes();}
+function isLatePunch(checkIn){return checkIn?minutesOfDay(checkIn)>LATE_PUNCH_MIN:false;}
 
 // Decides present / half-day / absent from check-in & check-out times.
 // First half = 9:30–1:30, second half = 1:30–6:30. Checked in by 1:30 counts
@@ -680,9 +682,10 @@ function renderAttendance(){
     const checkIn=rec&&rec.checkIn?new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
     const checkOut=rec&&rec.checkOut?new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
     const markedBy=rec?(rec.source==='self'?'<span class="badge badge-blue">Self</span>':'<span class="badge badge-gray">Admin</span>'):'';
+    const lateBadge=rec&&rec.late?' <span class="badge badge-amber">Late</span>':'';
     return `<tr data-emp="${emp.id}">
       <td><strong>${esc(emp.name)}</strong></td>
-      <td>${checkIn}</td>
+      <td>${checkIn}${lateBadge}</td>
       <td>${checkOut}</td>
       <td>
         <select class="form-control" id="att-status-${emp.id}" style="padding:6px 8px;font-size:12px;">
@@ -707,7 +710,7 @@ async function saveAttendance(){
     if(status==='not-marked') continue;
     const id=attendanceId(emp.id,date);
     const existing=attendance.find(a=>a.id===id);
-    await fsSet(COL.attendance,id,{id,employeeId:emp.id,date,status,checkIn:existing?existing.checkIn||null:null,checkOut:existing?existing.checkOut||null:null,source:'admin',updatedAt:Date.now()});
+    await fsSet(COL.attendance,id,{id,employeeId:emp.id,date,status,late:existing?!!existing.late:false,checkIn:existing?existing.checkIn||null:null,checkOut:existing?existing.checkOut||null:null,source:'admin',updatedAt:Date.now()});
   }
   toast('Attendance saved!');
 }
@@ -729,23 +732,28 @@ function renderMyAttendance(){
   }else if(rec.checkIn && !rec.checkOut){
     const t=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     const hint=rec.status==='half-day'?' <span class="badge badge-amber">1:30 ke baad — half-day</span>':'';
-    statusEl.innerHTML=`<span class="badge badge-green">Checked in at ${t}</span>${hint}`;
+    const lateHint=rec.late?' <span class="badge badge-amber">Late punch-in</span>':'';
+    statusEl.innerHTML=`<span class="badge badge-green">Checked in at ${t}</span>${hint}${lateHint}`;
     inBtn.style.display='none'; outBtn.style.display='block';
   }else{
     const ti=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     const to=new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     const badgeMap={present:'badge-green',absent:'badge-red','half-day':'badge-amber'};
-    statusEl.innerHTML=`<span class="badge ${badgeMap[rec.status]||'badge-blue'}">Done for today: ${ti} → ${to} (${esc(rec.status)})</span>`;
+    const lateHint=rec.late?' <span class="badge badge-amber">Late punch-in</span>':'';
+    statusEl.innerHTML=`<span class="badge ${badgeMap[rec.status]||'badge-blue'}">Done for today: ${ti} → ${to} (${esc(rec.status)})</span>${lateHint}`;
     inBtn.style.display='none'; outBtn.style.display='none';
   }
   const ym=curMonth();
   const mine=attendance.filter(a=>a.employeeId===currentUser.id && a.date&&a.date.startsWith(ym)).sort((a,b)=>b.date.localeCompare(a.date));
+  const lateCount=mine.filter(a=>a.late).length;
+  document.getElementById('my-att-late-count').textContent=`${lateCount} late this month`;
   document.getElementById('my-att-body').innerHTML=mine.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">📅</div><p>Is month koi record nahi</p></div></td></tr>`:
     mine.map(a=>{
       const ci=a.checkIn?new Date(a.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
       const co=a.checkOut?new Date(a.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
       const badgeMap={present:'badge-green',absent:'badge-red',leave:'badge-amber','half-day':'badge-blue'};
-      return `<tr><td class="date-chip">${a.date}</td><td>${ci}</td><td>${co}</td><td><span class="badge ${badgeMap[a.status]||'badge-gray'}">${esc(a.status)}</span></td></tr>`;
+      const lateBadge=a.late?' <span class="badge badge-amber">Late</span>':'';
+      return `<tr><td class="date-chip">${a.date}</td><td>${ci}${lateBadge}</td><td>${co}</td><td><span class="badge ${badgeMap[a.status]||'badge-gray'}">${esc(a.status)}</span></td></tr>`;
     }).join('');
 }
 
@@ -754,8 +762,9 @@ async function employeeCheckIn(){
   const id=attendanceId(currentUser.id,date);
   const now=Date.now();
   const status=computeAutoStatus(now,null);
-  await fsSet(COL.attendance,id,{id,employeeId:currentUser.id,date,status,checkIn:now,checkOut:null,source:'self',updatedAt:now});
-  toast(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!');
+  const late=isLatePunch(now);
+  await fsSet(COL.attendance,id,{id,employeeId:currentUser.id,date,status,late,checkIn:now,checkOut:null,source:'self',updatedAt:now});
+  toast((late?'Late punch-in noted (10:45 ke baad). ':'')+(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!'));
 }
 
 async function employeeCheckOut(){
