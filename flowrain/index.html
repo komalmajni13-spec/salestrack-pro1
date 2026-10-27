@@ -182,6 +182,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="nav-label">Main</div>
         <div class="nav-item active" onclick="showPage('my-attendance')" id="nav-my-attendance"><span class="nav-icon">🕒</span> My Attendance</div>
         <div class="nav-item" onclick="showPage('my-salary')" id="nav-my-salary"><span class="nav-icon">💰</span> My Salary</div>
+        <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password"><span class="nav-icon">🔒</span> Change Password</div>
       </div>
       <div class="sidebar-footer">
         <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
@@ -304,6 +305,19 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <thead><tr><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Total Available</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th></tr></thead>
               <tbody id="my-salary-body"></tbody>
             </table></div>
+          </div>
+        </div>
+
+        <!-- CHANGE PASSWORD (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-change-password">
+          <div class="card" style="max-width:420px;">
+            <div class="card-header"><div class="card-title">🔒 Change Password</div></div>
+            <div class="card-body">
+              <div class="form-group"><label>Current Password *</label><input class="form-control" type="password" id="cp-current" placeholder="Current password"></div>
+              <div class="form-group"><label>New Password *</label><input class="form-control" type="password" id="cp-new" placeholder="New password"></div>
+              <div class="form-group"><label>Confirm New Password *</label><input class="form-control" type="password" id="cp-confirm" placeholder="Re-enter new password"></div>
+              <button class="btn btn-primary btn-full" onclick="changeMyPassword()">Update Password</button>
+            </div>
           </div>
         </div>
 
@@ -522,7 +536,7 @@ function showPage(id){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
   const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
-  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary'};
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
   if(id==='leave')renderLeaveEntry();
@@ -530,6 +544,11 @@ function showPage(id){
   if(id==='attendance')renderAttendance();
   if(id==='my-attendance')renderMyAttendance();
   if(id==='my-salary')renderMySalary();
+  if(id==='change-password'){
+    document.getElementById('cp-current').value='';
+    document.getElementById('cp-new').value='';
+    document.getElementById('cp-confirm').value='';
+  }
 }
 
 // ── LEAVE CALCULATION CORE ─────────────────────────────
@@ -624,6 +643,23 @@ function renderMySalary(){
     <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span></td>
     <td>${c.unpaidDays>0?`<span class="badge badge-amber">${fmt(c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
   </tr>`;
+}
+
+// ── CHANGE PASSWORD (EMPLOYEE SELF-SERVICE) ────────────
+async function changeMyPassword(){
+  const current=document.getElementById('cp-current').value;
+  const next=document.getElementById('cp-new').value;
+  const confirm=document.getElementById('cp-confirm').value;
+  const emp=employees.find(e=>e.id===currentUser.id);
+  if(!emp){toast('Employee record nahi mila','error');return;}
+  if(current!==emp.password){toast('Current password galat hai','error');return;}
+  if(!next||next.length<4){toast('Naya password kam se kam 4 characters ka rakho','error');return;}
+  if(next!==confirm){toast('Naya password match nahi ho raha','error');return;}
+  await fsUpdate(COL.employees,emp.id,{password:next});
+  document.getElementById('cp-current').value='';
+  document.getElementById('cp-new').value='';
+  document.getElementById('cp-confirm').value='';
+  toast('Password update ho gaya!');
 }
 
 // ── MONTHLY LEAVE ENTRY ────────────────────────────────
