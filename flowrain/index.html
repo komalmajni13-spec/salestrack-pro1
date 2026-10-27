@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flowrain Pipe and Fittings - Salary & Leave Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--nav-bg:#0f3d2e;--nav-text:#a8d4c0;
+  --nav-active:#fff;--nav-active-bg:#15803d;--primary:#15803d;--primary-hover:#166534;
+  --success:#16a34a;--success-bg:#f0fdf4;--warning:#d97706;--warning-bg:#fffbeb;
+  --danger:#dc2626;--danger-bg:#fef2f2;--text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-md:0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg:0 10px 25px rgba(0,0,0,0.1);--radius:10px;--radius-sm:6px;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#071a12;--surface:#0f2a1e;--surface2:#133627;--nav-bg:#05120c;--nav-text:#7fb79e;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a6c;--border:#1e4433;
+  --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
+}}
+:root[data-theme="dark"]{
+  --bg:#071a12;--surface:#0f2a1e;--surface2:#133627;--nav-bg:#05120c;--nav-text:#7fb79e;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a6c;--border:#1e4433;
+  --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+h1,h2,h3,h4{font-family:'Poppins',sans-serif;}
+
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f3d2e 0%,#166534 50%,#15803d 100%);}
+.login-card{background:var(--surface);border-radius:16px;padding:40px;width:380px;box-shadow:var(--shadow-lg);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo h1{font-size:22px;color:var(--primary);}
+.login-logo p{color:var(--text2);font-size:12px;margin-top:4px;}
+.login-logo .icon{font-size:40px;margin-bottom:8px;}
+
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
+.form-control{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+.form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,128,61,0.12);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'Inter',sans-serif;border:none;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:var(--primary);color:#fff;}.btn-primary:hover{background:var(--primary-hover);}
+.btn-success{background:var(--success);color:#fff;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);}.btn-ghost:hover{background:var(--surface2);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-full{width:100%;justify-content:center;padding:12px;}
+.error-msg{color:var(--danger);font-size:12px;margin-top:6px;}
+.help-text{font-size:11px;color:var(--text3);margin-top:4px;}
+
+#app{display:none;height:100vh;overflow:hidden;}
+.layout{display:flex;height:100%;}
+.sidebar{width:230px;background:var(--nav-bg);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar-header{padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.sidebar-header h2{font-size:15px;color:#fff;font-weight:700;}
+.sidebar-header p{font-size:11px;color:var(--nav-text);margin-top:2px;}
+.sidebar-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;}
+.user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;background:var(--primary);}
+.user-avatar.av-admin{background:#d97706;}
+.user-info .name{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-info .role{font-size:10px;color:var(--nav-text);text-transform:uppercase;letter-spacing:0.5px;}
+.nav-section{padding:10px 10px 4px;}
+.nav-label{font-size:10px;color:var(--nav-text);text-transform:uppercase;letter-spacing:0.8px;padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;color:var(--nav-text);font-size:13px;font-weight:500;transition:all 0.15s;margin-bottom:2px;}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+.nav-item.active{background:var(--nav-active-bg);color:#fff;}
+.nav-icon{font-size:15px;width:20px;text-align:center;}
+.sidebar-footer{margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,0.07);}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-title{font-size:16px;font-weight:700;font-family:'Poppins',sans-serif;}
+.content{padding:20px 24px;flex:1;}
+
+.page{display:none;}.page.active{display:block;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
+.stat-value{font-size:24px;font-weight:700;font-family:'Poppins',sans-serif;font-variant-numeric:tabular-nums;}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.stat-card.green .stat-value{color:var(--success);}
+.stat-card.blue .stat-value{color:var(--primary);}
+.stat-card.amber .stat-value{color:var(--warning);}
+.stat-card.red .stat-value{color:var(--danger);}
+
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.card-title{font-size:14px;font-weight:700;font-family:'Poppins',sans-serif;}
+.card-body{padding:18px;}
+
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);background:var(--surface2);border-bottom:1px solid var(--border);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.amount{font-variant-numeric:tabular-nums;font-weight:600;}
+input.leave-input{width:70px;padding:6px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font-size:13px;text-align:center;}
+input.leave-input:focus{border-color:var(--primary);outline:none;}
+
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-green{background:var(--success-bg);color:var(--success);}
+.badge-blue{background:#eff6ff;color:var(--primary);}
+.badge-amber{background:var(--warning-bg);color:var(--warning);}
+.badge-red{background:var(--danger-bg);color:var(--danger);}
+.badge-gray{background:var(--surface2);color:var(--text2);}
+
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.filter-bar select,.filter-bar input{padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;cursor:pointer;}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--primary);}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:700;font-family:'Poppins',sans-serif;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);}
+.modal-body{padding:22px;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.grid-2{grid-template-columns:1fr;}}
+
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface);border-left:4px solid var(--success);border-radius:var(--radius-sm);padding:12px 16px;box-shadow:var(--shadow-md);font-size:13px;font-weight:500;max-width:300px;animation:slideIn 0.3s ease;}
+.toast.error{border-color:var(--danger);}
+.toast.warning{border-color:var(--warning);}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.empty-state{text-align:center;padding:40px 24px;color:var(--text2);}
+.empty-state .icon{font-size:40px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">🏭</div>
+      <h1>Flowrain Pipe and Fittings</h1>
+      <p>Salary & Leave Management</p>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input class="form-control" type="text" id="login-user" placeholder="Enter username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input class="form-control" type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <div id="login-error" class="error-msg" style="display:none;margin-bottom:10px;"></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Login →</button>
+    <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:14px;">Admin: admin / flowrain123</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header"><h2>Flowrain</h2><p>Pipe and Fittings</p><p style="font-size:10px;color:#4ade80;font-weight:600;margin-top:2px;">Salary & Leave Manager</p></div>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sb-avatar">A</div>
+        <div class="user-info">
+          <div class="name" id="sb-name">Admin</div>
+          <div class="role" id="sb-role">Administrator</div>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">🏠</span> Dashboard</div>
+        <div class="nav-item" onclick="showPage('leave')" id="nav-leave"><span class="nav-icon">📅</span> Monthly Leave Entry</div>
+        <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="topbar-date" style="font-size:12px;color:var(--text2);"></span>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="filter-bar">
+            <input type="month" id="dash-month" onchange="renderDashboard()">
+          </div>
+          <div class="stat-grid" id="dash-stats"></div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Employee-wise Salary & Leave Summary</div>
+              <button class="btn btn-ghost btn-sm" onclick="exportDashboard()">📥 Export Excel</button>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>Monthly Salary (₹)</th><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Leave Taken</th><th>Balance Leave</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net Salary (₹)</th></tr></thead>
+              <tbody id="dash-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- MONTHLY LEAVE ENTRY -->
+        <div class="page" id="page-leave">
+          <div class="filter-bar">
+            <input type="month" id="leave-month" onchange="renderLeaveEntry()">
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Enter Leaves Taken This Month</div></div>
+            <div class="card-body" style="padding-bottom:4px;">
+              <p class="help-text" style="margin-bottom:10px;">Har employee ki monthly leave allowance 1.5 din hai. Jo leave bachegi woh next month carry forward ho jayegi. Jo extra leave li hai uski salary se deduction calculate ho jayega.</p>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>Carry Forward (din)</th><th>This Month Allowance</th><th>Total Available</th><th>Leaves Taken</th><th>Balance</th></tr></thead>
+              <tbody id="leave-body"></tbody>
+            </table></div>
+            <div class="card-body" style="display:flex;gap:10px;">
+              <button class="btn btn-primary" onclick="saveLeaveEntries()">✅ Save & Calculate</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPLOYEES -->
+        <div class="page" id="page-employees">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">👥 Employees</div>
+              <button class="btn btn-primary btn-sm" onclick="openAddEmployee()">+ Add Employee</button>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Name</th><th>Monthly Salary (₹)</th><th>Current Carry Fwd Leave</th><th>Actions</th></tr></thead>
+              <tbody id="emp-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT EMPLOYEE MODAL -->
+<div class="modal-overlay" id="emp-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="emp-modal-title">Add Employee</div><button class="modal-close" onclick="closeModal('emp-modal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="emp-id">
+      <div class="form-group"><label>Full Name *</label><input class="form-control" type="text" id="emp-name" placeholder="Employee name"></div>
+      <div class="form-group"><label>Monthly Salary (₹) *</label><input class="form-control" type="number" id="emp-salary" placeholder="0.00" min="0" step="1"></div>
+      <div class="form-group"><label>Opening Carry Forward Leave (din)</label><input class="form-control" type="number" id="emp-carry" placeholder="0" min="0" step="0.5" value="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('emp-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── FIREBASE ──────────────────────────────────────────
+// Shares the same Firebase project as SalesTrack Pro; data kept separate
+// via the flowrain_* collection prefix (see COL below).
+firebase.initializeApp({
+  apiKey:"AIzaSyC5M5SvKs5wgnDvACcG2I47gdMV3mxXNEE",
+  authDomain:"salestrack-pro-270c6.firebaseapp.com",
+  projectId:"salestrack-pro-270c6",
+  storageBucket:"salestrack-pro-270c6.firebasestorage.app",
+  messagingSenderId:"270237129064",
+  appId:"1:270237129064:web:898d42e200860ee3d09edd"
+});
+const db=firebase.firestore();
+const COL={employees:'flowrain_employees',leaves:'flowrain_leaves',meta:'flowrain_meta'};
+const SEED_VERSION=1;
+const MONTHLY_ALLOWANCE=1.5;
+
+let currentUser=null;
+let employees=[], leaves=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
+let unsubEmployees=null, unsubLeaves=null;
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt(n){return Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});}
+function curMonth(){return new Date().toISOString().slice(0,7);}
+function prevMonth(ym){const [y,m]=ym.split('-').map(Number);const d=new Date(y,m-2,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+
+async function fsGetAll(col){
+  const snap=await db.collection(col).get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+async function fsSet(col,id,data){ await db.collection(col).doc(id).set(data); }
+async function fsDelete(col,id){ await db.collection(col).doc(id).delete(); }
+async function fsUpdate(col,id,data){ await db.collection(col).doc(id).update(data); }
+
+const DEFAULT_ADMIN={id:'admin0',username:'admin',password:'flowrain123'};
+const DEFAULT_EMPLOYEES=Array.from({length:10},(_,i)=>({id:'e'+(i+1),name:'Employee '+(i+1),salary:15000,carryIn:0}));
+
+async function seedIfNeeded(){
+  const metaSnap=await db.collection(COL.meta).doc('seed').get();
+  const seededVersion=metaSnap.exists?metaSnap.data().version:0;
+  if(seededVersion<SEED_VERSION){
+    for(const e of DEFAULT_EMPLOYEES){ await fsSet(COL.employees,e.id,e); }
+    await db.collection(COL.meta).doc('seed').set({version:SEED_VERSION});
+  }
+}
+
+async function init(){
+  showLoading(true);
+  try{
+    employees=await fsGetAll(COL.employees);
+    if(employees.length===0){ await seedIfNeeded(); employees=await fsGetAll(COL.employees); }
+    leaves=await fsGetAll(COL.leaves);
+  }catch(e){
+    employees=[...DEFAULT_EMPLOYEES]; leaves=[];
+  }
+  showLoading(false);
+  const sess=sessionStorage.getItem('flowrain_session');
+  if(sess){ try{ currentUser=JSON.parse(sess); startApp(); startRealtime(); }catch(e){} }
+}
+
+function showLoading(show){
+  let el=document.getElementById('loading-overlay');
+  if(show&&!el){el=document.createElement('div');el.id='loading-overlay';el.style.cssText='position:fixed;inset:0;background:#0f3d2e;display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-family:Poppins,sans-serif;';el.innerHTML='<div style="text-align:center;"><div style="font-size:40px;margin-bottom:12px;">🏭</div><div>Flowrain Pipe and Fittings</div><div style="font-size:13px;opacity:0.7;margin-top:6px;">Loading...</div></div>';document.body.appendChild(el);}
+  else if(!show&&el) el.remove();
+}
+
+function startRealtime(){
+  if(unsubEmployees) unsubEmployees();
+  if(unsubLeaves) unsubLeaves();
+  unsubEmployees=db.collection(COL.employees).onSnapshot(snap=>{
+    employees=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-employees') renderEmployees();
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+    if(pg&&pg.id==='page-leave') renderLeaveEntry();
+  });
+  unsubLeaves=db.collection(COL.leaves).onSnapshot(snap=>{
+    leaves=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+  });
+}
+
+// ── AUTH ──────────────────────────────────────────────
+function doLogin(){
+  const uname=document.getElementById('login-user').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-error');
+  err.style.display='none';
+  if(uname===DEFAULT_ADMIN.username && pass===DEFAULT_ADMIN.password){
+    currentUser={id:'admin0',name:'Admin',username:'admin'};
+    sessionStorage.setItem('flowrain_session',JSON.stringify(currentUser));
+    startApp();
+    startRealtime();
+  }else{
+    err.textContent='Invalid username or password.';
+    err.style.display='block';
+  }
+}
+
+function doLogout(){
+  if(unsubEmployees){unsubEmployees();unsubEmployees=null;}
+  if(unsubLeaves){unsubLeaves();unsubLeaves=null;}
+  currentUser=null;
+  sessionStorage.removeItem('flowrain_session');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+}
+
+function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('sb-avatar').textContent=currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('sb-name').textContent=currentUser.name;
+  document.getElementById('sb-role').textContent='Administrator';
+  document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  const ym=curMonth();
+  document.getElementById('dash-month').value=ym;
+  document.getElementById('leave-month').value=ym;
+  showPage('dashboard');
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  document.getElementById(`nav-${id}`).classList.add('active');
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees'};
+  document.getElementById('page-title').textContent=titles[id]||'';
+  if(id==='dashboard')renderDashboard();
+  if(id==='leave')renderLeaveEntry();
+  if(id==='employees')renderEmployees();
+}
+
+// ── LEAVE CALCULATION CORE ─────────────────────────────
+// Returns {carryIn, allowance, available, taken, balance, unpaidDays}
+function computeLeaveForMonth(empId, ym){
+  const emp=employees.find(e=>e.id===empId);
+  const openingCarry=emp?Number(emp.carryIn||0):0;
+  const pm=prevMonth(ym);
+  const prevRec=leaves.find(l=>l.employeeId===empId && l.month===pm);
+  const carryIn = prevRec ? Number(prevRec.balancePositive||0) : openingCarry;
+  const rec=leaves.find(l=>l.employeeId===empId && l.month===ym);
+  const taken=rec?Number(rec.taken||0):0;
+  const available=carryIn+MONTHLY_ALLOWANCE;
+  const balance=available-taken;
+  const unpaidDays=balance<0?Math.abs(balance):0;
+  const balancePositive=balance>0?balance:0;
+  return {carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive};
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+function renderDashboard(){
+  const ym=document.getElementById('dash-month').value||curMonth();
+  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  let totalSalary=0, totalDeduction=0, totalNet=0, totalUnpaid=0;
+  const rows=sorted.map(emp=>{
+    const c=computeLeaveForMonth(emp.id,ym);
+    const salary=Number(emp.salary||0);
+    const perDay=salary/30;
+    const deduction=c.unpaidDays*perDay;
+    const net=salary-deduction;
+    totalSalary+=salary;totalDeduction+=deduction;totalNet+=net;totalUnpaid+=c.unpaidDays;
+    return {emp,c,salary,deduction,net};
+  });
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-label">Total Employees</div><div class="stat-value">${employees.length}</div><div class="stat-sub">Active</div></div>
+    <div class="stat-card"><div class="stat-label">Total Salary (Gross)</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">This month</div></div>
+    <div class="stat-card red"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div>
+    <div class="stat-card green"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div>`;
+
+  document.getElementById('dash-body').innerHTML=rows.length===0?`<tr><td colspan="9"><div class="empty-state"><div class="icon">👤</div><p>No employees</p></div></td></tr>`:
+    rows.map(r=>`<tr>
+      <td><strong>${esc(r.emp.name)}</strong></td>
+      <td class="amount">₹${fmt(r.salary)}</td>
+      <td>${fmt(r.c.carryIn)}</td>
+      <td>${fmt(r.c.allowance)}</td>
+      <td>${fmt(r.c.taken)}</td>
+      <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span></td>
+      <td>${r.c.unpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+      <td class="amount" style="color:var(--danger);">₹${fmt(r.deduction)}</td>
+      <td class="amount" style="color:var(--success);">₹${fmt(r.net)}</td>
+    </tr>`).join('');
+}
+
+function exportDashboard(){
+  const ym=document.getElementById('dash-month').value||curMonth();
+  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const data=sorted.map(emp=>{
+    const c=computeLeaveForMonth(emp.id,ym);
+    const salary=Number(emp.salary||0);
+    const perDay=salary/30;
+    const deduction=c.unpaidDays*perDay;
+    const net=salary-deduction;
+    return {Employee:emp.name,'Monthly Salary':salary,'Carry Forward Leave':c.carryIn,'Monthly Allowance':c.allowance,'Leave Taken':c.taken,'Balance Leave':c.balance,'Unpaid Days':c.unpaidDays,'Deduction':deduction,'Net Salary':net};
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Salary-'+ym);
+  XLSX.writeFile(wb,`Flowrain_Salary_${ym}.xlsx`);
+}
+
+// ── MONTHLY LEAVE ENTRY ────────────────────────────────
+function renderLeaveEntry(){
+  const ym=document.getElementById('leave-month').value||curMonth();
+  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  document.getElementById('leave-body').innerHTML=sorted.map(emp=>{
+    const c=computeLeaveForMonth(emp.id,ym);
+    return `<tr data-emp="${emp.id}">
+      <td><strong>${esc(emp.name)}</strong></td>
+      <td>${fmt(c.carryIn)}</td>
+      <td>${fmt(c.allowance)}</td>
+      <td><strong>${fmt(c.available)}</strong></td>
+      <td><input type="number" class="leave-input" min="0" step="0.5" value="${c.taken}" id="taken-${emp.id}" onchange="previewBalance('${emp.id}','${ym}')"></td>
+      <td id="bal-${emp.id}"><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span></td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="6"><div class="empty-state"><div class="icon">📅</div><p>No employees</p></div></td></tr>`;
+}
+
+function previewBalance(empId,ym){
+  const c=computeLeaveForMonth(empId,ym);
+  const taken=parseFloat(document.getElementById('taken-'+empId).value)||0;
+  const balance=c.available-taken;
+  document.getElementById('bal-'+empId).innerHTML=`<span class="badge ${balance<0?'badge-red':'badge-green'}">${fmt(balance)}</span>`;
+}
+
+async function saveLeaveEntries(){
+  const ym=document.getElementById('leave-month').value||curMonth();
+  const sorted=[...employees];
+  for(const emp of sorted){
+    const inputEl=document.getElementById('taken-'+emp.id);
+    if(!inputEl) continue;
+    const taken=parseFloat(inputEl.value)||0;
+    const c=computeLeaveForMonth(emp.id,ym);
+    const balance=c.available-taken;
+    const unpaidDays=balance<0?Math.abs(balance):0;
+    const balancePositive=balance>0?balance:0;
+    const existing=leaves.find(l=>l.employeeId===emp.id && l.month===ym);
+    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,updatedAt:Date.now()};
+    const id=existing?existing.id:uid();
+    await fsSet(COL.leaves,id,rec);
+  }
+  toast('Leave entries saved & salary calculated!');
+}
+
+// ── EMPLOYEES ─────────────────────────────────────────
+function renderEmployees(){
+  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">👤</div><p>No employees yet</p></div></td></tr>`:
+    sorted.map(e=>`<tr>
+      <td><strong>${esc(e.name)}</strong></td>
+      <td class="amount">₹${fmt(e.salary)}</td>
+      <td>${fmt(e.carryIn||0)}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="openEditEmployee('${e.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteEmployee('${e.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openAddEmployee(){
+  document.getElementById('emp-modal-title').textContent='Add Employee';
+  document.getElementById('emp-id').value='';
+  document.getElementById('emp-name').value='';
+  document.getElementById('emp-salary').value='';
+  document.getElementById('emp-carry').value='0';
+  openModal('emp-modal');
+}
+
+function openEditEmployee(id){
+  const e=employees.find(x=>x.id===id); if(!e) return;
+  document.getElementById('emp-modal-title').textContent='Edit Employee';
+  document.getElementById('emp-id').value=e.id;
+  document.getElementById('emp-name').value=e.name;
+  document.getElementById('emp-salary').value=e.salary;
+  document.getElementById('emp-carry').value=e.carryIn||0;
+  openModal('emp-modal');
+}
+
+async function saveEmployee(){
+  const id=document.getElementById('emp-id').value;
+  const name=document.getElementById('emp-name').value.trim();
+  const salary=parseFloat(document.getElementById('emp-salary').value);
+  const carryIn=parseFloat(document.getElementById('emp-carry').value)||0;
+  if(!name){toast('Name enter karo','error');return;}
+  if(!salary||salary<=0){toast('Valid salary enter karo','error');return;}
+  const empId=id||uid();
+  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn});
+  closeModal('emp-modal');
+  toast(id?'Employee updated!':'Employee added!');
+}
+
+async function deleteEmployee(id){
+  if(!confirm('Is employee ko delete karna chahte ho?'))return;
+  await fsDelete(COL.employees,id);
+  toast('Employee deleted','warning');
+}
+
+// ── MODAL / TOAST ─────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function toast(msg,type='success'){
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className='toast'+(type==='error'?' error':type==='warning'?' warning':'');
+  el.textContent=msg;
+  c.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
+init();
+</script>
+</body>
+</html>
