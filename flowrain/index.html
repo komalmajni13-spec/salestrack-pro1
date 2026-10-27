@@ -171,11 +171,16 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           <div class="role" id="sb-role">Administrator</div>
         </div>
       </div>
-      <div class="nav-section">
+      <div class="nav-section" id="admin-nav-section">
         <div class="nav-label">Main</div>
         <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">🏠</span> Dashboard</div>
         <div class="nav-item" onclick="showPage('leave')" id="nav-leave"><span class="nav-icon">📅</span> Monthly Leave Entry</div>
+        <div class="nav-item" onclick="showPage('attendance')" id="nav-attendance"><span class="nav-icon">🕒</span> Attendance (Manual)</div>
         <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
+      </div>
+      <div class="nav-section" id="employee-nav-section" style="display:none;">
+        <div class="nav-label">Main</div>
+        <div class="nav-item active" onclick="showPage('my-attendance')" id="nav-my-attendance"><span class="nav-icon">🕒</span> My Attendance</div>
       </div>
       <div class="sidebar-footer">
         <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
@@ -220,7 +225,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <p class="help-text" style="margin-bottom:10px;">Har employee ki monthly leave allowance 1.5 din hai. Jo leave bachegi woh next month carry forward ho jayegi. Jo extra leave li hai uski salary se deduction calculate ho jayega.</p>
             </div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Employee</th><th>Carry Forward (din)</th><th>This Month Allowance</th><th>Total Available</th><th>Leaves Taken</th><th>Balance</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Carry Forward (din)</th><th>This Month Allowance</th><th>Total Available</th><th>Leaves Taken</th><th>Balance</th><th></th></tr></thead>
               <tbody id="leave-body"></tbody>
             </table></div>
             <div class="card-body" style="display:flex;gap:10px;">
@@ -237,8 +242,47 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <button class="btn btn-primary btn-sm" onclick="openAddEmployee()">+ Add Employee</button>
             </div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Name</th><th>Monthly Salary (₹)</th><th>Current Carry Fwd Leave</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Login Username</th><th>Monthly Salary (₹)</th><th>Current Carry Fwd Leave</th><th>Actions</th></tr></thead>
               <tbody id="emp-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- ATTENDANCE (ADMIN MANUAL) -->
+        <div class="page" id="page-attendance">
+          <div class="filter-bar">
+            <input type="date" id="att-date" onchange="renderAttendance()">
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Mark / Review Attendance</div></div>
+            <div class="card-body" style="padding-bottom:4px;">
+              <p class="help-text" style="margin-bottom:10px;">Employee khud login karke check-in/check-out karega to yahan automatically dikhega. Agar system na chale ya employee login na kar paye, to admin yahan manually status set kar sakta hai.</p>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>Check-In</th><th>Check-Out</th><th>Status</th><th>Marked By</th></tr></thead>
+              <tbody id="att-body"></tbody>
+            </table></div>
+            <div class="card-body" style="display:flex;gap:10px;">
+              <button class="btn btn-primary" onclick="saveAttendance()">✅ Save Attendance</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MY ATTENDANCE (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-my-attendance">
+          <div class="card" style="max-width:460px;">
+            <div class="card-header"><div class="card-title" id="my-att-date-title">Today</div></div>
+            <div class="card-body" style="text-align:center;">
+              <div id="my-att-status" style="font-size:15px;font-weight:600;margin-bottom:16px;"></div>
+              <button class="btn btn-primary btn-full" id="my-checkin-btn" onclick="employeeCheckIn()">✅ Check In</button>
+              <button class="btn btn-danger btn-full" id="my-checkout-btn" style="display:none;margin-top:10px;" onclick="employeeCheckOut()">🚪 Check Out</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">This Month's Attendance</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th></tr></thead>
+              <tbody id="my-att-body"></tbody>
             </table></div>
           </div>
         </div>
@@ -257,6 +301,11 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
       <div class="form-group"><label>Full Name *</label><input class="form-control" type="text" id="emp-name" placeholder="Employee name"></div>
       <div class="form-group"><label>Monthly Salary (₹) *</label><input class="form-control" type="number" id="emp-salary" placeholder="0.00" min="0" step="1"></div>
       <div class="form-group"><label>Opening Carry Forward Leave (din)</label><input class="form-control" type="number" id="emp-carry" placeholder="0" min="0" step="0.5" value="0"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Login Username</label><input class="form-control" type="text" id="emp-username" placeholder="For employee login (optional)"></div>
+        <div class="form-group"><label>Login Password</label><input class="form-control" type="text" id="emp-password" placeholder="Set login password"></div>
+      </div>
+      <div class="help-text" style="margin-top:-8px;margin-bottom:10px;">Agar employee khud check-in/check-out karna chahta hai to username/password set karo, warna khali chhod do.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('emp-modal')">Cancel</button>
@@ -280,13 +329,14 @@ firebase.initializeApp({
   appId:"1:270237129064:web:898d42e200860ee3d09edd"
 });
 const db=firebase.firestore();
-const COL={employees:'flowrain_employees',leaves:'flowrain_leaves',meta:'flowrain_meta'};
+const COL={employees:'flowrain_employees',leaves:'flowrain_leaves',meta:'flowrain_meta',attendance:'flowrain_attendance'};
 const SEED_VERSION=1;
 const MONTHLY_ALLOWANCE=1.5;
 
 let currentUser=null;
-let employees=[], leaves=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
-let unsubEmployees=null, unsubLeaves=null;
+let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
+let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null;
+function todayStr(){return new Date().toISOString().slice(0,10);}
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -320,8 +370,9 @@ async function init(){
     employees=await fsGetAll(COL.employees);
     if(employees.length===0){ await seedIfNeeded(); employees=await fsGetAll(COL.employees); }
     leaves=await fsGetAll(COL.leaves);
+    attendance=await fsGetAll(COL.attendance);
   }catch(e){
-    employees=[...DEFAULT_EMPLOYEES]; leaves=[];
+    employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[];
   }
   showLoading(false);
   const sess=sessionStorage.getItem('flowrain_session');
@@ -337,17 +388,25 @@ function showLoading(show){
 function startRealtime(){
   if(unsubEmployees) unsubEmployees();
   if(unsubLeaves) unsubLeaves();
+  if(unsubAttendance) unsubAttendance();
   unsubEmployees=db.collection(COL.employees).onSnapshot(snap=>{
     employees=snap.docs.map(d=>({id:d.id,...d.data()}));
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-employees') renderEmployees();
     if(pg&&pg.id==='page-dashboard') renderDashboard();
     if(pg&&pg.id==='page-leave') renderLeaveEntry();
+    if(pg&&pg.id==='page-attendance') renderAttendance();
   });
   unsubLeaves=db.collection(COL.leaves).onSnapshot(snap=>{
     leaves=snap.docs.map(d=>({id:d.id,...d.data()}));
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-dashboard') renderDashboard();
+  });
+  unsubAttendance=db.collection(COL.attendance).onSnapshot(snap=>{
+    attendance=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-attendance') renderAttendance();
+    if(pg&&pg.id==='page-my-attendance') renderMyAttendance();
   });
 }
 
@@ -358,14 +417,22 @@ function doLogin(){
   const err=document.getElementById('login-error');
   err.style.display='none';
   if(uname===DEFAULT_ADMIN.username && pass===DEFAULT_ADMIN.password){
-    currentUser={id:'admin0',name:'Admin',username:'admin'};
+    currentUser={id:'admin0',name:'Admin',username:'admin',role:'admin'};
     sessionStorage.setItem('flowrain_session',JSON.stringify(currentUser));
     startApp();
     startRealtime();
-  }else{
-    err.textContent='Invalid username or password.';
-    err.style.display='block';
+    return;
   }
+  const emp=employees.find(e=>e.username && e.username===uname && e.password===pass);
+  if(emp){
+    currentUser={id:emp.id,name:emp.name,username:emp.username,role:'employee'};
+    sessionStorage.setItem('flowrain_session',JSON.stringify(currentUser));
+    startApp();
+    startRealtime();
+    return;
+  }
+  err.textContent='Invalid username or password.';
+  err.style.display='block';
 }
 
 function doLogout(){
@@ -383,25 +450,37 @@ function startApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('sb-avatar').textContent=currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('sb-avatar').className='user-avatar '+(currentUser.role==='admin'?'av-admin':'');
   document.getElementById('sb-name').textContent=currentUser.name;
-  document.getElementById('sb-role').textContent='Administrator';
+  document.getElementById('sb-role').textContent=currentUser.role==='admin'?'Administrator':'Employee';
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
   const ym=curMonth();
-  document.getElementById('dash-month').value=ym;
-  document.getElementById('leave-month').value=ym;
-  showPage('dashboard');
+  const dm=document.getElementById('dash-month');if(dm)dm.value=ym;
+  const lm=document.getElementById('leave-month');if(lm)lm.value=ym;
+  const ad=document.getElementById('att-date');if(ad)ad.value=todayStr();
+  if(currentUser.role==='admin'){
+    document.getElementById('admin-nav-section').style.display='block';
+    document.getElementById('employee-nav-section').style.display='none';
+    showPage('dashboard');
+  }else{
+    document.getElementById('admin-nav-section').style.display='none';
+    document.getElementById('employee-nav-section').style.display='block';
+    showPage('my-attendance');
+  }
 }
 
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
-  document.getElementById(`nav-${id}`).classList.add('active');
-  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees'};
+  const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
   if(id==='leave')renderLeaveEntry();
   if(id==='employees')renderEmployees();
+  if(id==='attendance')renderAttendance();
+  if(id==='my-attendance')renderMyAttendance();
 }
 
 // ── LEAVE CALCULATION CORE ─────────────────────────────
@@ -485,8 +564,9 @@ function renderLeaveEntry(){
       <td><strong>${fmt(c.available)}</strong></td>
       <td><input type="number" class="leave-input" min="0" step="0.5" value="${c.taken}" id="taken-${emp.id}" onchange="previewBalance('${emp.id}','${ym}')"></td>
       <td id="bal-${emp.id}"><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span></td>
+      <td>${emp.username?`<button class="btn btn-ghost btn-sm" onclick="applyAttendanceToLeave('${emp.id}')" title="Attendance se auto-fill karo">📥 From Attendance</button>`:''}</td>
     </tr>`;
-  }).join('')||`<tr><td colspan="6"><div class="empty-state"><div class="icon">📅</div><p>No employees</p></div></td></tr>`;
+  }).join('')||`<tr><td colspan="7"><div class="empty-state"><div class="icon">📅</div><p>No employees</p></div></td></tr>`;
 }
 
 function previewBalance(empId,ym){
@@ -515,12 +595,125 @@ async function saveLeaveEntries(){
   toast('Leave entries saved & salary calculated!');
 }
 
+// ── ATTENDANCE (ADMIN MANUAL) ──────────────────────────
+function attendanceId(empId,date){return empId+'_'+date;}
+
+function renderAttendance(){
+  const date=document.getElementById('att-date').value||todayStr();
+  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  document.getElementById('att-body').innerHTML=sorted.map(emp=>{
+    const rec=attendance.find(a=>a.employeeId===emp.id && a.date===date);
+    const status=rec?rec.status:'not-marked';
+    const checkIn=rec&&rec.checkIn?new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+    const checkOut=rec&&rec.checkOut?new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+    const markedBy=rec?(rec.source==='self'?'<span class="badge badge-blue">Self</span>':'<span class="badge badge-gray">Admin</span>'):'';
+    return `<tr data-emp="${emp.id}">
+      <td><strong>${esc(emp.name)}</strong></td>
+      <td>${checkIn}</td>
+      <td>${checkOut}</td>
+      <td>
+        <select class="form-control" id="att-status-${emp.id}" style="padding:6px 8px;font-size:12px;">
+          <option value="not-marked" ${status==='not-marked'?'selected':''}>Not Marked</option>
+          <option value="present" ${status==='present'?'selected':''}>✅ Present</option>
+          <option value="absent" ${status==='absent'?'selected':''}>❌ Absent (Unpaid)</option>
+          <option value="leave" ${status==='leave'?'selected':''}>📅 On Leave</option>
+          <option value="half-day" ${status==='half-day'?'selected':''}>🌓 Half Day</option>
+        </select>
+      </td>
+      <td>${markedBy}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="5"><div class="empty-state"><div class="icon">🕒</div><p>No employees</p></div></td></tr>`;
+}
+
+async function saveAttendance(){
+  const date=document.getElementById('att-date').value||todayStr();
+  for(const emp of employees){
+    const sel=document.getElementById('att-status-'+emp.id);
+    if(!sel) continue;
+    const status=sel.value;
+    if(status==='not-marked') continue;
+    const id=attendanceId(emp.id,date);
+    const existing=attendance.find(a=>a.id===id);
+    await fsSet(COL.attendance,id,{id,employeeId:emp.id,date,status,checkIn:existing?existing.checkIn||null:null,checkOut:existing?existing.checkOut||null:null,source:'admin',updatedAt:Date.now()});
+  }
+  toast('Attendance saved!');
+}
+
+// ── MY ATTENDANCE (EMPLOYEE SELF-SERVICE) ──────────────
+function getMyAttendanceToday(){
+  return attendance.find(a=>a.employeeId===currentUser.id && a.date===todayStr());
+}
+
+function renderMyAttendance(){
+  document.getElementById('my-att-date-title').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const rec=getMyAttendanceToday();
+  const statusEl=document.getElementById('my-att-status');
+  const inBtn=document.getElementById('my-checkin-btn');
+  const outBtn=document.getElementById('my-checkout-btn');
+  if(!rec || !rec.checkIn){
+    statusEl.innerHTML=`<span class="badge badge-amber">Aaj abhi check-in nahi kiya</span>`;
+    inBtn.style.display='block'; outBtn.style.display='none';
+  }else if(rec.checkIn && !rec.checkOut){
+    const t=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    statusEl.innerHTML=`<span class="badge badge-green">Checked in at ${t}</span>`;
+    inBtn.style.display='none'; outBtn.style.display='block';
+  }else{
+    const ti=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const to=new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    statusEl.innerHTML=`<span class="badge badge-blue">Done for today: ${ti} → ${to}</span>`;
+    inBtn.style.display='none'; outBtn.style.display='none';
+  }
+  const ym=curMonth();
+  const mine=attendance.filter(a=>a.employeeId===currentUser.id && a.date&&a.date.startsWith(ym)).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('my-att-body').innerHTML=mine.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">📅</div><p>Is month koi record nahi</p></div></td></tr>`:
+    mine.map(a=>{
+      const ci=a.checkIn?new Date(a.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+      const co=a.checkOut?new Date(a.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+      const badgeMap={present:'badge-green',absent:'badge-red',leave:'badge-amber','half-day':'badge-blue'};
+      return `<tr><td class="date-chip">${a.date}</td><td>${ci}</td><td>${co}</td><td><span class="badge ${badgeMap[a.status]||'badge-gray'}">${esc(a.status)}</span></td></tr>`;
+    }).join('');
+}
+
+async function employeeCheckIn(){
+  const date=todayStr();
+  const id=attendanceId(currentUser.id,date);
+  await fsSet(COL.attendance,id,{id,employeeId:currentUser.id,date,status:'present',checkIn:Date.now(),checkOut:null,source:'self',updatedAt:Date.now()});
+  toast('Check-in done!');
+}
+
+async function employeeCheckOut(){
+  const date=todayStr();
+  const id=attendanceId(currentUser.id,date);
+  const existing=attendance.find(a=>a.id===id);
+  if(!existing){toast('Pehle check-in karo','error');return;}
+  await fsUpdate(COL.attendance,id,{checkOut:Date.now(),updatedAt:Date.now()});
+  toast('Check-out done!');
+}
+
+function countAttendanceLeaveDays(empId,ym){
+  const recs=attendance.filter(a=>a.employeeId===empId && a.date&&a.date.startsWith(ym));
+  let total=0;
+  recs.forEach(a=>{
+    if(a.status==='absent'||a.status==='leave') total+=1;
+    if(a.status==='half-day') total+=0.5;
+  });
+  return total;
+}
+
+function applyAttendanceToLeave(empId){
+  const ym=document.getElementById('leave-month').value||curMonth();
+  const days=countAttendanceLeaveDays(empId,ym);
+  const inputEl=document.getElementById('taken-'+empId);
+  if(inputEl){ inputEl.value=days; previewBalance(empId,ym); }
+}
+
 // ── EMPLOYEES ─────────────────────────────────────────
 function renderEmployees(){
   const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
-  document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">👤</div><p>No employees yet</p></div></td></tr>`:
+  document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><p>No employees yet</p></div></td></tr>`:
     sorted.map(e=>`<tr>
       <td><strong>${esc(e.name)}</strong></td>
+      <td>${e.username?esc(e.username):'<span class="badge badge-gray">Not set</span>'}</td>
       <td class="amount">₹${fmt(e.salary)}</td>
       <td>${fmt(e.carryIn||0)}</td>
       <td style="white-space:nowrap;">
@@ -536,6 +729,8 @@ function openAddEmployee(){
   document.getElementById('emp-name').value='';
   document.getElementById('emp-salary').value='';
   document.getElementById('emp-carry').value='0';
+  document.getElementById('emp-username').value='';
+  document.getElementById('emp-password').value='';
   openModal('emp-modal');
 }
 
@@ -546,6 +741,8 @@ function openEditEmployee(id){
   document.getElementById('emp-name').value=e.name;
   document.getElementById('emp-salary').value=e.salary;
   document.getElementById('emp-carry').value=e.carryIn||0;
+  document.getElementById('emp-username').value=e.username||'';
+  document.getElementById('emp-password').value=e.password||'';
   openModal('emp-modal');
 }
 
@@ -554,10 +751,17 @@ async function saveEmployee(){
   const name=document.getElementById('emp-name').value.trim();
   const salary=parseFloat(document.getElementById('emp-salary').value);
   const carryIn=parseFloat(document.getElementById('emp-carry').value)||0;
+  const username=document.getElementById('emp-username').value.trim();
+  const password=document.getElementById('emp-password').value;
   if(!name){toast('Name enter karo','error');return;}
   if(!salary||salary<=0){toast('Valid salary enter karo','error');return;}
+  if(username && !password){toast('Username ke saath password bhi set karo','error');return;}
+  if(username){
+    const clash=employees.find(e=>e.username===username && e.id!==id);
+    if(clash){toast('Ye username pehle se kisi aur employee ka hai','error');return;}
+  }
   const empId=id||uid();
-  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn});
+  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn,username:username||null,password:username?password:null});
   closeModal('emp-modal');
   toast(id?'Employee updated!':'Employee added!');
 }
