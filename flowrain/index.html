@@ -310,6 +310,10 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="form-group"><label>Login Password</label><input class="form-control" type="text" id="emp-password" placeholder="Set login password"></div>
       </div>
       <div class="help-text" style="margin-top:-8px;margin-bottom:10px;">Agar employee khud check-in/check-out karna chahta hai to username/password set karo, warna khali chhod do.</div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="emp-admin" style="width:16px;height:16px;">
+        <label style="margin:0;text-transform:none;font-size:13px;color:var(--text);" for="emp-admin">Admin Access do (full dashboard, sab employees manage kar sakega)</label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('emp-modal')">Cancel</button>
@@ -448,7 +452,7 @@ function doLogin(){
   }
   const emp=employees.find(e=>e.username && e.username===uname && e.password===pass);
   if(emp){
-    currentUser={id:emp.id,name:emp.name,username:emp.username,role:'employee'};
+    currentUser={id:emp.id,name:emp.name,username:emp.username,role:emp.isAdmin?'admin':'employee'};
     sessionStorage.setItem('flowrain_session',JSON.stringify(currentUser));
     startApp();
     startRealtime();
@@ -741,7 +745,7 @@ function renderEmployees(){
   const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
   document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><p>No employees yet</p></div></td></tr>`:
     sorted.map(e=>`<tr>
-      <td><strong>${esc(e.name)}</strong></td>
+      <td><strong>${esc(e.name)}</strong>${e.isAdmin?' <span class="badge badge-amber">Admin</span>':''}</td>
       <td>${e.username?esc(e.username):'<span class="badge badge-gray">Not set</span>'}</td>
       <td class="amount">₹${fmt(e.salary)}</td>
       <td>${fmt(e.carryIn||0)}</td>
@@ -760,6 +764,7 @@ function openAddEmployee(){
   document.getElementById('emp-carry').value='0';
   document.getElementById('emp-username').value='';
   document.getElementById('emp-password').value='';
+  document.getElementById('emp-admin').checked=false;
   openModal('emp-modal');
 }
 
@@ -772,6 +777,7 @@ function openEditEmployee(id){
   document.getElementById('emp-carry').value=e.carryIn||0;
   document.getElementById('emp-username').value=e.username||'';
   document.getElementById('emp-password').value=e.password||'';
+  document.getElementById('emp-admin').checked=!!e.isAdmin;
   openModal('emp-modal');
 }
 
@@ -782,15 +788,17 @@ async function saveEmployee(){
   const carryIn=parseFloat(document.getElementById('emp-carry').value)||0;
   const username=document.getElementById('emp-username').value.trim();
   const password=document.getElementById('emp-password').value;
+  const isAdmin=document.getElementById('emp-admin').checked;
   if(!name){toast('Name enter karo','error');return;}
   if(!salary||salary<=0){toast('Valid salary enter karo','error');return;}
   if(username && !password){toast('Username ke saath password bhi set karo','error');return;}
+  if(isAdmin && !username){toast('Admin access ke liye username/password zaroor set karo','error');return;}
   if(username){
     const clash=employees.find(e=>e.username===username && e.id!==id);
     if(clash){toast('Ye username pehle se kisi aur employee ka hai','error');return;}
   }
   const empId=id||uid();
-  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn,username:username||null,password:username?password:null});
+  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn,username:username||null,password:username?password:null,isAdmin:username?isAdmin:false});
   closeModal('emp-modal');
   toast(id?'Employee updated!':'Employee added!');
 }
