@@ -224,7 +224,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           <div class="card">
             <div class="card-header"><div class="card-title">Enter Leaves Taken This Month</div></div>
             <div class="card-body" style="padding-bottom:4px;">
-              <p class="help-text" style="margin-bottom:10px;">Har employee ki monthly leave allowance 1.5 din hai. Jo leave bachegi woh next month carry forward ho jayegi. Jo extra leave li hai uski salary se deduction calculate ho jayega.</p>
+              <p class="help-text" style="margin-bottom:10px;">Har employee ki monthly leave allowance 1.5 din hai. Jo leave bachegi woh next month carry forward ho jayegi. Jo extra leave li hai uski salary se deduction calculate ho jayega. <strong>Attendance (check-in/check-out) se "Leave Taken" automatic calculate hota hai</strong> — yahan number edit karke "Save & Calculate" dabane se us employee ke us month ke liye Manual override lag jata hai (future automatic update ruk jayega jab tak "Reset to Auto" na dabao).</p>
             </div>
             <div class="table-wrap"><table>
               <thead><tr><th>Employee</th><th>Carry Forward (din)</th><th>This Month Allowance</th><th>Total Available</th><th>Leaves Taken</th><th>Balance</th><th></th></tr></thead>
@@ -668,8 +668,10 @@ function renderLeaveEntry(){
   const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
   document.getElementById('leave-body').innerHTML=sorted.map(emp=>{
     const c=computeLeaveForMonth(emp.id,ym);
+    const rec=leaves.find(l=>l.employeeId===emp.id && l.month===ym);
+    const modeBadge=rec&&rec.manualOverride?`<span class="badge badge-amber">Manual</span> <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="resetToAutoSync('${emp.id}','${ym}')" title="Attendance se wapas automatic calculate karo">↺ Reset to Auto</button>`:'<span class="badge badge-green">Auto (Attendance)</span>';
     return `<tr data-emp="${emp.id}">
-      <td><strong>${esc(emp.name)}</strong></td>
+      <td><strong>${esc(emp.name)}</strong> ${modeBadge}</td>
       <td>${fmt(c.carryIn)}</td>
       <td>${fmt(c.allowance)}</td>
       <td><strong>${fmt(c.available)}</strong></td>
@@ -699,11 +701,11 @@ async function saveLeaveEntries(){
     const unpaidDays=balance<0?Math.abs(balance):0;
     const balancePositive=balance>0?balance:0;
     const existing=leaves.find(l=>l.employeeId===emp.id && l.month===ym);
-    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,updatedAt:Date.now()};
+    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,manualOverride:true,updatedAt:Date.now()};
     const id=existing?existing.id:uid();
     await fsSet(COL.leaves,id,rec);
   }
-  toast('Leave entries saved & salary calculated!');
+  toast('Leave entries saved & salary calculated! (Manual override — attendance se automatic update ab nahi hoga is month ke liye)');
 }
 
 // ── ATTENDANCE (ADMIN MANUAL) ──────────────────────────
@@ -739,6 +741,8 @@ function renderAttendance(){
 
 async function saveAttendance(){
   const date=document.getElementById('att-date').value||todayStr();
+  const ym=date.slice(0,7);
+  const touched=[];
   for(const emp of employees){
     const sel=document.getElementById('att-status-'+emp.id);
     if(!sel) continue;
@@ -746,9 +750,14 @@ async function saveAttendance(){
     if(status==='not-marked') continue;
     const id=attendanceId(emp.id,date);
     const existing=attendance.find(a=>a.id===id);
-    await fsSet(COL.attendance,id,{id,employeeId:emp.id,date,status,late:existing?!!existing.late:false,checkIn:existing?existing.checkIn||null:null,checkOut:existing?existing.checkOut||null:null,source:'admin',updatedAt:Date.now()});
+    const rec={id,employeeId:emp.id,date,status,late:existing?!!existing.late:false,checkIn:existing?existing.checkIn||null:null,checkOut:existing?existing.checkOut||null:null,source:'admin',updatedAt:Date.now()};
+    await fsSet(COL.attendance,id,rec);
+    const idx=attendance.findIndex(a=>a.id===id);
+    if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
+    touched.push(emp.id);
   }
-  toast('Attendance saved!');
+  for(const empId of touched){ await autoSyncLeaveFromAttendance(empId,ym); }
+  toast('Attendance saved! Salary auto-updated.');
 }
 
 // ── MY ATTENDANCE (EMPLOYEE SELF-SERVICE) ──────────────
@@ -799,7 +808,11 @@ async function employeeCheckIn(){
   const now=Date.now();
   const status=computeAutoStatus(now,null);
   const late=isLatePunch(now);
-  await fsSet(COL.attendance,id,{id,employeeId:currentUser.id,date,status,late,checkIn:now,checkOut:null,source:'self',updatedAt:now});
+  const rec={id,employeeId:currentUser.id,date,status,late,checkIn:now,checkOut:null,source:'self',updatedAt:now};
+  await fsSet(COL.attendance,id,rec);
+  const idx=attendance.findIndex(a=>a.id===id);
+  if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
+  await autoSyncLeaveFromAttendance(currentUser.id,curMonth());
   toast((late?'Late punch-in noted (10:45 ke baad). ':'')+(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!'));
 }
 
@@ -811,6 +824,8 @@ async function employeeCheckOut(){
   const now=Date.now();
   const status=computeAutoStatus(existing.checkIn,now);
   await fsUpdate(COL.attendance,id,{checkOut:now,status,updatedAt:now});
+  existing.checkOut=now; existing.status=status;
+  await autoSyncLeaveFromAttendance(currentUser.id,curMonth());
   toast(status==='half-day'?'Check-out done! (Half-day count hua)':status==='present'?'Check-out done! Full day present.':'Check-out done!');
 }
 
@@ -829,6 +844,42 @@ function applyAttendanceToLeave(empId){
   const days=countAttendanceLeaveDays(empId,ym);
   const inputEl=document.getElementById('taken-'+empId);
   if(inputEl){ inputEl.value=days; previewBalance(empId,ym); }
+}
+
+// Auto-calculates an employee's leave/salary record for a month straight
+// from their attendance, and saves it -- unless an admin has manually
+// overridden that month (Monthly Leave Entry "Save & Calculate"), in which
+// case the override is left untouched.
+async function autoSyncLeaveFromAttendance(empId,ym){
+  const existing=leaves.find(l=>l.employeeId===empId && l.month===ym);
+  if(existing && existing.manualOverride) return;
+  const emp=employees.find(e=>e.id===empId);
+  if(!emp) return;
+  const openingCarry=Number(emp.carryIn||0);
+  const pm=prevMonth(ym);
+  const prevRec=leaves.find(l=>l.employeeId===empId && l.month===pm);
+  const carryIn=prevRec?Number(prevRec.balancePositive||0):openingCarry;
+  const taken=countAttendanceLeaveDays(empId,ym);
+  const available=carryIn+MONTHLY_ALLOWANCE;
+  const balance=available-taken;
+  const unpaidDays=balance<0?Math.abs(balance):0;
+  const balancePositive=balance>0?balance:0;
+  const id=existing?existing.id:uid();
+  await fsSet(COL.leaves,id,{employeeId:empId,month:ym,carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive,manualOverride:false,updatedAt:Date.now()});
+}
+
+async function autoSyncAllEmployeesForMonth(ym){
+  for(const emp of employees){ await autoSyncLeaveFromAttendance(emp.id,ym); }
+}
+
+async function resetToAutoSync(empId,ym){
+  const existing=leaves.find(l=>l.employeeId===empId && l.month===ym);
+  if(existing) await fsUpdate(COL.leaves,existing.id,{manualOverride:false});
+  const idx=leaves.findIndex(l=>l.employeeId===empId && l.month===ym);
+  if(idx>=0) leaves[idx].manualOverride=false;
+  await autoSyncLeaveFromAttendance(empId,ym);
+  renderLeaveEntry();
+  toast('Wapas automatic calculation pe set ho gaya');
 }
 
 // ── EMPLOYEES ─────────────────────────────────────────
