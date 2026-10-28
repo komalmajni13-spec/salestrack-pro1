@@ -78,15 +78,44 @@ h1,h2,h3,h4{font-family:'Poppins',sans-serif;}
 
 .page{display:none;}.page.active{display:block;}
 
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:18px;}
-.stat-card{background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
-.stat-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
-.stat-value{font-size:24px;font-weight:700;font-family:'Poppins',sans-serif;font-variant-numeric:tabular-nums;}
-.stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;transition:transform 0.18s,box-shadow 0.18s;border-left:4px solid var(--primary);}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.stat-card .stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;background:rgba(21,128,61,0.1);}
+.stat-card .stat-body{min-width:0;}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.stat-value{font-size:23px;font-weight:700;font-family:'Poppins',sans-serif;font-variant-numeric:tabular-nums;line-height:1.15;}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.stat-card.green{border-left-color:var(--success);}
 .stat-card.green .stat-value{color:var(--success);}
+.stat-card.green .stat-icon{background:var(--success-bg);}
+.stat-card.blue{border-left-color:var(--primary);}
 .stat-card.blue .stat-value{color:var(--primary);}
+.stat-card.blue .stat-icon{background:rgba(21,128,61,0.12);}
+.stat-card.amber{border-left-color:var(--warning);}
 .stat-card.amber .stat-value{color:var(--warning);}
+.stat-card.amber .stat-icon{background:var(--warning-bg);}
+.stat-card.red{border-left-color:var(--danger);}
 .stat-card.red .stat-value{color:var(--danger);}
+.stat-card.red .stat-icon{background:var(--danger-bg);}
+
+/* ATTENDANCE SNAPSHOT */
+.snap-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.snap-pill{flex:1;min-width:110px;border-radius:var(--radius-sm);padding:12px 14px;text-align:center;background:var(--surface2);}
+.snap-pill .snap-n{font-size:20px;font-weight:700;font-family:'Poppins',sans-serif;}
+.snap-pill .snap-l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+.snap-pill.present .snap-n{color:var(--success);}
+.snap-pill.half .snap-n{color:var(--warning);}
+.snap-pill.absent .snap-n{color:var(--danger);}
+.snap-pill.pending .snap-n{color:var(--text3);}
+.avatar-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+.chip-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;background:var(--primary);}
+.chip-avatar.late{box-shadow:0 0 0 2px var(--warning);}
+
+/* MINI PROGRESS (leave balance) */
+.mini-progress{width:70px;height:6px;border-radius:3px;background:var(--border);overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px;}
+.mini-progress-fill{height:100%;border-radius:3px;}
+.row-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;}
 
 .card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
 .card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
@@ -205,6 +234,10 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
             <input type="month" id="dash-month" onchange="renderDashboard()">
           </div>
           <div class="stat-grid" id="dash-stats"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🕒 Today's Attendance</div></div>
+            <div class="card-body" id="dash-today-attendance"></div>
+          </div>
           <div class="card">
             <div class="card-header">
               <div class="card-title">Employee-wise Salary & Leave Summary</div>
@@ -495,6 +528,7 @@ function startRealtime(){
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-attendance') renderAttendance();
     if(pg&&pg.id==='page-my-attendance') renderMyAttendance();
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
   });
   if(unsubOfficeIps) unsubOfficeIps();
   unsubOfficeIps=db.collection(COL.meta).doc('officeIps').onSnapshot(doc=>{
@@ -617,23 +651,51 @@ function renderDashboard(){
     return {emp,c,salary,deduction,net};
   });
   document.getElementById('dash-stats').innerHTML=`
-    <div class="stat-card blue"><div class="stat-label">Total Employees</div><div class="stat-value">${employees.length}</div><div class="stat-sub">Active</div></div>
-    <div class="stat-card"><div class="stat-label">Total Salary (Gross)</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">This month</div></div>
-    <div class="stat-card red"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div>
-    <div class="stat-card green"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div>`;
+    <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-body"><div class="stat-label">Total Employees</div><div class="stat-value">${employees.length}</div><div class="stat-sub">Active</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Total Salary (Gross)</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">This month</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
+
+  // Today's attendance snapshot
+  const today=todayStr();
+  const todayRecs=attendance.filter(a=>a.date===today);
+  const presentList=todayRecs.filter(a=>a.status==='present');
+  const halfList=todayRecs.filter(a=>a.status==='half-day');
+  const absentList=todayRecs.filter(a=>a.status==='absent'||a.status==='leave');
+  const markedIds=new Set(todayRecs.map(a=>a.employeeId));
+  const pendingCount=employees.filter(e=>!markedIds.has(e.id)).length;
+  const avatarColors=['#15803d','#2563eb','#d97706','#dc2626','#7c3aed','#0891b2','#be185d','#65a30d'];
+  function empColor(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))%avatarColors.length; return avatarColors[h]; }
+  function chip(empId){
+    const emp=employees.find(e=>e.id===empId);
+    const rec=todayRecs.find(a=>a.employeeId===empId);
+    const initial=emp?emp.name.charAt(0).toUpperCase():'?';
+    return `<div class="chip-avatar ${rec&&rec.late?'late':''}" style="background:${empColor(empId)};" title="${emp?esc(emp.name):''}${rec&&rec.late?' (Late)':''}">${initial}</div>`;
+  }
+  document.getElementById('dash-today-attendance').innerHTML=`
+    <div class="snap-grid">
+      <div class="snap-pill present"><div class="snap-n">${presentList.length}</div><div class="snap-l">Present</div></div>
+      <div class="snap-pill half"><div class="snap-n">${halfList.length}</div><div class="snap-l">Half Day</div></div>
+      <div class="snap-pill absent"><div class="snap-n">${absentList.length}</div><div class="snap-l">Absent</div></div>
+      <div class="snap-pill pending"><div class="snap-n">${pendingCount}</div><div class="snap-l">Not Marked</div></div>
+    </div>
+    ${todayRecs.length>0?`<div class="avatar-chips">${todayRecs.map(a=>chip(a.employeeId)).join('')}</div>`:'<p class="help-text" style="margin-top:12px;">Aaj abhi tak kisi ne check-in nahi kiya.</p>'}`;
 
   document.getElementById('dash-body').innerHTML=rows.length===0?`<tr><td colspan="9"><div class="empty-state"><div class="icon">👤</div><p>No employees</p></div></td></tr>`:
-    rows.map(r=>`<tr>
-      <td><strong>${esc(r.emp.name)}</strong></td>
+    rows.map(r=>{
+      const pct=Math.max(0,Math.min(100,(r.c.balance/(r.c.allowance+13.5||1))*100));
+      const fillColor=r.c.balance<0?'var(--danger)':r.c.balance<1?'var(--warning)':'var(--success)';
+      return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div class="row-avatar" style="background:${empColor(r.emp.id)};">${esc(r.emp.name.charAt(0).toUpperCase())}</div><strong>${esc(r.emp.name)}</strong>${r.emp.isAdmin?' <span class="badge badge-amber">Admin</span>':''}</div></td>
       <td class="amount">₹${fmt(r.salary)}</td>
       <td>${fmt(r.c.carryIn)}</td>
       <td>${fmt(r.c.allowance)}</td>
       <td>${fmt(r.c.taken)}</td>
-      <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span></td>
+      <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${pct}%;background:${fillColor};"></span></span></td>
       <td>${r.c.unpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
       <td class="amount" style="color:var(--danger);">₹${fmt(r.deduction)}</td>
       <td class="amount" style="color:var(--success);">₹${fmt(r.net)}</td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 }
 
 function exportDashboard(){
