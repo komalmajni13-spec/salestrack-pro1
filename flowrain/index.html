@@ -112,6 +112,17 @@ h1,h2,h3,h4{font-family:'Poppins',sans-serif;}
 .chip-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;background:var(--primary);}
 .chip-avatar.late{box-shadow:0 0 0 2px var(--warning);}
 
+/* MY ATTENDANCE HERO */
+.att-hero{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-hover) 100%);color:#fff;border-radius:var(--radius);padding:24px;text-align:center;box-shadow:var(--shadow-md);margin-bottom:0;}
+.att-hero-icon{font-size:34px;margin-bottom:8px;}
+.att-hero-date{font-size:15px;font-weight:700;font-family:'Poppins',sans-serif;opacity:0.95;margin-bottom:10px;}
+.att-hero-status{font-size:13px;}
+.att-hero .badge{background:rgba(255,255,255,0.18);color:#fff;}
+.att-hero .btn-primary{background:#fff;color:var(--primary);}
+.att-hero .btn-primary:hover{background:#f0fdf4;}
+.att-hero .btn-danger{background:#fff;color:var(--danger);}
+.att-hero .btn-danger:hover{background:#fef2f2;}
+
 /* MINI PROGRESS (leave balance) */
 .mini-progress{width:70px;height:6px;border-radius:3px;background:var(--border);overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px;}
 .mini-progress-fill{height:100%;border-radius:3px;}
@@ -322,19 +333,19 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
 
         <!-- MY ATTENDANCE (EMPLOYEE SELF-SERVICE) -->
         <div class="page" id="page-my-attendance">
-          <div class="card" style="max-width:460px;">
-            <div class="card-header"><div class="card-title" id="my-att-date-title">Today</div></div>
-            <div class="card-body" style="padding-bottom:0;">
-              <p class="help-text">Office time: 9:30 AM – 6:30 PM. 1:30 PM se pehle check-in aur 1:30 PM ke baad check-out karne par full day present count hoga. Sirf ek half (pehle ya baad wala) cover hua to half-day lagega.</p>
-            </div>
-            <div class="card-body" style="text-align:center;">
-              <div id="my-att-status" style="font-size:15px;font-weight:600;margin-bottom:16px;"></div>
+          <div class="att-hero" style="max-width:460px;">
+            <div class="att-hero-icon" id="my-att-hero-icon">🕒</div>
+            <div id="my-att-date-title" class="att-hero-date">Today</div>
+            <div id="my-att-status" class="att-hero-status"></div>
+            <div class="card-body" style="padding:14px 0 0;">
               <button class="btn btn-primary btn-full" id="my-checkin-btn" onclick="employeeCheckIn()">✅ Check In</button>
               <button class="btn btn-danger btn-full" id="my-checkout-btn" style="display:none;margin-top:10px;" onclick="employeeCheckOut()">🚪 Check Out</button>
             </div>
           </div>
+          <p class="help-text" style="max-width:460px;margin:10px 0 18px;">Office time: 9:30 AM – 6:30 PM. 1:30 PM se pehle check-in aur 1:30 PM ke baad check-out karne par full day present count hoga. Sirf ek half (pehle ya baad wala) cover hua to half-day lagega.</p>
+          <div class="snap-grid" id="my-att-month-stats" style="margin-bottom:18px;"></div>
           <div class="card">
-            <div class="card-header"><div class="card-title">This Month's Attendance</div><span id="my-att-late-count" class="badge badge-amber"></span></div>
+            <div class="card-header"><div class="card-title">📅 This Month's Attendance</div><span id="my-att-late-count" class="badge badge-amber"></span></div>
             <div class="table-wrap"><table>
               <thead><tr><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th></tr></thead>
               <tbody id="my-att-body"></tbody>
@@ -727,16 +738,18 @@ function renderMySalary(){
   const net=salary-deduction;
 
   document.getElementById('my-salary-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Monthly Salary</div><div class="stat-value">₹${fmt(salary)}</div><div class="stat-sub">Gross</div></div>
-    <div class="stat-card red"><div class="stat-label">Deduction</div><div class="stat-value">₹${fmt(deduction)}</div><div class="stat-sub">${fmt(c.unpaidDays)} unpaid days</div></div>
-    <div class="stat-card green"><div class="stat-label">Net Payable</div><div class="stat-value">₹${fmt(net)}</div><div class="stat-sub">After deductions</div></div>`;
+    <div class="stat-card blue"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Monthly Salary</div><div class="stat-value">₹${fmt(salary)}</div><div class="stat-sub">Gross</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Deduction</div><div class="stat-value">₹${fmt(deduction)}</div><div class="stat-sub">${fmt(c.unpaidDays)} unpaid days</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Net Payable</div><div class="stat-value">₹${fmt(net)}</div><div class="stat-sub">After deductions</div></div></div>`;
 
+  const availPct=Math.max(0,Math.min(100,(c.balance/(c.allowance+13.5||1))*100));
+  const availColor=c.balance<0?'var(--danger)':c.balance<1?'var(--warning)':'var(--success)';
   document.getElementById('my-salary-body').innerHTML=`<tr>
     <td>${fmt(c.carryIn)}</td>
     <td>${fmt(c.allowance)}</td>
     <td><strong>${fmt(c.available)}</strong></td>
     <td>${fmt(c.taken)}</td>
-    <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span></td>
+    <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${availPct}%;background:${availColor};"></span></span></td>
     <td>${c.unpaidDays>0?`<span class="badge badge-amber">${fmt(c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
   </tr>`;
 }
@@ -898,15 +911,18 @@ function renderMyAttendance(){
   const statusEl=document.getElementById('my-att-status');
   const inBtn=document.getElementById('my-checkin-btn');
   const outBtn=document.getElementById('my-checkout-btn');
+  const iconEl=document.getElementById('my-att-hero-icon');
   if(!rec || !rec.checkIn){
     statusEl.innerHTML=`<span class="badge badge-amber">Aaj abhi check-in nahi kiya</span>`;
     inBtn.style.display='block'; outBtn.style.display='none';
+    iconEl.textContent='⏳';
   }else if(rec.checkIn && !rec.checkOut){
     const t=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     const hint=rec.status==='half-day'?' <span class="badge badge-amber">1:30 ke baad — half-day</span>':'';
     const lateHint=rec.late?' <span class="badge badge-amber">Late punch-in</span>':'';
     statusEl.innerHTML=`<span class="badge badge-green">Checked in at ${t}</span>${hint}${lateHint}`;
     inBtn.style.display='none'; outBtn.style.display='block';
+    iconEl.textContent='🟢';
   }else{
     const ti=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     const to=new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
@@ -914,11 +930,20 @@ function renderMyAttendance(){
     const lateHint=rec.late?' <span class="badge badge-amber">Late punch-in</span>':'';
     statusEl.innerHTML=`<span class="badge ${badgeMap[rec.status]||'badge-blue'}">Done for today: ${ti} → ${to} (${esc(rec.status)})</span>${lateHint}`;
     inBtn.style.display='none'; outBtn.style.display='none';
+    iconEl.textContent=rec.status==='present'?'✅':rec.status==='half-day'?'🌓':'🏁';
   }
   const ym=curMonth();
   const mine=attendance.filter(a=>a.employeeId===currentUser.id && a.date&&a.date.startsWith(ym)).sort((a,b)=>b.date.localeCompare(a.date));
   const lateCount=mine.filter(a=>a.late).length;
   document.getElementById('my-att-late-count').textContent=`${lateCount} late this month`;
+  const presentCount=mine.filter(a=>a.status==='present').length;
+  const halfCount=mine.filter(a=>a.status==='half-day').length;
+  const absentCount=mine.filter(a=>a.status==='absent'||a.status==='leave').length;
+  document.getElementById('my-att-month-stats').innerHTML=`
+    <div class="snap-pill present"><div class="snap-n">${presentCount}</div><div class="snap-l">Present</div></div>
+    <div class="snap-pill half"><div class="snap-n">${halfCount}</div><div class="snap-l">Half Day</div></div>
+    <div class="snap-pill absent"><div class="snap-n">${absentCount}</div><div class="snap-l">Absent</div></div>
+    <div class="snap-pill pending"><div class="snap-n">${lateCount}</div><div class="snap-l">Late</div></div>`;
   document.getElementById('my-att-body').innerHTML=mine.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">📅</div><p>Is month koi record nahi</p></div></td></tr>`:
     mine.map(a=>{
       const ci=a.checkIn?new Date(a.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
