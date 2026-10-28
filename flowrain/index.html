@@ -177,6 +177,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="nav-item" onclick="showPage('leave')" id="nav-leave"><span class="nav-icon">📅</span> Monthly Leave Entry</div>
         <div class="nav-item" onclick="showPage('attendance')" id="nav-attendance"><span class="nav-icon">🕒</span> Attendance (Manual)</div>
         <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
+        <div class="nav-item" onclick="showPage('office-wifi')" id="nav-office-wifi"><span class="nav-icon">📶</span> Office WiFi</div>
       </div>
       <div class="nav-section" id="employee-nav-section" style="display:none;">
         <div class="nav-label">Main</div>
@@ -247,6 +248,21 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <thead><tr><th>Name</th><th>Login Username</th><th>Monthly Salary (₹)</th><th>Current Carry Fwd Leave</th><th>Actions</th></tr></thead>
               <tbody id="emp-body"></tbody>
             </table></div>
+          </div>
+        </div>
+
+        <!-- OFFICE WIFI RESTRICTION -->
+        <div class="page" id="page-office-wifi">
+          <div class="card" style="max-width:560px;">
+            <div class="card-header"><div class="card-title">📶 Office WiFi Restriction</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">Jab ye list khali nahi hoti, employees sirf isi (office) internet connection se hi check-in/check-out kar payenge — ghar ya mobile data se nahi. Office WiFi ka public IP yahan add karo (office ke kisi bhi device se khol ke "Add Current IP" dabao).</p>
+              <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+                <div>Aapka abhi ka IP: <strong id="my-current-ip">Detecting...</strong></div>
+                <button class="btn btn-primary btn-sm" onclick="addCurrentIpAsOffice()">+ Add Current IP</button>
+              </div>
+              <div id="office-ip-list"></div>
+            </div>
           </div>
         </div>
 
@@ -394,8 +410,17 @@ function computeAutoStatus(checkIn,checkOut){
 
 let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
-let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null;
+let officeIps=[];
+let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null;
 function todayStr(){return new Date().toISOString().slice(0,10);}
+
+async function fetchMyIp(){
+  try{
+    const res=await fetch('https://api.ipify.org?format=json');
+    const data=await res.json();
+    return data.ip;
+  }catch(e){ return null; }
+}
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -430,8 +455,10 @@ async function init(){
     if(employees.length===0){ await seedIfNeeded(); employees=await fsGetAll(COL.employees); }
     leaves=await fsGetAll(COL.leaves);
     attendance=await fsGetAll(COL.attendance);
+    const ipDoc=await db.collection(COL.meta).doc('officeIps').get();
+    officeIps=ipDoc.exists?(ipDoc.data().ips||[]):[];
   }catch(e){
-    employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[];
+    employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[];
   }
   showLoading(false);
   const sess=sessionStorage.getItem('flowrain_session');
@@ -468,6 +495,12 @@ function startRealtime(){
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-attendance') renderAttendance();
     if(pg&&pg.id==='page-my-attendance') renderMyAttendance();
+  });
+  if(unsubOfficeIps) unsubOfficeIps();
+  unsubOfficeIps=db.collection(COL.meta).doc('officeIps').onSnapshot(doc=>{
+    officeIps=doc.exists?(doc.data().ips||[]):[];
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-office-wifi') renderOfficeWifi();
   });
 }
 
@@ -536,7 +569,7 @@ function showPage(id){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
   const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
-  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password'};
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
   if(id==='leave')renderLeaveEntry();
@@ -544,6 +577,7 @@ function showPage(id){
   if(id==='attendance')renderAttendance();
   if(id==='my-attendance')renderMyAttendance();
   if(id==='my-salary')renderMySalary();
+  if(id==='office-wifi')renderOfficeWifi();
   if(id==='change-password'){
     document.getElementById('cp-current').value='';
     document.getElementById('cp-new').value='';
@@ -708,6 +742,37 @@ async function saveLeaveEntries(){
   toast('Leave entries saved & salary calculated! (Manual override — attendance se automatic update ab nahi hoga is month ke liye)');
 }
 
+// ── OFFICE WIFI RESTRICTION ─────────────────────────────
+async function renderOfficeWifi(){
+  const ipEl=document.getElementById('my-current-ip');
+  fetchMyIp().then(ip=>{ ipEl.textContent=ip||'Pata nahi chal paya'; });
+  document.getElementById('office-ip-list').innerHTML=officeIps.length===0?
+    `<p class="help-text">Koi IP add nahi hui — abhi kisi bhi network se check-in ho sakta hai.</p>`:
+    officeIps.map(ip=>`<div class="user-card"><div class="info" style="flex:1;"><div class="nm">${esc(ip)}</div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeOfficeIp('${esc(ip)}')">🗑️ Remove</button></div>`).join('');
+}
+
+async function addCurrentIpAsOffice(){
+  const ip=await fetchMyIp();
+  if(!ip){toast('IP pata nahi chal paya, dobara try karo','error');return;}
+  if(officeIps.includes(ip)){toast('Ye IP pehle se list mein hai');return;}
+  const updated=[...officeIps,ip];
+  await db.collection(COL.meta).doc('officeIps').set({ips:updated});
+  toast('Office IP add ho gaya: '+ip);
+}
+
+async function removeOfficeIp(ip){
+  const updated=officeIps.filter(x=>x!==ip);
+  await db.collection(COL.meta).doc('officeIps').set({ips:updated});
+  toast('IP list se hata diya');
+}
+
+async function isOnOfficeNetwork(){
+  if(!officeIps||officeIps.length===0) return true; // no restriction configured
+  const ip=await fetchMyIp();
+  if(!ip) return false;
+  return officeIps.includes(ip);
+}
+
 // ── ATTENDANCE (ADMIN MANUAL) ──────────────────────────
 function attendanceId(empId,date){return empId+'_'+date;}
 
@@ -803,6 +868,11 @@ function renderMyAttendance(){
 }
 
 async function employeeCheckIn(){
+  const inBtn=document.getElementById('my-checkin-btn');
+  inBtn.disabled=true; inBtn.textContent='Checking network...';
+  const onOffice=await isOnOfficeNetwork();
+  inBtn.disabled=false; inBtn.innerHTML='✅ Check In';
+  if(!onOffice){toast('Aap office WiFi se connect nahi ho — check-in sirf office network se hota hai','error');return;}
   const date=todayStr();
   const id=attendanceId(currentUser.id,date);
   const now=Date.now();
@@ -821,6 +891,11 @@ async function employeeCheckOut(){
   const id=attendanceId(currentUser.id,date);
   const existing=attendance.find(a=>a.id===id);
   if(!existing||!existing.checkIn){toast('Pehle check-in karo','error');return;}
+  const outBtn=document.getElementById('my-checkout-btn');
+  outBtn.disabled=true; outBtn.textContent='Checking network...';
+  const onOffice=await isOnOfficeNetwork();
+  outBtn.disabled=false; outBtn.innerHTML='🚪 Check Out';
+  if(!onOffice){toast('Aap office WiFi se connect nahi ho — check-out sirf office network se hota hai','error');return;}
   const now=Date.now();
   const status=computeAutoStatus(existing.checkIn,now);
   await fsUpdate(COL.attendance,id,{checkOut:now,status,updatedAt:now});
