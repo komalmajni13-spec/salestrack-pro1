@@ -181,8 +181,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <div class="icon">🏭</div>
-      <h1>Flowrain Pipe and Fittings</h1>
+      <img src="logo.png" alt="Flowrain Pipe and Fittings" style="max-width:220px;width:100%;margin-bottom:10px;">
       <p>Salary & Leave Management</p>
     </div>
     <div class="form-group">
@@ -203,7 +202,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
 <div id="app">
   <div class="layout">
     <aside class="sidebar">
-      <div class="sidebar-header"><h2>Flowrain</h2><p>Pipe and Fittings</p><p style="font-size:10px;color:#4ade80;font-weight:600;margin-top:2px;">Salary & Leave Manager</p></div>
+      <div class="sidebar-header"><div style="background:#fff;border-radius:8px;padding:6px 10px;display:inline-block;"><img src="logo.png" alt="Flowrain" style="max-width:140px;width:100%;display:block;"></div><p style="font-size:10px;color:#4ade80;font-weight:600;margin-top:6px;">Salary & Leave Manager</p></div>
       <div class="sidebar-user">
         <div class="user-avatar" id="sb-avatar">A</div>
         <div class="user-info">
@@ -511,7 +510,7 @@ async function init(){
 
 function showLoading(show){
   let el=document.getElementById('loading-overlay');
-  if(show&&!el){el=document.createElement('div');el.id='loading-overlay';el.style.cssText='position:fixed;inset:0;background:#0f3d2e;display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-family:Poppins,sans-serif;';el.innerHTML='<div style="text-align:center;"><div style="font-size:40px;margin-bottom:12px;">🏭</div><div>Flowrain Pipe and Fittings</div><div style="font-size:13px;opacity:0.7;margin-top:6px;">Loading...</div></div>';document.body.appendChild(el);}
+  if(show&&!el){el=document.createElement('div');el.id='loading-overlay';el.style.cssText='position:fixed;inset:0;background:#0f3d2e;display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-family:Poppins,sans-serif;';el.innerHTML='<div style="text-align:center;"><img src="logo.png" alt="Flowrain" style="max-width:200px;width:80vw;margin-bottom:14px;"><div style="font-size:13px;opacity:0.7;">Loading...</div></div>';document.body.appendChild(el);}
   else if(!show&&el) el.remove();
 }
 
