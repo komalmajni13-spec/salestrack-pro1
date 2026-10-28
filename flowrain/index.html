@@ -317,7 +317,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           <div class="card">
             <div class="card-header"><div class="card-title">Mark / Review Attendance</div></div>
             <div class="card-body" style="padding-bottom:4px;">
-              <p class="help-text" style="margin-bottom:4px;">Office time: 9:30 AM – 6:30 PM. Employee check-in/check-out se status automatic calculate hota hai — kam se kam 7 ghante kaam = present, 3.5-7 ghante = half-day, 3.5 ghante se kam = absent (turant check-out karne se half-day nahi milega). Agar system na chale ya employee login na kar paye, admin yahan manually status set kar sakta hai.</p>
+              <p class="help-text" style="margin-bottom:4px;">Office time: 9:30 AM – 6:30 PM. Employee check-in/check-out se status automatic calculate hota hai — kam se kam 7 ghante kaam = present, 4-7 ghante = half-day, 4 ghante se kam = absent (turant check-out karne se half-day nahi milega). Agar system na chale ya employee login na kar paye, admin yahan manually status set kar sakta hai.</p>
               <p class="help-text" style="margin-bottom:10px;">Employee khud login karke check-in/check-out karega to yahan automatically dikhega.</p>
             </div>
             <div class="table-wrap"><table>
@@ -341,7 +341,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <button class="btn btn-danger btn-full" id="my-checkout-btn" style="display:none;margin-top:10px;" onclick="employeeCheckOut()">🚪 Check Out</button>
             </div>
           </div>
-          <p class="help-text" style="max-width:460px;margin:10px 0 18px;">Office time: 9:30 AM – 6:30 PM. Kam se kam <strong>7 ghante kaam</strong> karne par full day present count hoga, <strong>3.5 ghante se kam</strong> kaam kiya to absent maana jayega (half-day nahi milega) — sirf check-in karke turant check-out karne se half-day nahi ban jayega. <strong>Check-in/check-out sirf office ke computer se hoga — mobile/phone se nahi hoga.</strong></p>
+          <p class="help-text" style="max-width:460px;margin:10px 0 18px;">Office time: 9:30 AM – 6:30 PM. Kam se kam <strong>7 ghante kaam</strong> karne par full day present count hoga, <strong>4 ghante se kam</strong> kaam kiya to absent maana jayega (half-day nahi milega) — sirf check-in karke turant check-out karne se half-day nahi ban jayega. <strong>Check-in/check-out sirf office ke computer se hoga — mobile/phone se nahi hoga.</strong></p>
           <div class="snap-grid" id="my-att-month-stats" style="margin-bottom:18px;"></div>
           <div class="card">
             <div class="card-header"><div class="card-title">📅 This Month's Attendance</div><span id="my-att-late-count" class="badge badge-amber"></span></div>
@@ -434,7 +434,7 @@ const OFFICE_HALF_MIN=13*60+30;   // 1:30 PM cutoff between first/second half
 const OFFICE_END_MIN=18*60+30;    // 6:30 PM
 const LATE_PUNCH_MIN=10*60+45;    // after 10:45 AM counts as a late punch-in (tracking only, no salary effect)
 const FULL_DAY_MIN_MINUTES=420;   // at least 7 hours actually worked to count as a full present day
-const HALF_DAY_MIN_MINUTES=210;   // at least 3.5 hours actually worked to count as half-day
+const HALF_DAY_MIN_MINUTES=240;   // at least 4 hours actually worked to count as half-day
 
 function minutesOfDay(ts){const d=new Date(ts);return d.getHours()*60+d.getMinutes();}
 function isLatePunch(checkIn){return checkIn?minutesOfDay(checkIn)>LATE_PUNCH_MIN:false;}
