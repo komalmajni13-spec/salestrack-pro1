@@ -530,7 +530,9 @@ function startRealtime(){
     if(pg&&pg.id==='page-employees') renderEmployees();
     if(pg&&pg.id==='page-dashboard') renderDashboard();
     if(pg&&pg.id==='page-leave') renderLeaveEntry();
-    if(pg&&pg.id==='page-attendance') renderAttendance();
+    // Attendance (Manual) is intentionally NOT auto-re-rendered here --
+    // doing so would wipe out an admin's in-progress, unsaved dropdown
+    // selections whenever any employee's record changes elsewhere.
     if(pg&&pg.id==='page-my-salary') renderMySalary();
   });
   unsubLeaves=db.collection(COL.leaves).onSnapshot(snap=>{
@@ -542,7 +544,8 @@ function startRealtime(){
   unsubAttendance=db.collection(COL.attendance).onSnapshot(snap=>{
     attendance=snap.docs.map(d=>({id:d.id,...d.data()}));
     const pg=document.querySelector('.page.active');
-    if(pg&&pg.id==='page-attendance') renderAttendance();
+    // Same reason as above: don't auto-re-render the admin's manual
+    // attendance form out from under unsaved edits.
     if(pg&&pg.id==='page-my-attendance') renderMyAttendance();
     if(pg&&pg.id==='page-dashboard') renderDashboard();
   });
@@ -865,12 +868,15 @@ function isMobileDevice(){
 // ── ATTENDANCE (ADMIN MANUAL) ──────────────────────────
 function attendanceId(empId,date){return empId+'_'+date;}
 
+let attInitialStatus={};
 function renderAttendance(){
   const date=document.getElementById('att-date').value||todayStr();
   const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  attInitialStatus={};
   document.getElementById('att-body').innerHTML=sorted.map(emp=>{
     const rec=attendance.find(a=>a.employeeId===emp.id && a.date===date);
     const status=rec?rec.status:'not-marked';
+    attInitialStatus[emp.id]=status;
     const checkIn=rec&&rec.checkIn?new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
     const checkOut=rec&&rec.checkOut?new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
     const markedBy=rec?(rec.source==='self'?'<span class="badge badge-blue">Self</span>':'<span class="badge badge-gray">Admin</span>'):'';
@@ -902,14 +908,17 @@ async function saveAttendance(){
     if(!sel) continue;
     const status=sel.value;
     if(status==='not-marked') continue;
+    if(status===attInitialStatus[emp.id]) continue; // unchanged -- don't overwrite (preserves "Self" attribution)
     const id=attendanceId(emp.id,date);
     const existing=attendance.find(a=>a.id===id);
     const rec={id,employeeId:emp.id,date,status,late:existing?!!existing.late:false,checkIn:existing?existing.checkIn||null:null,checkOut:existing?existing.checkOut||null:null,source:'admin',updatedAt:Date.now()};
     await fsSet(COL.attendance,id,rec);
     const idx=attendance.findIndex(a=>a.id===id);
     if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
+    attInitialStatus[emp.id]=status;
     touched.push(emp.id);
   }
+  if(touched.length===0){toast('Koi naya change nahi tha','warning');return;}
   for(const empId of touched){ await autoSyncLeaveFromAttendance(empId,ym); }
   toast('Attendance saved! Salary auto-updated.');
 }
