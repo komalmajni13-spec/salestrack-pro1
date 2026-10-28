@@ -224,7 +224,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
       <div class="nav-section" id="employee-nav-section" style="display:none;">
         <div class="nav-label">Main</div>
         <div class="nav-item active" onclick="showPage('my-attendance')" id="nav-my-attendance"><span class="nav-icon">🕒</span> My Attendance</div>
-        <div class="nav-item" onclick="showPage('my-salary')" id="nav-my-salary"><span class="nav-icon">💰</span> My Salary</div>
+        <div class="nav-item" onclick="openSalaryPinModal()" id="nav-my-salary"><span class="nav-icon">💰</span> My Salary</div>
         <div class="nav-item" onclick="showPage('request-leave')" id="nav-request-leave"><span class="nav-icon">📝</span> Request Leave</div>
         <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password"><span class="nav-icon">🔒</span> Change Password</div>
       </div>
@@ -474,6 +474,21 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         </div>
 
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SALARY PASSWORD RE-CONFIRM MODAL -->
+<div class="modal-overlay" id="salary-pin-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header"><div class="modal-title">🔒 Confirm Password</div><button class="modal-close" onclick="closeModal('salary-pin-modal')">✕</button></div>
+    <div class="modal-body">
+      <p class="help-text" style="margin-bottom:12px;">Salary dekhne se pehle apna password dobara daalo.</p>
+      <div class="form-group"><input class="form-control" type="password" id="salary-pin-input" placeholder="Password" autocomplete="current-password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('salary-pin-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSalaryPin()">Unlock</button>
     </div>
   </div>
 </div>
@@ -878,6 +893,25 @@ function exportDashboard(){
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Salary-'+ym);
   XLSX.writeFile(wb,`Flowrain_Salary_${ym}.xlsx`);
+}
+
+// ── MY SALARY PASSWORD RE-CONFIRM ───────────────────────
+function openSalaryPinModal(){
+  document.getElementById('salary-pin-input').value='';
+  openModal('salary-pin-modal');
+  setTimeout(()=>{
+    const inp=document.getElementById('salary-pin-input');
+    inp.focus();
+    inp.onkeydown=(e)=>{ if(e.key==='Enter') confirmSalaryPin(); };
+  },50);
+}
+
+function confirmSalaryPin(){
+  const pass=document.getElementById('salary-pin-input').value;
+  const expected=currentUser.id==='admin0'?adminAuth.password:(employees.find(e=>e.id===currentUser.id)||{}).password;
+  if(pass!==expected){toast('Password galat hai','error');return;}
+  closeModal('salary-pin-modal');
+  showPage('my-salary');
 }
 
 // ── MY SALARY (EMPLOYEE SELF-SERVICE) ──────────────────
