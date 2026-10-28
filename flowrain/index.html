@@ -216,6 +216,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="nav-item" onclick="showPage('leave-requests')" id="nav-leave-requests"><span class="nav-icon">📝</span> Leave Requests <span id="nav-leave-req-badge" class="badge badge-amber" style="display:none;margin-left:4px;"></span></div>
         <div class="nav-item" onclick="showPage('attendance')" id="nav-attendance"><span class="nav-icon">🕒</span> Attendance (Manual)</div>
         <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
+        <div class="nav-item" onclick="showPage('reports')" id="nav-reports"><span class="nav-icon">📊</span> Reports</div>
         <div class="nav-item" onclick="showPage('office-wifi')" id="nav-office-wifi"><span class="nav-icon">📶</span> Office WiFi</div>
         <div class="nav-item" onclick="showPage('whatsapp-alerts')" id="nav-whatsapp-alerts"><span class="nav-icon">💬</span> WhatsApp Alerts</div>
         <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password-admin"><span class="nav-icon">🔒</span> Change Password</div>
@@ -256,6 +257,11 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <div class="card-title">Employee-wise Salary & Leave Summary</div>
               <button class="btn btn-ghost btn-sm" onclick="exportDashboard()">📥 Export Excel</button>
             </div>
+            <div class="card-body" style="padding-bottom:0;">
+              <div class="filter-bar">
+                <input type="text" placeholder="🔍 Search employee..." id="dash-search" oninput="renderDashboard()" style="flex:1;min-width:200px;">
+              </div>
+            </div>
             <div class="table-wrap"><table>
               <thead><tr><th>Employee</th><th>Monthly Salary (₹)</th><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Leave Taken</th><th>Balance Leave</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net Salary (₹)</th></tr></thead>
               <tbody id="dash-body"></tbody>
@@ -290,6 +296,11 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <div class="card-title">👥 Employees</div>
               <button class="btn btn-primary btn-sm" onclick="openAddEmployee()">+ Add Employee</button>
             </div>
+            <div class="card-body" style="padding-bottom:0;">
+              <div class="filter-bar">
+                <input type="text" placeholder="🔍 Search by name or username..." id="emp-search" oninput="renderEmployees()" style="flex:1;min-width:200px;">
+              </div>
+            </div>
             <div class="table-wrap"><table>
               <thead><tr><th>Name</th><th>Login Username</th><th>Monthly Salary (₹)</th><th>Current Carry Fwd Leave</th><th>Actions</th></tr></thead>
               <tbody id="emp-body"></tbody>
@@ -309,6 +320,35 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               </div>
               <div id="office-ip-list"></div>
             </div>
+          </div>
+        </div>
+
+        <!-- REPORTS (EMPLOYEE-WISE MONTHLY/QUARTERLY/YEARLY) -->
+        <div class="page" id="page-reports">
+          <div class="filter-bar">
+            <select id="rep-employee" onchange="renderReports()"></select>
+            <select id="rep-period-type" onchange="renderReports()">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+            <input type="month" id="rep-month" onchange="renderReports()">
+            <select id="rep-quarter" style="display:none;" onchange="renderReports()">
+              <option value="1">Q1 (Jan-Mar)</option>
+              <option value="2">Q2 (Apr-Jun)</option>
+              <option value="3">Q3 (Jul-Sep)</option>
+              <option value="4">Q4 (Oct-Dec)</option>
+            </select>
+            <select id="rep-year" style="display:none;" onchange="renderReports()"></select>
+            <button class="btn btn-ghost btn-sm" onclick="exportReport()">📥 Export Excel</button>
+          </div>
+          <div class="stat-grid" id="rep-stats"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" id="rep-table-title">Month-wise Breakdown</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Month</th><th>Salary (₹)</th><th>Carry Fwd</th><th>Allowance</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net (₹)</th></tr></thead>
+              <tbody id="rep-body"></tbody>
+            </table></div>
           </div>
         </div>
 
@@ -722,7 +762,7 @@ function showPage(id){
   document.getElementById(`page-${id}`).classList.add('active');
   const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
   if(id==='change-password'){ const navEl2=document.getElementById('nav-change-password-admin'); if(navEl2)navEl2.classList.add('active'); }
-  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction','leave-requests':'Leave Requests','request-leave':'Request Leave','whatsapp-alerts':'WhatsApp Alerts'};
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction','leave-requests':'Leave Requests','request-leave':'Request Leave','whatsapp-alerts':'WhatsApp Alerts',reports:'Reports'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
   if(id==='leave')renderLeaveEntry();
@@ -734,6 +774,7 @@ function showPage(id){
   if(id==='leave-requests')renderLeaveRequests();
   if(id==='request-leave')renderRequestLeave();
   if(id==='whatsapp-alerts')renderWhatsAppAlerts();
+  if(id==='reports')renderReports();
   if(id==='change-password'){
     document.getElementById('cp-current').value='';
     document.getElementById('cp-new').value='';
@@ -803,8 +844,10 @@ function renderDashboard(){
     </div>
     ${todayRecs.length>0?`<div class="avatar-chips">${todayRecs.map(a=>chip(a.employeeId)).join('')}</div>`:'<p class="help-text" style="margin-top:12px;">Aaj abhi tak kisi ne check-in nahi kiya.</p>'}`;
 
-  document.getElementById('dash-body').innerHTML=rows.length===0?`<tr><td colspan="9"><div class="empty-state"><div class="icon">👤</div><p>No employees</p></div></td></tr>`:
-    rows.map(r=>{
+  const dashSearch=((document.getElementById('dash-search')||{}).value||'').toLowerCase();
+  const filteredRows=dashSearch?rows.filter(r=>r.emp.name.toLowerCase().includes(dashSearch)):rows;
+  document.getElementById('dash-body').innerHTML=filteredRows.length===0?`<tr><td colspan="9"><div class="empty-state"><div class="icon">👤</div><p>No employees found</p></div></td></tr>`:
+    filteredRows.map(r=>{
       const pct=Math.max(0,Math.min(100,(r.c.balance/(r.c.allowance+13.5||1))*100));
       const fillColor=r.c.balance<0?'var(--danger)':r.c.balance<1?'var(--warning)':'var(--success)';
       return `<tr>
@@ -863,6 +906,97 @@ function renderMySalary(){
     <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${availPct}%;background:${availColor};"></span></span></td>
     <td>${c.unpaidDays>0?`<span class="badge badge-amber">${fmt(c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
   </tr>`;
+}
+
+// ── REPORTS (EMPLOYEE-WISE MONTHLY/QUARTERLY/YEARLY) ───
+function populateReportFilters(){
+  const empSel=document.getElementById('rep-employee');
+  if(empSel.options.length===0){
+    empSel.innerHTML=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  }
+  const yearSel=document.getElementById('rep-year');
+  if(yearSel.options.length===0){
+    const curY=new Date().getFullYear();
+    yearSel.innerHTML=[curY-1,curY,curY+1].map(y=>`<option value="${y}" ${y===curY?'selected':''}>${y}</option>`).join('');
+  }
+}
+
+function getReportMonths(){
+  const type=document.getElementById('rep-period-type').value;
+  if(type==='monthly'){
+    const ym=document.getElementById('rep-month').value||curMonth();
+    return [ym];
+  }
+  if(type==='quarterly'){
+    const q=parseInt(document.getElementById('rep-quarter').value||'1');
+    const y=document.getElementById('rep-year').value||new Date().getFullYear();
+    const startMonth=(q-1)*3+1;
+    return [0,1,2].map(i=>`${y}-${String(startMonth+i).padStart(2,'0')}`);
+  }
+  const y=document.getElementById('rep-year').value||new Date().getFullYear();
+  return Array.from({length:12},(_,i)=>`${y}-${String(i+1).padStart(2,'0')}`);
+}
+
+function renderReports(){
+  populateReportFilters();
+  const type=document.getElementById('rep-period-type').value;
+  document.getElementById('rep-month').style.display=type==='monthly'?'inline-block':'none';
+  document.getElementById('rep-quarter').style.display=type==='quarterly'?'inline-block':'none';
+  document.getElementById('rep-year').style.display=(type==='quarterly'||type==='yearly')?'inline-block':'none';
+  if(!document.getElementById('rep-month').value) document.getElementById('rep-month').value=curMonth();
+
+  const empId=document.getElementById('rep-employee').value;
+  const emp=employees.find(e=>e.id===empId);
+  if(!emp) return;
+  const months=getReportMonths();
+  let totalSalary=0,totalTaken=0,totalUnpaid=0,totalDeduction=0,totalNet=0;
+  const rows=months.map(ym=>{
+    const c=computeLeaveForMonth(empId,ym);
+    const salary=Number(emp.salary||0);
+    const perDay=salary/30;
+    const deduction=c.unpaidDays*perDay;
+    const net=salary-deduction;
+    totalSalary+=salary;totalTaken+=c.taken;totalUnpaid+=c.unpaidDays;totalDeduction+=deduction;totalNet+=net;
+    return {ym,c,salary,deduction,net};
+  });
+
+  document.getElementById('rep-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Total Salary</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">${months.length} month(s)</div></div></div>
+    <div class="stat-card amber"><div class="stat-icon">📅</div><div class="stat-body"><div class="stat-label">Total Leave Taken</div><div class="stat-value">${fmt(totalTaken)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">Across period</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
+
+  document.getElementById('rep-table-title').textContent=`${esc(emp.name)} — Month-wise Breakdown`;
+  document.getElementById('rep-body').innerHTML=rows.map(r=>`<tr>
+    <td>${r.ym}</td>
+    <td class="amount">₹${fmt(r.salary)}</td>
+    <td>${fmt(r.c.carryIn)}</td>
+    <td>${fmt(r.c.allowance)}</td>
+    <td>${fmt(r.c.taken)}</td>
+    <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span></td>
+    <td>${r.c.unpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+    <td class="amount" style="color:var(--danger);">₹${fmt(r.deduction)}</td>
+    <td class="amount" style="color:var(--success);">₹${fmt(r.net)}</td>
+  </tr>`).join('');
+}
+
+function exportReport(){
+  const empId=document.getElementById('rep-employee').value;
+  const emp=employees.find(e=>e.id===empId);
+  if(!emp) return;
+  const months=getReportMonths();
+  const data=months.map(ym=>{
+    const c=computeLeaveForMonth(empId,ym);
+    const salary=Number(emp.salary||0);
+    const perDay=salary/30;
+    const deduction=c.unpaidDays*perDay;
+    const net=salary-deduction;
+    return {Month:ym,'Monthly Salary':salary,'Carry Forward':c.carryIn,'Allowance':c.allowance,'Leave Taken':c.taken,'Balance':c.balance,'Unpaid Days':c.unpaidDays,'Deduction':deduction,'Net Salary':net};
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Report');
+  XLSX.writeFile(wb,`Flowrain_Report_${emp.name.replace(/\s+/g,'_')}.xlsx`);
 }
 
 // ── WHATSAPP ALERTS ─────────────────────────────────────
@@ -1288,8 +1422,10 @@ async function autoSyncAllEmployeesForMonth(ym){
 
 // ── EMPLOYEES ─────────────────────────────────────────
 function renderEmployees(){
-  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
-  document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><p>No employees yet</p></div></td></tr>`:
+  const search=((document.getElementById('emp-search')||{}).value||'').toLowerCase();
+  let sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  if(search) sorted=sorted.filter(e=>e.name.toLowerCase().includes(search)||(e.username||'').toLowerCase().includes(search));
+  document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><p>No employees found</p></div></td></tr>`:
     sorted.map(e=>`<tr>
       <td><strong>${esc(e.name)}</strong>${e.isAdmin?' <span class="badge badge-amber">Admin</span>':''}</td>
       <td>${e.username?esc(e.username):'<span class="badge badge-gray">Not set</span>'}</td>
