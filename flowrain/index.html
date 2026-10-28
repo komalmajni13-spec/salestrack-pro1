@@ -217,6 +217,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="nav-item" onclick="showPage('attendance')" id="nav-attendance"><span class="nav-icon">🕒</span> Attendance (Manual)</div>
         <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
         <div class="nav-item" onclick="showPage('office-wifi')" id="nav-office-wifi"><span class="nav-icon">📶</span> Office WiFi</div>
+        <div class="nav-item" onclick="showPage('whatsapp-alerts')" id="nav-whatsapp-alerts"><span class="nav-icon">💬</span> WhatsApp Alerts</div>
         <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password-admin"><span class="nav-icon">🔒</span> Change Password</div>
       </div>
       <div class="nav-section" id="employee-nav-section" style="display:none;">
@@ -307,6 +308,20 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
                 <button class="btn btn-primary btn-sm" onclick="addCurrentIpAsOffice()">+ Add Current IP</button>
               </div>
               <div id="office-ip-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WHATSAPP ALERTS -->
+        <div class="page" id="page-whatsapp-alerts">
+          <div class="card" style="max-width:520px;">
+            <div class="card-header"><div class="card-title">💬 WhatsApp Alerts</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">Jab bhi koi employee leave request kare, is number pe WhatsApp message automatically chala jayega. Setup ke liye: apne WhatsApp mein <strong>+34 644 59 71 67</strong> ko "CallMeBot" naam se save karo, usko WhatsApp pe "I allow callmebot to send me messages" bhejo, bot jo API key reply karega wo neeche daal do.</p>
+              <div class="form-group"><label>WhatsApp Number (country code ke saath, jaise 91XXXXXXXXXX)</label><input class="form-control" type="text" id="wa-phone" placeholder="91XXXXXXXXXX"></div>
+              <div class="form-group"><label>CallMeBot API Key</label><input class="form-control" type="text" id="wa-apikey" placeholder="CallMeBot se mila hua number"></div>
+              <button class="btn btn-primary" onclick="saveWhatsAppSettings()">Save</button>
+              <button class="btn btn-ghost" onclick="testWhatsAppAlert()">📤 Test Message Bhejo</button>
             </div>
           </div>
         </div>
@@ -499,6 +514,7 @@ let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
 let officeIps=[];
 let leaveRequests=[]; // {id, employeeId, fromDate, toDate, reason, status:'pending'|'approved'|'rejected', requestedAt, decidedAt}
+let waSettings={phone:'',apikey:''};
 let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null, unsubLeaveRequests=null;
 function todayStr(){return new Date().toISOString().slice(0,10);}
 
@@ -549,6 +565,8 @@ async function init(){
     officeIps=ipDoc.exists?(ipDoc.data().ips||[]):[];
     const adminAuthDoc=await db.collection(COL.meta).doc('adminAuth').get();
     if(adminAuthDoc.exists) adminAuth={...DEFAULT_ADMIN,...adminAuthDoc.data()};
+    const waDoc=await db.collection(COL.meta).doc('whatsappAlert').get();
+    if(waDoc.exists) waSettings={...waSettings,...waDoc.data()};
   }catch(e){
     employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[]; leaveRequests=[];
   }
@@ -704,7 +722,7 @@ function showPage(id){
   document.getElementById(`page-${id}`).classList.add('active');
   const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
   if(id==='change-password'){ const navEl2=document.getElementById('nav-change-password-admin'); if(navEl2)navEl2.classList.add('active'); }
-  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction','leave-requests':'Leave Requests','request-leave':'Request Leave'};
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction','leave-requests':'Leave Requests','request-leave':'Request Leave','whatsapp-alerts':'WhatsApp Alerts'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
   if(id==='leave')renderLeaveEntry();
@@ -715,6 +733,7 @@ function showPage(id){
   if(id==='office-wifi')renderOfficeWifi();
   if(id==='leave-requests')renderLeaveRequests();
   if(id==='request-leave')renderRequestLeave();
+  if(id==='whatsapp-alerts')renderWhatsAppAlerts();
   if(id==='change-password'){
     document.getElementById('cp-current').value='';
     document.getElementById('cp-new').value='';
@@ -846,6 +865,38 @@ function renderMySalary(){
   </tr>`;
 }
 
+// ── WHATSAPP ALERTS ─────────────────────────────────────
+function renderWhatsAppAlerts(){
+  document.getElementById('wa-phone').value=waSettings.phone||'';
+  document.getElementById('wa-apikey').value=waSettings.apikey||'';
+}
+
+async function saveWhatsAppSettings(){
+  const phone=document.getElementById('wa-phone').value.trim();
+  const apikey=document.getElementById('wa-apikey').value.trim();
+  if(!phone||!apikey){toast('Phone number aur API key dono zaroori hain','error');return;}
+  waSettings={phone,apikey};
+  await db.collection(COL.meta).doc('whatsappAlert').set(waSettings);
+  toast('WhatsApp alert settings save ho gayi!');
+}
+
+async function sendWhatsAppAlert(message){
+  if(!waSettings.phone||!waSettings.apikey) return;
+  try{
+    const url=`https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(waSettings.phone)}&text=${encodeURIComponent(message)}&apikey=${encodeURIComponent(waSettings.apikey)}`;
+    await fetch(url);
+  }catch(e){}
+}
+
+async function testWhatsAppAlert(){
+  const phone=document.getElementById('wa-phone').value.trim();
+  const apikey=document.getElementById('wa-apikey').value.trim();
+  if(!phone||!apikey){toast('Pehle phone number aur API key save karo','error');return;}
+  waSettings={phone,apikey};
+  await sendWhatsAppAlert('Flowrain Pipe and Fittings: test message — WhatsApp alerts set up ho gaye!');
+  toast('Test message bhej diya — WhatsApp check karo');
+}
+
 // ── LEAVE REQUESTS ──────────────────────────────────────
 function updateLeaveRequestBadge(){
   const pendingCount=leaveRequests.filter(r=>r.status==='pending').length;
@@ -875,6 +926,8 @@ async function submitLeaveRequest(){
   document.getElementById('rl-from').value='';
   document.getElementById('rl-to').value='';
   document.getElementById('rl-reason').value='';
+  const emp=employees.find(e=>e.id===currentUser.id);
+  sendWhatsAppAlert(`Flowrain: ${emp?emp.name:'Employee'} ne leave request ki hai (${fromDate} se ${toDate}). Reason: ${reason||'-'}. App mein jaake approve/reject karo.`);
   toast('Leave request bhej di! Admin approve karega to wo dates automatically leave mein count ho jayengi.');
 }
 
