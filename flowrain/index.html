@@ -471,6 +471,19 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <button class="btn btn-primary btn-full" onclick="changeMyPassword()">Update Password</button>
             </div>
           </div>
+          <div class="card" style="max-width:420px;">
+            <div class="card-header"><div class="card-title">💰 Salary View PIN</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:12px;">"My Salary" page kholte waqt ye alag PIN maanga jayega (login password se alag). Khali chhodoge to login password hi chalega.</p>
+              <div class="form-group"><label>Current Login Password *</label><input class="form-control" type="password" id="sp-current" placeholder="Current login password"></div>
+              <div class="form-group"><label>New Salary PIN *</label><input class="form-control" type="password" id="sp-new" placeholder="e.g. 4-6 digit PIN"></div>
+              <div class="form-group"><label>Confirm Salary PIN *</label><input class="form-control" type="password" id="sp-confirm" placeholder="Re-enter PIN"></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="setSalaryPin()">Set PIN</button>
+                <button class="btn btn-ghost" onclick="clearSalaryPin()">Remove PIN (use login password)</button>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -483,7 +496,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
   <div class="modal" style="max-width:360px;">
     <div class="modal-header"><div class="modal-title">🔒 Confirm Password</div><button class="modal-close" onclick="closeModal('salary-pin-modal')">✕</button></div>
     <div class="modal-body">
-      <p class="help-text" style="margin-bottom:12px;">Salary dekhne se pehle apna password dobara daalo.</p>
+      <p class="help-text" style="margin-bottom:12px;" id="salary-pin-label">Salary dekhne se pehle apna password dobara daalo.</p>
       <div class="form-group"><input class="form-control" type="password" id="salary-pin-input" placeholder="Password" autocomplete="current-password"></div>
     </div>
     <div class="modal-footer">
@@ -897,6 +910,9 @@ function exportDashboard(){
 
 // ── MY SALARY PASSWORD RE-CONFIRM ───────────────────────
 function openSalaryPinModal(){
+  const hasPin=currentUser.id==='admin0'?!!adminAuth.salaryPin:!!((employees.find(e=>e.id===currentUser.id)||{}).salaryPin);
+  document.getElementById('salary-pin-label').textContent=hasPin?'Salary dekhne se pehle apna PIN daalo.':'Salary dekhne se pehle apna password dobara daalo.';
+  document.getElementById('salary-pin-input').placeholder=hasPin?'PIN':'Password';
   document.getElementById('salary-pin-input').value='';
   openModal('salary-pin-modal');
   setTimeout(()=>{
@@ -908,10 +924,50 @@ function openSalaryPinModal(){
 
 function confirmSalaryPin(){
   const pass=document.getElementById('salary-pin-input').value;
-  const expected=currentUser.id==='admin0'?adminAuth.password:(employees.find(e=>e.id===currentUser.id)||{}).password;
-  if(pass!==expected){toast('Password galat hai','error');return;}
+  let expected;
+  if(currentUser.id==='admin0'){ expected=adminAuth.salaryPin||adminAuth.password; }
+  else{ const emp=employees.find(e=>e.id===currentUser.id)||{}; expected=emp.salaryPin||emp.password; }
+  if(pass!==expected){toast(currentUser.id==='admin0'||((employees.find(e=>e.id===currentUser.id)||{}).salaryPin)?'PIN galat hai':'Password galat hai','error');return;}
   closeModal('salary-pin-modal');
   showPage('my-salary');
+}
+
+async function setSalaryPin(){
+  const current=document.getElementById('sp-current').value;
+  const next=document.getElementById('sp-new').value;
+  const confirm=document.getElementById('sp-confirm').value;
+  if(!next||next.length<4){toast('PIN kam se kam 4 characters ka rakho','error');return;}
+  if(next!==confirm){toast('PIN match nahi ho raha','error');return;}
+  if(currentUser.id==='admin0'){
+    if(current!==adminAuth.password){toast('Current login password galat hai','error');return;}
+    await db.collection(COL.meta).doc('adminAuth').set({username:adminAuth.username,password:adminAuth.password,salaryPin:next});
+    adminAuth={...adminAuth,salaryPin:next};
+  }else{
+    const emp=employees.find(e=>e.id===currentUser.id);
+    if(!emp){toast('Employee record nahi mila','error');return;}
+    if(current!==emp.password){toast('Current login password galat hai','error');return;}
+    await fsUpdate(COL.employees,emp.id,{salaryPin:next});
+  }
+  document.getElementById('sp-current').value='';
+  document.getElementById('sp-new').value='';
+  document.getElementById('sp-confirm').value='';
+  toast('Salary PIN set ho gaya!');
+}
+
+async function clearSalaryPin(){
+  const current=document.getElementById('sp-current').value;
+  if(currentUser.id==='admin0'){
+    if(current!==adminAuth.password){toast('Current login password galat hai','error');return;}
+    await db.collection(COL.meta).doc('adminAuth').set({username:adminAuth.username,password:adminAuth.password,salaryPin:null});
+    adminAuth={...adminAuth,salaryPin:null};
+  }else{
+    const emp=employees.find(e=>e.id===currentUser.id);
+    if(!emp){toast('Employee record nahi mila','error');return;}
+    if(current!==emp.password){toast('Current login password galat hai','error');return;}
+    await fsUpdate(COL.employees,emp.id,{salaryPin:null});
+  }
+  document.getElementById('sp-current').value='';
+  toast('Salary PIN hata diya — ab login password hi chalega');
 }
 
 // ── MY SALARY (EMPLOYEE SELF-SERVICE) ──────────────────
