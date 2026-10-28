@@ -318,7 +318,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
             <div class="card-header"><div class="card-title">Mark / Review Attendance</div></div>
             <div class="card-body" style="padding-bottom:4px;">
               <p class="help-text" style="margin-bottom:4px;">Office time: 9:30 AM – 6:30 PM. Employee check-in/check-out se status automatic calculate hota hai — kam se kam 7 ghante kaam = present, 4-7 ghante = half-day, 4 ghante se kam = absent (turant check-out karne se half-day nahi milega). Agar system na chale ya employee login na kar paye, admin yahan manually status set kar sakta hai.</p>
-              <p class="help-text" style="margin-bottom:10px;">Employee khud login karke check-in/check-out karega to yahan automatically dikhega.</p>
+              <p class="help-text" style="margin-bottom:10px;">Employee khud login karke check-in/check-out karega to yahan automatically dikhega. <strong>Agar koi poore din bilkul check-in hi na kare, to agle din app khulte hi system khud use "Auto" Absent mark kar dega</strong> — agar galti se mark hua ho (employee bhool gaya tha), to yahan se status edit karke theek kar sakte ho.</p>
             </div>
             <div class="table-wrap"><table>
               <thead><tr><th>Employee</th><th>Check-In</th><th>Check-Out</th><th>Status</th><th>Marked By</th></tr></thead>
@@ -615,6 +615,34 @@ function startApp(){
     document.getElementById('employee-nav-section').style.display='block';
     showPage('my-attendance');
   }
+  autoMarkAbsentees();
+}
+
+// Runs on every login (any role). If yesterday wasn't a Sunday and an
+// employee has no attendance record for it at all (never checked in,
+// nobody marked them manually), auto-marks them absent so a forgotten
+// login doesn't silently skip salary deduction. Admin can always fix a
+// wrong auto-mark from the Manual Attendance page afterwards.
+async function autoMarkAbsentees(){
+  try{
+    const y=new Date(); y.setDate(y.getDate()-1);
+    if(y.getDay()===0) return; // skip Sunday
+    const dateStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+    const ym=dateStr.slice(0,7);
+    const touched=[];
+    for(const emp of employees){
+      const id=attendanceId(emp.id,dateStr);
+      if(attendance.find(a=>a.id===id)) continue;
+      const rec={id,employeeId:emp.id,date:dateStr,status:'absent',late:false,checkIn:null,checkOut:null,source:'auto',updatedAt:Date.now()};
+      await fsSet(COL.attendance,id,rec);
+      attendance.push(rec);
+      touched.push(emp.id);
+    }
+    if(touched.length===0) return;
+    for(const empId of touched){ await autoSyncLeaveFromAttendance(empId,ym); }
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+  }catch(e){}
 }
 
 function showPage(id){
@@ -879,7 +907,8 @@ function renderAttendance(){
     attInitialStatus[emp.id]=status;
     const checkIn=rec&&rec.checkIn?new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
     const checkOut=rec&&rec.checkOut?new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
-    const markedBy=rec?(rec.source==='self'?'<span class="badge badge-blue">Self</span>':'<span class="badge badge-gray">Admin</span>'):'';
+    const markedByMap={self:'<span class="badge badge-blue">Self</span>',auto:'<span class="badge badge-amber">Auto</span>'};
+    const markedBy=rec?(markedByMap[rec.source]||'<span class="badge badge-gray">Admin</span>'):'';
     const lateBadge=rec&&rec.late?' <span class="badge badge-amber">Late</span>':'';
     return `<tr data-emp="${emp.id}">
       <td><strong>${esc(emp.name)}</strong></td>
