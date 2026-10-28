@@ -11,28 +11,28 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
-  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--nav-bg:#0f3d2e;--nav-text:#a8d4c0;
-  --nav-active:#fff;--nav-active-bg:#15803d;--primary:#15803d;--primary-hover:#166534;
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f8fafc;--nav-bg:#0f2a46;--nav-text:#9fb8d4;
+  --nav-active:#fff;--nav-active-bg:#5fae2f;--primary:#5fae2f;--primary-hover:#4c8d25;
   --success:#16a34a;--success-bg:#f0fdf4;--warning:#d97706;--warning-bg:#fffbeb;
   --danger:#dc2626;--danger-bg:#fef2f2;--text:#0f172a;--text2:#475569;--text3:#94a3b8;
   --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-md:0 4px 6px rgba(0,0,0,0.07);
   --shadow-lg:0 10px 25px rgba(0,0,0,0.1);--radius:10px;--radius-sm:6px;
 }
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#071a12;--surface:#0f2a1e;--surface2:#133627;--nav-bg:#05120c;--nav-text:#7fb79e;
-  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a6c;--border:#1e4433;
+  --bg:#081524;--surface:#0f2338;--surface2:#132b44;--nav-bg:#061320;--nav-text:#7f9cbf;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a9c;--border:#1e3a55;
   --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
 }}
 :root[data-theme="dark"]{
-  --bg:#071a12;--surface:#0f2a1e;--surface2:#133627;--nav-bg:#05120c;--nav-text:#7fb79e;
-  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a6c;--border:#1e4433;
+  --bg:#081524;--surface:#0f2338;--surface2:#132b44;--nav-bg:#061320;--nav-text:#7f9cbf;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a9c;--border:#1e3a55;
   --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 h1,h2,h3,h4{font-family:'Poppins',sans-serif;}
 
-#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f3d2e 0%,#166534 50%,#15803d 100%);}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f2a46 0%,#1a4a3a 55%,#5fae2f 100%);}
 .login-card{background:var(--surface);border-radius:16px;padding:40px;width:380px;box-shadow:var(--shadow-lg);}
 .login-logo{text-align:center;margin-bottom:28px;}
 .login-logo h1{font-size:22px;color:var(--primary);}
@@ -510,7 +510,7 @@ async function init(){
 
 function showLoading(show){
   let el=document.getElementById('loading-overlay');
-  if(show&&!el){el=document.createElement('div');el.id='loading-overlay';el.style.cssText='position:fixed;inset:0;background:#0f3d2e;display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-family:Poppins,sans-serif;';el.innerHTML='<div style="text-align:center;"><img src="logo.png" alt="Flowrain" style="max-width:200px;width:80vw;margin-bottom:14px;"><div style="font-size:13px;opacity:0.7;">Loading...</div></div>';document.body.appendChild(el);}
+  if(show&&!el){el=document.createElement('div');el.id='loading-overlay';el.style.cssText='position:fixed;inset:0;background:#0f2a46;display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-family:Poppins,sans-serif;';el.innerHTML='<div style="text-align:center;"><img src="logo.png" alt="Flowrain" style="max-width:200px;width:80vw;margin-bottom:14px;"><div style="font-size:13px;opacity:0.7;">Loading...</div></div>';document.body.appendChild(el);}
   else if(!show&&el) el.remove();
 }
 
