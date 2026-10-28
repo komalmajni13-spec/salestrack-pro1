@@ -217,6 +217,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="nav-item" onclick="showPage('attendance')" id="nav-attendance"><span class="nav-icon">🕒</span> Attendance (Manual)</div>
         <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
         <div class="nav-item" onclick="showPage('office-wifi')" id="nav-office-wifi"><span class="nav-icon">📶</span> Office WiFi</div>
+        <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password-admin"><span class="nav-icon">🔒</span> Change Password</div>
       </div>
       <div class="nav-section" id="employee-nav-section" style="display:none;">
         <div class="nav-label">Main</div>
@@ -524,6 +525,7 @@ async function fsDelete(col,id){ await db.collection(col).doc(id).delete(); }
 async function fsUpdate(col,id,data){ await db.collection(col).doc(id).update(data); }
 
 const DEFAULT_ADMIN={id:'admin0',username:'admin',password:'flowrain123'};
+let adminAuth={...DEFAULT_ADMIN}; // overridden from Firestore (flowrain_meta/adminAuth) if the password was changed
 const DEFAULT_EMPLOYEES=Array.from({length:10},(_,i)=>({id:'e'+(i+1),name:'Employee '+(i+1),salary:15000,carryIn:0}));
 
 async function seedIfNeeded(){
@@ -545,6 +547,8 @@ async function init(){
     leaveRequests=await fsGetAll(COL.leaveRequests);
     const ipDoc=await db.collection(COL.meta).doc('officeIps').get();
     officeIps=ipDoc.exists?(ipDoc.data().ips||[]):[];
+    const adminAuthDoc=await db.collection(COL.meta).doc('adminAuth').get();
+    if(adminAuthDoc.exists) adminAuth={...DEFAULT_ADMIN,...adminAuthDoc.data()};
   }catch(e){
     employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[]; leaveRequests=[];
   }
@@ -611,8 +615,8 @@ function doLogin(){
   const pass=document.getElementById('login-pass').value;
   const err=document.getElementById('login-error');
   err.style.display='none';
-  if(uname===DEFAULT_ADMIN.username && pass===DEFAULT_ADMIN.password){
-    currentUser={id:'admin0',name:'Admin',username:'admin',role:'admin'};
+  if(uname===adminAuth.username && pass===adminAuth.password){
+    currentUser={id:'admin0',name:'Admin',username:adminAuth.username,role:'admin'};
     sessionStorage.setItem('flowrain_session',JSON.stringify(currentUser));
     startApp();
     startRealtime();
@@ -699,6 +703,7 @@ function showPage(id){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
   const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
+  if(id==='change-password'){ const navEl2=document.getElementById('nav-change-password-admin'); if(navEl2)navEl2.classList.add('active'); }
   const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction','leave-requests':'Leave Requests','request-leave':'Request Leave'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
@@ -927,12 +932,18 @@ async function changeMyPassword(){
   const current=document.getElementById('cp-current').value;
   const next=document.getElementById('cp-new').value;
   const confirm=document.getElementById('cp-confirm').value;
-  const emp=employees.find(e=>e.id===currentUser.id);
-  if(!emp){toast('Employee record nahi mila','error');return;}
-  if(current!==emp.password){toast('Current password galat hai','error');return;}
   if(!next||next.length<4){toast('Naya password kam se kam 4 characters ka rakho','error');return;}
   if(next!==confirm){toast('Naya password match nahi ho raha','error');return;}
-  await fsUpdate(COL.employees,emp.id,{password:next});
+  if(currentUser.id==='admin0'){
+    if(current!==adminAuth.password){toast('Current password galat hai','error');return;}
+    await db.collection(COL.meta).doc('adminAuth').set({username:adminAuth.username,password:next});
+    adminAuth={...adminAuth,password:next};
+  }else{
+    const emp=employees.find(e=>e.id===currentUser.id);
+    if(!emp){toast('Employee record nahi mila','error');return;}
+    if(current!==emp.password){toast('Current password galat hai','error');return;}
+    await fsUpdate(COL.employees,emp.id,{password:next});
+  }
   document.getElementById('cp-current').value='';
   document.getElementById('cp-new').value='';
   document.getElementById('cp-confirm').value='';
