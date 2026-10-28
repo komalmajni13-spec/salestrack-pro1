@@ -342,7 +342,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <button class="btn btn-danger btn-full" id="my-checkout-btn" style="display:none;margin-top:10px;" onclick="employeeCheckOut()">🚪 Check Out</button>
             </div>
           </div>
-          <p class="help-text" style="max-width:460px;margin:10px 0 18px;">Office time: 9:30 AM – 6:30 PM. 1:30 PM se pehle check-in aur 1:30 PM ke baad check-out karne par full day present count hoga. Sirf ek half (pehle ya baad wala) cover hua to half-day lagega.</p>
+          <p class="help-text" style="max-width:460px;margin:10px 0 18px;">Office time: 9:30 AM – 6:30 PM. 1:30 PM se pehle check-in aur 1:30 PM ke baad check-out karne par full day present count hoga. Sirf ek half (pehle ya baad wala) cover hua to half-day lagega. <strong>Check-in/check-out sirf office ke computer se hoga — mobile/phone se nahi hoga.</strong></p>
           <div class="snap-grid" id="my-att-month-stats" style="margin-bottom:18px;"></div>
           <div class="card">
             <div class="card-header"><div class="card-title">📅 This Month's Attendance</div><span id="my-att-late-count" class="badge badge-amber"></span></div>
@@ -848,6 +848,15 @@ async function isOnOfficeNetwork(){
   return officeIps.includes(ip);
 }
 
+// Blocks check-in/out from phones/tablets -- only a desktop/laptop browser
+// (the office computer) is allowed, regardless of network.
+function isMobileDevice(){
+  const ua=navigator.userAgent||'';
+  const mobileUA=/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+  const touchSmallScreen=('ontouchstart' in window) && Math.min(window.screen.width,window.screen.height)<900;
+  return mobileUA || touchSmallScreen;
+}
+
 // ── ATTENDANCE (ADMIN MANUAL) ──────────────────────────
 function attendanceId(empId,date){return empId+'_'+date;}
 
@@ -955,6 +964,7 @@ function renderMyAttendance(){
 }
 
 async function employeeCheckIn(){
+  if(isMobileDevice()){toast('Check-in sirf office computer se hota hai, mobile/phone se nahi','error');return;}
   const inBtn=document.getElementById('my-checkin-btn');
   inBtn.disabled=true; inBtn.textContent='Checking network...';
   const onOffice=await isOnOfficeNetwork();
@@ -974,6 +984,7 @@ async function employeeCheckIn(){
 }
 
 async function employeeCheckOut(){
+  if(isMobileDevice()){toast('Check-out sirf office computer se hota hai, mobile/phone se nahi','error');return;}
   const date=todayStr();
   const id=attendanceId(currentUser.id,date);
   const existing=attendance.find(a=>a.id===id);
