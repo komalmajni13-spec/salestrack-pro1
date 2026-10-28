@@ -213,6 +213,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="nav-label">Main</div>
         <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">🏠</span> Dashboard</div>
         <div class="nav-item" onclick="showPage('leave')" id="nav-leave"><span class="nav-icon">📅</span> Monthly Leave Entry</div>
+        <div class="nav-item" onclick="showPage('leave-requests')" id="nav-leave-requests"><span class="nav-icon">📝</span> Leave Requests <span id="nav-leave-req-badge" class="badge badge-amber" style="display:none;margin-left:4px;"></span></div>
         <div class="nav-item" onclick="showPage('attendance')" id="nav-attendance"><span class="nav-icon">🕒</span> Attendance (Manual)</div>
         <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
         <div class="nav-item" onclick="showPage('office-wifi')" id="nav-office-wifi"><span class="nav-icon">📶</span> Office WiFi</div>
@@ -221,6 +222,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <div class="nav-label">Main</div>
         <div class="nav-item active" onclick="showPage('my-attendance')" id="nav-my-attendance"><span class="nav-icon">🕒</span> My Attendance</div>
         <div class="nav-item" onclick="showPage('my-salary')" id="nav-my-salary"><span class="nav-icon">💰</span> My Salary</div>
+        <div class="nav-item" onclick="showPage('request-leave')" id="nav-request-leave"><span class="nav-icon">📝</span> Request Leave</div>
         <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password"><span class="nav-icon">🔒</span> Change Password</div>
       </div>
       <div class="sidebar-footer">
@@ -308,6 +310,20 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           </div>
         </div>
 
+        <!-- LEAVE REQUESTS (ADMIN APPROVAL) -->
+        <div class="page" id="page-leave-requests">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📝 Leave Requests</div></div>
+            <div class="card-body" style="padding-bottom:4px;">
+              <p class="help-text" style="margin-bottom:10px;">Employees yahan se pehle se leave maang sakte hain. Approve karte hi wo dates unki attendance mein "On Leave" mark ho jayengi aur salary calculation mein automatically count ho jayengi.</p>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="leave-req-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
         <!-- ATTENDANCE (ADMIN MANUAL) -->
         <div class="page" id="page-attendance">
           <div class="filter-bar">
@@ -362,6 +378,28 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
             <div class="table-wrap"><table>
               <thead><tr><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Total Available</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th></tr></thead>
               <tbody id="my-salary-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- REQUEST LEAVE (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-request-leave">
+          <div class="card" style="max-width:480px;">
+            <div class="card-header"><div class="card-title">📝 Request Leave</div></div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div class="form-group"><label>From Date *</label><input class="form-control" type="date" id="rl-from"></div>
+                <div class="form-group"><label>To Date *</label><input class="form-control" type="date" id="rl-to"></div>
+              </div>
+              <div class="form-group"><label>Reason</label><textarea class="form-control" id="rl-reason" rows="2" placeholder="Optional"></textarea></div>
+              <button class="btn btn-primary btn-full" onclick="submitLeaveRequest()">Submit Request</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">My Requests</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th></tr></thead>
+              <tbody id="my-leave-req-body"></tbody>
             </table></div>
           </div>
         </div>
@@ -425,7 +463,7 @@ firebase.initializeApp({
   appId:"1:270237129064:web:898d42e200860ee3d09edd"
 });
 const db=firebase.firestore();
-const COL={employees:'flowrain_employees',leaves:'flowrain_leaves',meta:'flowrain_meta',attendance:'flowrain_attendance'};
+const COL={employees:'flowrain_employees',leaves:'flowrain_leaves',meta:'flowrain_meta',attendance:'flowrain_attendance',leaveRequests:'flowrain_leave_requests'};
 const SEED_VERSION=1;
 const MONTHLY_ALLOWANCE=1.5;
 const OFFICE_START_MIN=9*60+30;   // 9:30 AM
@@ -459,7 +497,8 @@ function computeAutoStatus(checkIn,checkOut){
 let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
 let officeIps=[];
-let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null;
+let leaveRequests=[]; // {id, employeeId, fromDate, toDate, reason, status:'pending'|'approved'|'rejected', requestedAt, decidedAt}
+let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null, unsubLeaveRequests=null;
 function todayStr(){return new Date().toISOString().slice(0,10);}
 
 async function fetchMyIp(){
@@ -503,10 +542,11 @@ async function init(){
     if(employees.length===0){ await seedIfNeeded(); employees=await fsGetAll(COL.employees); }
     leaves=await fsGetAll(COL.leaves);
     attendance=await fsGetAll(COL.attendance);
+    leaveRequests=await fsGetAll(COL.leaveRequests);
     const ipDoc=await db.collection(COL.meta).doc('officeIps').get();
     officeIps=ipDoc.exists?(ipDoc.data().ips||[]):[];
   }catch(e){
-    employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[];
+    employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[]; leaveRequests=[];
   }
   showLoading(false);
   const sess=sessionStorage.getItem('flowrain_session');
@@ -553,6 +593,15 @@ function startRealtime(){
     officeIps=doc.exists?(doc.data().ips||[]):[];
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-office-wifi') renderOfficeWifi();
+  });
+  if(unsubLeaveRequests) unsubLeaveRequests();
+  unsubLeaveRequests=db.collection(COL.leaveRequests).onSnapshot(snap=>{
+    leaveRequests=snap.docs.map(d=>({id:d.id,...d.data()}));
+    updateLeaveRequestBadge();
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-leave-requests') renderLeaveRequests();
+    if(pg&&pg.id==='page-request-leave') renderRequestLeave();
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
   });
 }
 
@@ -609,6 +658,7 @@ function startApp(){
     document.getElementById('admin-nav-section').style.display='block';
     document.getElementById('employee-nav-section').style.display='none';
     showPage('dashboard');
+    updateLeaveRequestBadge();
   }else{
     document.getElementById('admin-nav-section').style.display='none';
     document.getElementById('employee-nav-section').style.display='block';
@@ -649,7 +699,7 @@ function showPage(id){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById(`page-${id}`).classList.add('active');
   const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
-  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction'};
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction','leave-requests':'Leave Requests','request-leave':'Request Leave'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='dashboard')renderDashboard();
   if(id==='leave')renderLeaveEntry();
@@ -658,6 +708,8 @@ function showPage(id){
   if(id==='my-attendance')renderMyAttendance();
   if(id==='my-salary')renderMySalary();
   if(id==='office-wifi')renderOfficeWifi();
+  if(id==='leave-requests')renderLeaveRequests();
+  if(id==='request-leave')renderRequestLeave();
   if(id==='change-password'){
     document.getElementById('cp-current').value='';
     document.getElementById('cp-new').value='';
@@ -787,6 +839,87 @@ function renderMySalary(){
     <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${availPct}%;background:${availColor};"></span></span></td>
     <td>${c.unpaidDays>0?`<span class="badge badge-amber">${fmt(c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
   </tr>`;
+}
+
+// ── LEAVE REQUESTS ──────────────────────────────────────
+function updateLeaveRequestBadge(){
+  const pendingCount=leaveRequests.filter(r=>r.status==='pending').length;
+  const badgeEl=document.getElementById('nav-leave-req-badge');
+  if(badgeEl){ badgeEl.style.display=pendingCount>0?'inline-flex':'none'; badgeEl.textContent=pendingCount; }
+}
+
+function dateRangeList(fromDate,toDate){
+  const dates=[];
+  let d=new Date(fromDate+'T00:00:00');
+  const end=new Date(toDate+'T00:00:00');
+  while(d<=end){
+    dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    d.setDate(d.getDate()+1);
+  }
+  return dates;
+}
+
+async function submitLeaveRequest(){
+  const fromDate=document.getElementById('rl-from').value;
+  const toDate=document.getElementById('rl-to').value;
+  const reason=document.getElementById('rl-reason').value.trim();
+  if(!fromDate||!toDate){toast('From aur To date dono zaroori hain','error');return;}
+  if(toDate<fromDate){toast('To date, From date se pehle nahi ho sakti','error');return;}
+  const id=uid();
+  await fsSet(COL.leaveRequests,id,{id,employeeId:currentUser.id,fromDate,toDate,reason,status:'pending',requestedAt:Date.now()});
+  document.getElementById('rl-from').value='';
+  document.getElementById('rl-to').value='';
+  document.getElementById('rl-reason').value='';
+  toast('Leave request bhej di! Admin approve karega to wo dates automatically leave mein count ho jayengi.');
+}
+
+function renderRequestLeave(){
+  const mine=leaveRequests.filter(r=>r.employeeId===currentUser.id).sort((a,b)=>b.requestedAt-a.requestedAt);
+  const badgeMap={pending:'badge-amber',approved:'badge-green',rejected:'badge-red'};
+  document.getElementById('my-leave-req-body').innerHTML=mine.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">📝</div><p>Koi request nahi</p></div></td></tr>`:
+    mine.map(r=>{
+      const days=dateRangeList(r.fromDate,r.toDate).length;
+      return `<tr><td class="date-chip">${r.fromDate}</td><td class="date-chip">${r.toDate}</td><td>${days}</td><td>${esc(r.reason||'-')}</td><td><span class="badge ${badgeMap[r.status]}">${esc(r.status)}</span></td></tr>`;
+    }).join('');
+}
+
+function renderLeaveRequests(){
+  const sorted=[...leaveRequests].sort((a,b)=>{
+    if(a.status==='pending'&&b.status!=='pending') return -1;
+    if(a.status!=='pending'&&b.status==='pending') return 1;
+    return b.requestedAt-a.requestedAt;
+  });
+  const badgeMap={pending:'badge-amber',approved:'badge-green',rejected:'badge-red'};
+  document.getElementById('leave-req-body').innerHTML=sorted.length===0?`<tr><td colspan="7"><div class="empty-state"><div class="icon">📝</div><p>Koi leave request nahi</p></div></td></tr>`:
+    sorted.map(r=>{
+      const emp=employees.find(e=>e.id===r.employeeId);
+      const days=dateRangeList(r.fromDate,r.toDate).length;
+      const actions=r.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="approveLeaveRequest('${r.id}')">✅ Approve</button> <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="rejectLeaveRequest('${r.id}')">❌ Reject</button>`:'-';
+      return `<tr><td><strong>${esc(emp?emp.name:'Unknown')}</strong></td><td class="date-chip">${r.fromDate}</td><td class="date-chip">${r.toDate}</td><td>${days}</td><td>${esc(r.reason||'-')}</td><td><span class="badge ${badgeMap[r.status]}">${esc(r.status)}</span></td><td style="white-space:nowrap;">${actions}</td></tr>`;
+    }).join('');
+}
+
+async function approveLeaveRequest(id){
+  const req=leaveRequests.find(r=>r.id===id);
+  if(!req) return;
+  const dates=dateRangeList(req.fromDate,req.toDate);
+  const months=new Set();
+  for(const date of dates){
+    const attId=attendanceId(req.employeeId,date);
+    const rec={id:attId,employeeId:req.employeeId,date,status:'leave',late:false,checkIn:null,checkOut:null,source:'leave-request',updatedAt:Date.now()};
+    await fsSet(COL.attendance,attId,rec);
+    const idx=attendance.findIndex(a=>a.id===attId);
+    if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
+    months.add(date.slice(0,7));
+  }
+  for(const ym of months){ await autoSyncLeaveFromAttendance(req.employeeId,ym); }
+  await fsUpdate(COL.leaveRequests,id,{status:'approved',decidedAt:Date.now()});
+  toast('Leave approve ho gayi! Attendance aur salary automatically update ho gaye.');
+}
+
+async function rejectLeaveRequest(id){
+  await fsUpdate(COL.leaveRequests,id,{status:'rejected',decidedAt:Date.now()});
+  toast('Leave request reject kar di','warning');
 }
 
 // ── CHANGE PASSWORD (EMPLOYEE SELF-SERVICE) ────────────
