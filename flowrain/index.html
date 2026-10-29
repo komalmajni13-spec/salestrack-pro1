@@ -357,9 +357,10 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           <div class="card" style="max-width:520px;">
             <div class="card-header"><div class="card-title">💬 WhatsApp Alerts</div></div>
             <div class="card-body">
-              <p class="help-text" style="margin-bottom:14px;">Jab bhi koi employee leave request kare, is number pe WhatsApp message automatically chala jayega. Setup ke liye: apne WhatsApp mein <strong>+34 644 59 71 67</strong> ko "CallMeBot" naam se save karo, usko WhatsApp pe "I allow callmebot to send me messages" bhejo, bot jo API key reply karega wo neeche daal do.</p>
-              <div class="form-group"><label>WhatsApp Number (country code ke saath, jaise 91XXXXXXXXXX)</label><input class="form-control" type="text" id="wa-phone" placeholder="91XXXXXXXXXX"></div>
-              <div class="form-group"><label>CallMeBot API Key</label><input class="form-control" type="text" id="wa-apikey" placeholder="CallMeBot se mila hua number"></div>
+              <p class="help-text" style="margin-bottom:14px;">Jab bhi koi employee leave request kare, is number pe WhatsApp message automatically chala jayega (Green API ke through).</p>
+              <div class="form-group"><label>WhatsApp Number (country code ke saath, bina + ke)</label><input class="form-control" type="text" id="wa-phone" placeholder="91XXXXXXXXXX"></div>
+              <div class="form-group"><label>Green API — idInstance</label><input class="form-control" type="text" id="wa-idinstance" placeholder="jaise 710722784273"></div>
+              <div class="form-group"><label>Green API — apiTokenInstance</label><input class="form-control" type="text" id="wa-apitoken" placeholder="Green API dashboard se"></div>
               <button class="btn btn-primary" onclick="saveWhatsAppSettings()">Save</button>
               <button class="btn btn-ghost" onclick="testWhatsAppAlert()">📤 Test Message Bhejo</button>
             </div>
@@ -582,7 +583,7 @@ let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
 let officeIps=[];
 let leaveRequests=[]; // {id, employeeId, fromDate, toDate, reason, status:'pending'|'approved'|'rejected', requestedAt, decidedAt}
-let waSettings={phone:'',apikey:''};
+let waSettings={phone:'',idInstance:'',apiToken:''};
 let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null, unsubLeaveRequests=null;
 function todayStr(){return new Date().toISOString().slice(0,10);}
 
@@ -1092,31 +1093,38 @@ function exportReport(){
 // ── WHATSAPP ALERTS ─────────────────────────────────────
 function renderWhatsAppAlerts(){
   document.getElementById('wa-phone').value=waSettings.phone||'';
-  document.getElementById('wa-apikey').value=waSettings.apikey||'';
+  document.getElementById('wa-idinstance').value=waSettings.idInstance||'';
+  document.getElementById('wa-apitoken').value=waSettings.apiToken||'';
 }
 
 async function saveWhatsAppSettings(){
   const phone=document.getElementById('wa-phone').value.trim();
-  const apikey=document.getElementById('wa-apikey').value.trim();
-  if(!phone||!apikey){toast('Phone number aur API key dono zaroori hain','error');return;}
-  waSettings={phone,apikey};
+  const idInstance=document.getElementById('wa-idinstance').value.trim();
+  const apiToken=document.getElementById('wa-apitoken').value.trim();
+  if(!phone||!idInstance||!apiToken){toast('Phone number, idInstance aur apiTokenInstance teeno zaroori hain','error');return;}
+  waSettings={phone,idInstance,apiToken};
   await db.collection(COL.meta).doc('whatsappAlert').set(waSettings);
   toast('WhatsApp alert settings save ho gayi!');
 }
 
 async function sendWhatsAppAlert(message){
-  if(!waSettings.phone||!waSettings.apikey) return;
+  if(!waSettings.phone||!waSettings.idInstance||!waSettings.apiToken) return;
   try{
-    const url=`https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(waSettings.phone)}&text=${encodeURIComponent(message)}&apikey=${encodeURIComponent(waSettings.apikey)}`;
-    await fetch(url);
+    const url=`https://api.green-api.com/waInstance${waSettings.idInstance}/sendMessage/${waSettings.apiToken}`;
+    await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chatId:`${waSettings.phone}@c.us`,message})
+    });
   }catch(e){}
 }
 
 async function testWhatsAppAlert(){
   const phone=document.getElementById('wa-phone').value.trim();
-  const apikey=document.getElementById('wa-apikey').value.trim();
-  if(!phone||!apikey){toast('Pehle phone number aur API key save karo','error');return;}
-  waSettings={phone,apikey};
+  const idInstance=document.getElementById('wa-idinstance').value.trim();
+  const apiToken=document.getElementById('wa-apitoken').value.trim();
+  if(!phone||!idInstance||!apiToken){toast('Pehle saari settings save karo','error');return;}
+  waSettings={phone,idInstance,apiToken};
   await sendWhatsAppAlert('Flowrain Pipe and Fittings: test message — WhatsApp alerts set up ho gaye!');
   toast('Test message bhej diya — WhatsApp check karo');
 }
