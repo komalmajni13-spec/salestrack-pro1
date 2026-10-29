@@ -554,7 +554,7 @@ const MONTHLY_ALLOWANCE=1.5;
 const OFFICE_START_MIN=9*60+30;   // 9:30 AM
 const OFFICE_HALF_MIN=13*60+30;   // 1:30 PM cutoff between first/second half
 const OFFICE_END_MIN=18*60+30;    // 6:30 PM
-const LATE_PUNCH_MIN=10*60+45;    // after 10:45 AM counts as a late punch-in (tracking only, no salary effect)
+const LATE_PUNCH_MIN=9*60+50;    // after 9:50 AM counts as a late punch-in (tracking only, no salary effect)
 const FULL_DAY_MIN_MINUTES=420;   // at least 7 hours actually worked to count as a full present day
 const HALF_DAY_MIN_MINUTES=240;   // at least 4 hours actually worked to count as half-day
 
@@ -1452,9 +1452,9 @@ async function employeeCheckIn(){
   if(late){
     const emp=employees.find(e=>e.id===currentUser.id);
     const t=new Date(now).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    sendWhatsAppAlert(`Flowrain: ${emp?emp.name:'Employee'} ne aaj late check-in kiya (${t}, 10:45 AM ke baad).`);
+    sendWhatsAppAlert(`Flowrain: ${emp?emp.name:'Employee'} ne aaj late check-in kiya (${t}, 9:50 AM ke baad).`);
   }
-  toast((late?'Late punch-in noted (10:45 ke baad). ':'')+(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!'));
+  toast((late?'Late punch-in noted (9:50 ke baad). ':'')+(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!'));
 }
 
 async function employeeCheckOut(){
