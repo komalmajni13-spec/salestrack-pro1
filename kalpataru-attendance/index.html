@@ -1,0 +1,1666 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalpataru Polyplast - Salary & Leave Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --bg:#f3f5f8;--surface:#fff;--surface2:#f8fafc;--nav-bg:#1e3a5f;--nav-text:#aac0d8;
+  --nav-active:#fff;--nav-active-bg:#ec6f17;--primary:#ec6f17;--primary-hover:#d35e0c;
+  --success:#16a34a;--success-bg:#f0fdf4;--warning:#d97706;--warning-bg:#fffbeb;
+  --danger:#dc2626;--danger-bg:#fef2f2;--text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-md:0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg:0 10px 25px rgba(0,0,0,0.1);--radius:10px;--radius-sm:6px;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#081524;--surface:#0f2338;--surface2:#132b44;--nav-bg:#061320;--nav-text:#7f9cbf;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a9c;--border:#1e3a55;
+  --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
+}}
+:root[data-theme="dark"]{
+  --bg:#081524;--surface:#0f2338;--surface2:#132b44;--nav-bg:#061320;--nav-text:#7f9cbf;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#5b7a9c;--border:#1e3a55;
+  --success-bg:#052e16;--warning-bg:#1c0a00;--danger-bg:#1c0505;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+h1,h2,h3,h4{font-family:'Poppins',sans-serif;}
+
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e3a5f 0%,#2c4a6e 55%,#ec6f17 100%);}
+.login-card{background:var(--surface);border-radius:16px;padding:40px;width:380px;box-shadow:var(--shadow-lg);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo h1{font-size:22px;color:var(--primary);}
+.login-logo p{color:var(--text2);font-size:12px;margin-top:4px;}
+.login-logo .icon{font-size:40px;margin-bottom:8px;}
+
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
+.form-control{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+.form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(21,128,61,0.12);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'Inter',sans-serif;border:none;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:var(--primary);color:#fff;}.btn-primary:hover{background:var(--primary-hover);}
+.btn-success{background:var(--success);color:#fff;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);}.btn-ghost:hover{background:var(--surface2);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-full{width:100%;justify-content:center;padding:12px;}
+.error-msg{color:var(--danger);font-size:12px;margin-top:6px;}
+.help-text{font-size:11px;color:var(--text3);margin-top:4px;}
+
+#app{display:none;height:100vh;overflow:hidden;}
+.layout{display:flex;height:100%;}
+.sidebar{width:230px;background:var(--nav-bg);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar-header{padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.sidebar-header h2{font-size:15px;color:#fff;font-weight:700;}
+.sidebar-header p{font-size:11px;color:var(--nav-text);margin-top:2px;}
+.sidebar-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;}
+.user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;background:var(--primary);}
+.user-avatar.av-admin{background:#d97706;}
+.user-info .name{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-info .role{font-size:10px;color:var(--nav-text);text-transform:uppercase;letter-spacing:0.5px;}
+.nav-section{padding:10px 10px 4px;}
+.nav-label{font-size:10px;color:var(--nav-text);text-transform:uppercase;letter-spacing:0.8px;padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;color:var(--nav-text);font-size:13px;font-weight:500;transition:all 0.15s;margin-bottom:2px;}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+.nav-item.active{background:var(--nav-active-bg);color:#fff;}
+.nav-icon{font-size:15px;width:20px;text-align:center;}
+.sidebar-footer{margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,0.07);}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-title{font-size:16px;font-weight:700;font-family:'Poppins',sans-serif;}
+.content{padding:20px 24px;flex:1;}
+
+.page{display:none;}.page.active{display:block;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;transition:transform 0.18s,box-shadow 0.18s;border-left:4px solid var(--primary);}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.stat-card .stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;background:rgba(21,128,61,0.1);}
+.stat-card .stat-body{min-width:0;}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.stat-value{font-size:23px;font-weight:700;font-family:'Poppins',sans-serif;font-variant-numeric:tabular-nums;line-height:1.15;}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.stat-card.green{border-left-color:var(--success);}
+.stat-card.green .stat-value{color:var(--success);}
+.stat-card.green .stat-icon{background:var(--success-bg);}
+.stat-card.blue{border-left-color:var(--primary);}
+.stat-card.blue .stat-value{color:var(--primary);}
+.stat-card.blue .stat-icon{background:rgba(21,128,61,0.12);}
+.stat-card.amber{border-left-color:var(--warning);}
+.stat-card.amber .stat-value{color:var(--warning);}
+.stat-card.amber .stat-icon{background:var(--warning-bg);}
+.stat-card.red{border-left-color:var(--danger);}
+.stat-card.red .stat-value{color:var(--danger);}
+.stat-card.red .stat-icon{background:var(--danger-bg);}
+
+/* ATTENDANCE SNAPSHOT */
+.snap-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.snap-pill{flex:1;min-width:110px;border-radius:var(--radius-sm);padding:12px 14px;text-align:center;background:var(--surface2);}
+.snap-pill .snap-n{font-size:20px;font-weight:700;font-family:'Poppins',sans-serif;}
+.snap-pill .snap-l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+.snap-pill.present .snap-n{color:var(--success);}
+.snap-pill.half .snap-n{color:var(--warning);}
+.snap-pill.absent .snap-n{color:var(--danger);}
+.snap-pill.pending .snap-n{color:var(--text3);}
+.avatar-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+.chip-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;background:var(--primary);}
+.chip-avatar.late{box-shadow:0 0 0 2px var(--warning);}
+
+/* MY ATTENDANCE HERO */
+.att-hero{background:linear-gradient(135deg,#1e3a5f 0%,#2c4a6e 55%,#ec6f17 100%);color:#fff;border-radius:var(--radius);padding:24px;text-align:center;box-shadow:var(--shadow-md);margin-bottom:0;}
+.att-hero-icon{font-size:34px;margin-bottom:8px;}
+.att-hero-date{font-size:15px;font-weight:700;font-family:'Poppins',sans-serif;opacity:0.95;margin-bottom:10px;}
+.att-hero-status{font-size:13px;}
+.att-hero .badge{background:rgba(255,255,255,0.18);color:#fff;}
+.att-hero .btn-primary{background:#fff;color:var(--primary);}
+.att-hero .btn-primary:hover{background:#f0fdf4;}
+.att-hero .btn-danger{background:#fff;color:var(--danger);}
+.att-hero .btn-danger:hover{background:#fef2f2;}
+
+/* MINI PROGRESS (leave balance) */
+.mini-progress{width:70px;height:6px;border-radius:3px;background:var(--border);overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px;}
+.mini-progress-fill{height:100%;border-radius:3px;}
+.row-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;}
+
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.card-title{font-size:14px;font-weight:700;font-family:'Poppins',sans-serif;}
+.card-body{padding:18px;}
+
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);background:var(--surface2);border-bottom:1px solid var(--border);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.amount{font-variant-numeric:tabular-nums;font-weight:600;}
+input.leave-input{width:70px;padding:6px 8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font-size:13px;text-align:center;}
+input.leave-input:focus{border-color:var(--primary);outline:none;}
+
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-green{background:var(--success-bg);color:var(--success);}
+.badge-blue{background:#eff6ff;color:var(--primary);}
+.badge-amber{background:var(--warning-bg);color:var(--warning);}
+.badge-red{background:var(--danger-bg);color:var(--danger);}
+.badge-gray{background:var(--surface2);color:var(--text2);}
+
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.filter-bar select,.filter-bar input{padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);outline:none;cursor:pointer;}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--primary);}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:700;font-family:'Poppins',sans-serif;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);}
+.modal-body{padding:22px;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.grid-2{grid-template-columns:1fr;}}
+
+.toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface);border-left:4px solid var(--success);border-radius:var(--radius-sm);padding:12px 16px;box-shadow:var(--shadow-md);font-size:13px;font-weight:500;max-width:300px;animation:slideIn 0.3s ease;}
+.toast.error{border-color:var(--danger);}
+.toast.warning{border-color:var(--warning);}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.empty-state{text-align:center;padding:40px 24px;color:var(--text2);}
+.empty-state .icon{font-size:40px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="logo.webp" alt="Kalpataru Polyplast" style="max-width:220px;width:100%;margin-bottom:10px;">
+      <p>Salary & Leave Management</p>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input class="form-control" type="text" id="login-user" placeholder="Enter username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input class="form-control" type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <div id="login-error" class="error-msg" style="display:none;margin-bottom:10px;"></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Login →</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header"><div style="background:rgba(255,255,255,0.92);border-radius:10px;padding:8px 12px;display:inline-block;box-shadow:0 2px 8px rgba(0,0,0,0.15);"><img src="logo.webp" alt="Kalpataru Polyplast" style="max-width:140px;width:100%;display:block;"></div><p style="font-size:10px;color:#fdba74;font-weight:600;margin-top:8px;">Salary & Leave Manager</p></div>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sb-avatar">A</div>
+        <div class="user-info">
+          <div class="name" id="sb-name">Admin</div>
+          <div class="role" id="sb-role">Administrator</div>
+        </div>
+      </div>
+      <div class="nav-section" id="admin-nav-section">
+        <div class="nav-label">Main</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">🏠</span> Dashboard</div>
+        <div class="nav-item" onclick="showPage('leave')" id="nav-leave"><span class="nav-icon">📅</span> Monthly Leave Entry</div>
+        <div class="nav-item" onclick="showPage('leave-requests')" id="nav-leave-requests"><span class="nav-icon">📝</span> Leave Requests <span id="nav-leave-req-badge" class="badge badge-amber" style="display:none;margin-left:4px;"></span></div>
+        <div class="nav-item" onclick="showPage('attendance')" id="nav-attendance"><span class="nav-icon">🕒</span> Attendance (Manual)</div>
+        <div class="nav-item" onclick="showPage('employees')" id="nav-employees"><span class="nav-icon">👥</span> Employees</div>
+        <div class="nav-item" onclick="showPage('reports')" id="nav-reports"><span class="nav-icon">📊</span> Reports</div>
+        <div class="nav-item" onclick="showPage('office-wifi')" id="nav-office-wifi"><span class="nav-icon">📶</span> Office WiFi</div>
+        <div class="nav-item" onclick="showPage('whatsapp-alerts')" id="nav-whatsapp-alerts"><span class="nav-icon">💬</span> WhatsApp Alerts</div>
+        <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password-admin"><span class="nav-icon">🔒</span> Change Password</div>
+      </div>
+      <div class="nav-section" id="employee-nav-section" style="display:none;">
+        <div class="nav-label">Main</div>
+        <div class="nav-item active" onclick="showPage('my-attendance')" id="nav-my-attendance"><span class="nav-icon">🕒</span> My Attendance</div>
+        <div class="nav-item" onclick="openSalaryPinModal()" id="nav-my-salary"><span class="nav-icon">💰</span> My Salary</div>
+        <div class="nav-item" onclick="showPage('request-leave')" id="nav-request-leave"><span class="nav-icon">📝</span> Request Leave</div>
+        <div class="nav-item" onclick="showPage('change-password')" id="nav-change-password"><span class="nav-icon">🔒</span> Change Password</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="topbar-date" style="font-size:12px;color:var(--text2);"></span>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="filter-bar">
+            <input type="month" id="dash-month" onchange="renderDashboard()">
+          </div>
+          <div class="stat-grid" id="dash-stats"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🕒 Today's Attendance</div></div>
+            <div class="card-body" id="dash-today-attendance"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Employee-wise Salary & Leave Summary</div>
+              <button class="btn btn-ghost btn-sm" onclick="exportDashboard()">📥 Export Excel</button>
+            </div>
+            <div class="card-body" style="padding-bottom:0;">
+              <div class="filter-bar">
+                <input type="text" placeholder="🔍 Search employee..." id="dash-search" oninput="renderDashboard()" style="flex:1;min-width:200px;">
+              </div>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>Monthly Salary (₹)</th><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Leave Taken</th><th>Balance Leave</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net Salary (₹)</th></tr></thead>
+              <tbody id="dash-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- MONTHLY LEAVE ENTRY -->
+        <div class="page" id="page-leave">
+          <div class="filter-bar">
+            <input type="month" id="leave-month" onchange="renderLeaveEntry()">
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Enter Leaves Taken This Month</div></div>
+            <div class="card-body" style="padding-bottom:4px;">
+              <p class="help-text" style="margin-bottom:10px;">Har employee ki monthly leave allowance 1.5 din hai. Jo leave bachegi woh next month carry forward ho jayegi. Jo extra leave li hai uski salary se deduction calculate ho jayega. <strong>Attendance (check-in/check-out ya Manual Attendance) se "Leave Taken" hamesha automatic calculate hota hai.</strong> Yahan number edit karke "Save & Calculate" dabana sirf tab tak rahega jab tak us employee ki agli attendance entry na aa jaye — uske baad wapas attendance ke hisaab se update ho jayega.</p>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>Carry Forward (din)</th><th>This Month Allowance</th><th>Total Available</th><th>Leaves Taken</th><th>Balance</th><th></th></tr></thead>
+              <tbody id="leave-body"></tbody>
+            </table></div>
+            <div class="card-body" style="display:flex;gap:10px;">
+              <button class="btn btn-primary" onclick="saveLeaveEntries()">✅ Save & Calculate</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPLOYEES -->
+        <div class="page" id="page-employees">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">👥 Employees</div>
+              <button class="btn btn-primary btn-sm" onclick="openAddEmployee()">+ Add Employee</button>
+            </div>
+            <div class="card-body" style="padding-bottom:0;">
+              <div class="filter-bar">
+                <input type="text" placeholder="🔍 Search by name or username..." id="emp-search" oninput="renderEmployees()" style="flex:1;min-width:200px;">
+              </div>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Name</th><th>Login Username</th><th>Monthly Salary (₹)</th><th>Current Carry Fwd Leave</th><th>Actions</th></tr></thead>
+              <tbody id="emp-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- OFFICE WIFI RESTRICTION -->
+        <div class="page" id="page-office-wifi">
+          <div class="card" style="max-width:560px;">
+            <div class="card-header"><div class="card-title">📶 Office WiFi Restriction</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">Jab ye list khali nahi hoti, employees sirf isi (office) internet connection se hi check-in/check-out kar payenge — ghar ya mobile data se nahi. Office WiFi ka public IP yahan add karo (office ke kisi bhi device se khol ke "Add Current IP" dabao).</p>
+              <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+                <div>Aapka abhi ka IP: <strong id="my-current-ip">Detecting...</strong></div>
+                <button class="btn btn-primary btn-sm" onclick="addCurrentIpAsOffice()">+ Add Current IP</button>
+              </div>
+              <div id="office-ip-list"></div>
+            </div>
+          </div>
+          <div class="card" style="max-width:560px;">
+            <div class="card-header"><div class="card-title">🚀 Attendance Start Date</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">System sirf is date se "Auto Absent" mark karega — isse pehle ke dinon ko kabhi absent nahi karega, chahe koi check-in na ho (jab tak app test ho raha tha unke liye). Jab roz ka real use shuru karna ho, aaj ki date yahan set kar do.</p>
+              <div class="form-group"><input class="form-control" type="date" id="start-date-input" style="max-width:220px;"></div>
+              <button class="btn btn-primary btn-sm" onclick="saveStartDate()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- REPORTS (EMPLOYEE-WISE MONTHLY/QUARTERLY/YEARLY) -->
+        <div class="page" id="page-reports">
+          <div class="filter-bar">
+            <select id="rep-employee" onchange="renderReports()"></select>
+            <select id="rep-period-type" onchange="renderReports()">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+            <input type="month" id="rep-month" onchange="renderReports()">
+            <select id="rep-quarter" style="display:none;" onchange="renderReports()">
+              <option value="1">Q1 (Jan-Mar)</option>
+              <option value="2">Q2 (Apr-Jun)</option>
+              <option value="3">Q3 (Jul-Sep)</option>
+              <option value="4">Q4 (Oct-Dec)</option>
+            </select>
+            <select id="rep-year" style="display:none;" onchange="renderReports()"></select>
+            <button class="btn btn-ghost btn-sm" onclick="exportReport()">📥 Export Excel</button>
+          </div>
+          <div class="stat-grid" id="rep-stats"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" id="rep-table-title">Month-wise Breakdown</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Month</th><th>Salary (₹)</th><th>Carry Fwd</th><th>Allowance</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net (₹)</th></tr></thead>
+              <tbody id="rep-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- WHATSAPP ALERTS -->
+        <div class="page" id="page-whatsapp-alerts">
+          <div class="card" style="max-width:520px;">
+            <div class="card-header"><div class="card-title">💬 WhatsApp Alerts</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">Jab bhi koi employee leave request kare, is number pe WhatsApp message automatically chala jayega (Green API ke through).</p>
+              <div class="form-group"><label>WhatsApp Number (country code ke saath, bina + ke)</label><input class="form-control" type="text" id="wa-phone" placeholder="91XXXXXXXXXX"></div>
+              <div class="form-group"><label>Green API — idInstance</label><input class="form-control" type="text" id="wa-idinstance" placeholder="jaise 710722784273"></div>
+              <div class="form-group"><label>Green API — apiTokenInstance</label><input class="form-control" type="text" id="wa-apitoken" placeholder="Green API dashboard se"></div>
+              <button class="btn btn-primary" onclick="saveWhatsAppSettings()">Save</button>
+              <button class="btn btn-ghost" onclick="testWhatsAppAlert()">📤 Test Message Bhejo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEAVE REQUESTS (ADMIN APPROVAL) -->
+        <div class="page" id="page-leave-requests">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📝 Leave Requests</div></div>
+            <div class="card-body" style="padding-bottom:4px;">
+              <p class="help-text" style="margin-bottom:10px;">Employees yahan se pehle se leave maang sakte hain. Approve karte hi wo dates unki attendance mein "On Leave" mark ho jayengi aur salary calculation mein automatically count ho jayengi.</p>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="leave-req-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- ATTENDANCE (ADMIN MANUAL) -->
+        <div class="page" id="page-attendance">
+          <div class="filter-bar">
+            <input type="date" id="att-date" onchange="renderAttendance()">
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Mark / Review Attendance</div></div>
+            <div class="card-body" style="padding-bottom:4px;">
+              <p class="help-text" style="margin-bottom:4px;">Office time: 9:30 AM – 6:30 PM. Employee check-in/check-out se status automatic calculate hota hai — kam se kam 7 ghante kaam = present, 4-7 ghante = half-day, 4 ghante se kam = absent (turant check-out karne se half-day nahi milega). Agar system na chale ya employee login na kar paye, admin yahan manually status set kar sakta hai.</p>
+              <p class="help-text" style="margin-bottom:10px;">Employee khud login karke check-in/check-out karega to yahan automatically dikhega. <strong>Agar koi poore din bilkul check-in hi na kare, to agle din app khulte hi system khud use "Auto" Absent mark kar dega</strong> — agar galti se mark hua ho (employee bhool gaya tha), to yahan se status edit karke theek kar sakte ho.</p>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Employee</th><th>Check-In</th><th>Check-Out</th><th>Status</th><th>Marked By</th></tr></thead>
+              <tbody id="att-body"></tbody>
+            </table></div>
+            <div class="card-body" style="display:flex;gap:10px;">
+              <button class="btn btn-primary" onclick="saveAttendance()">✅ Save Attendance</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MY ATTENDANCE (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-my-attendance">
+          <div class="att-hero" style="max-width:460px;">
+            <div class="att-hero-icon" id="my-att-hero-icon">🕒</div>
+            <div id="my-att-date-title" class="att-hero-date">Today</div>
+            <div id="my-att-status" class="att-hero-status"></div>
+            <div class="card-body" style="padding:14px 0 0;">
+              <button class="btn btn-primary btn-full" id="my-checkin-btn" onclick="employeeCheckIn()">✅ Check In</button>
+              <button class="btn btn-danger btn-full" id="my-checkout-btn" style="display:none;margin-top:10px;" onclick="employeeCheckOut()">🚪 Check Out</button>
+            </div>
+          </div>
+          <p class="help-text" style="max-width:460px;margin:10px 0 18px;">Office time: 9:30 AM – 6:30 PM. Kam se kam <strong>7 ghante kaam</strong> karne par full day present count hoga, <strong>4 ghante se kam</strong> kaam kiya to absent maana jayega (half-day nahi milega) — sirf check-in karke turant check-out karne se half-day nahi ban jayega. <strong>Check-in/check-out sirf office ke computer se hoga — mobile/phone se nahi hoga.</strong></p>
+          <div class="snap-grid" id="my-att-month-stats" style="margin-bottom:18px;"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">📅 This Month's Attendance</div><span id="my-att-late-count" class="badge badge-amber"></span></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Date</th><th>Check-In</th><th>Check-Out</th><th>Status</th></tr></thead>
+              <tbody id="my-att-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- MY SALARY (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-my-salary">
+          <div class="filter-bar">
+            <input type="month" id="my-salary-month" onchange="renderMySalary()">
+          </div>
+          <div class="stat-grid" id="my-salary-stats"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Leave & Salary Breakdown</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Total Available</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th></tr></thead>
+              <tbody id="my-salary-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- REQUEST LEAVE (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-request-leave">
+          <div class="card" style="max-width:480px;">
+            <div class="card-header"><div class="card-title">📝 Request Leave</div></div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div class="form-group"><label>From Date *</label><input class="form-control" type="date" id="rl-from"></div>
+                <div class="form-group"><label>To Date *</label><input class="form-control" type="date" id="rl-to"></div>
+              </div>
+              <div class="form-group"><label>Reason</label><textarea class="form-control" id="rl-reason" rows="2" placeholder="Optional"></textarea></div>
+              <button class="btn btn-primary btn-full" onclick="submitLeaveRequest()">Submit Request</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">My Requests</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th></tr></thead>
+              <tbody id="my-leave-req-body"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <!-- CHANGE PASSWORD (EMPLOYEE SELF-SERVICE) -->
+        <div class="page" id="page-change-password">
+          <div class="card" style="max-width:420px;">
+            <div class="card-header"><div class="card-title">🔒 Change Password</div></div>
+            <div class="card-body">
+              <div class="form-group"><label>Current Password *</label><input class="form-control" type="password" id="cp-current" placeholder="Current password"></div>
+              <div class="form-group"><label>New Password *</label><input class="form-control" type="password" id="cp-new" placeholder="New password"></div>
+              <div class="form-group"><label>Confirm New Password *</label><input class="form-control" type="password" id="cp-confirm" placeholder="Re-enter new password"></div>
+              <button class="btn btn-primary btn-full" onclick="changeMyPassword()">Update Password</button>
+            </div>
+          </div>
+          <div class="card" style="max-width:420px;">
+            <div class="card-header"><div class="card-title">💰 Salary View PIN</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:12px;">"My Salary" page kholte waqt ye alag PIN maanga jayega (login password se alag). Khali chhodoge to login password hi chalega.</p>
+              <div class="form-group"><label>Current Login Password *</label><input class="form-control" type="password" id="sp-current" placeholder="Current login password"></div>
+              <div class="form-group"><label>New Salary PIN *</label><input class="form-control" type="password" id="sp-new" placeholder="e.g. 4-6 digit PIN"></div>
+              <div class="form-group"><label>Confirm Salary PIN *</label><input class="form-control" type="password" id="sp-confirm" placeholder="Re-enter PIN"></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="setSalaryPin()">Set PIN</button>
+                <button class="btn btn-ghost" onclick="clearSalaryPin()">Remove PIN (use login password)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SALARY PASSWORD RE-CONFIRM MODAL -->
+<div class="modal-overlay" id="salary-pin-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header"><div class="modal-title">🔒 Confirm Password</div><button class="modal-close" onclick="closeModal('salary-pin-modal')">✕</button></div>
+    <div class="modal-body">
+      <p class="help-text" style="margin-bottom:12px;" id="salary-pin-label">Salary dekhne se pehle apna password dobara daalo.</p>
+      <div class="form-group"><input class="form-control" type="password" id="salary-pin-input" placeholder="Password" autocomplete="current-password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('salary-pin-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSalaryPin()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT EMPLOYEE MODAL -->
+<div class="modal-overlay" id="emp-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="emp-modal-title">Add Employee</div><button class="modal-close" onclick="closeModal('emp-modal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="emp-id">
+      <div class="form-group"><label>Full Name *</label><input class="form-control" type="text" id="emp-name" placeholder="Employee name"></div>
+      <div class="form-group"><label>Monthly Salary (₹) *</label><input class="form-control" type="number" id="emp-salary" placeholder="0.00" min="0" step="1"></div>
+      <div class="form-group"><label>Opening Carry Forward Leave (din)</label><input class="form-control" type="number" id="emp-carry" placeholder="0" min="0" step="0.5" value="0"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Login Username</label><input class="form-control" type="text" id="emp-username" placeholder="For employee login (optional)"></div>
+        <div class="form-group"><label>Login Password</label><input class="form-control" type="text" id="emp-password" placeholder="Set login password"></div>
+      </div>
+      <div class="help-text" style="margin-top:-8px;margin-bottom:10px;">Agar employee khud check-in/check-out karna chahta hai to username/password set karo, warna khali chhod do.</div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="emp-admin" style="width:16px;height:16px;">
+        <label style="margin:0;text-transform:none;font-size:13px;color:var(--text);" for="emp-admin">Admin Access do (full dashboard, sab employees manage kar sakega)</label>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="emp-demo" style="width:16px;height:16px;">
+        <label style="margin:0;text-transform:none;font-size:13px;color:var(--text);" for="emp-demo">Demo Employee (naye employees ko demo dikhane ke liye — yeh kisi bhi total/salary report mein count nahi hoga)</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('emp-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── FIREBASE ──────────────────────────────────────────
+// Shares the same Firebase project as SalesTrack Pro; data kept separate
+// via the kalpataru_att_* collection prefix (see COL below).
+firebase.initializeApp({
+  apiKey:"AIzaSyC5M5SvKs5wgnDvACcG2I47gdMV3mxXNEE",
+  authDomain:"salestrack-pro-270c6.firebaseapp.com",
+  projectId:"salestrack-pro-270c6",
+  storageBucket:"salestrack-pro-270c6.firebasestorage.app",
+  messagingSenderId:"270237129064",
+  appId:"1:270237129064:web:898d42e200860ee3d09edd"
+});
+const db=firebase.firestore();
+const COL={employees:'kalpataru_att_employees',leaves:'kalpataru_att_leaves',meta:'kalpataru_att_meta',attendance:'kalpataru_att_attendance',leaveRequests:'kalpataru_att_leave_requests'};
+const SEED_VERSION=1;
+const MONTHLY_ALLOWANCE=1.5;
+const OFFICE_START_MIN=9*60+30;   // 9:30 AM
+const OFFICE_HALF_MIN=13*60+30;   // 1:30 PM cutoff between first/second half
+const OFFICE_END_MIN=18*60+30;    // 6:30 PM
+const LATE_PUNCH_MIN=9*60+50;    // after 9:50 AM counts as a late punch-in (tracking only, no salary effect)
+const FULL_DAY_MIN_MINUTES=420;   // at least 7 hours actually worked to count as a full present day
+const HALF_DAY_MIN_MINUTES=240;   // at least 4 hours actually worked to count as half-day
+
+function minutesOfDay(ts){const d=new Date(ts);return d.getHours()*60+d.getMinutes();}
+function isLatePunch(checkIn){return checkIn?minutesOfDay(checkIn)>LATE_PUNCH_MIN:false;}
+
+// Decides present / half-day / absent. Before check-out, it's just a
+// provisional guess (based on the 1:30 half-cutoff) for display. Once
+// checked out, the ACTUAL hours worked decide the status -- checking in
+// then checking out a few minutes later no longer counts as half-day;
+// you need at least HALF_DAY_MIN_MINUTES worked for that, and
+// FULL_DAY_MIN_MINUTES for a full present day.
+function computeAutoStatus(checkIn,checkOut){
+  if(!checkIn) return 'absent';
+  if(!checkOut){
+    const firstHalfPresent=minutesOfDay(checkIn)<=OFFICE_HALF_MIN;
+    return firstHalfPresent?'present':'half-day';
+  }
+  const workedMinutes=(checkOut-checkIn)/60000;
+  if(workedMinutes>=FULL_DAY_MIN_MINUTES) return 'present';
+  if(workedMinutes>=HALF_DAY_MIN_MINUTES) return 'half-day';
+  return 'absent';
+}
+
+let currentUser=null;
+let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
+let officeIps=[];
+let attendanceStartDate=null; // YYYY-MM-DD; auto-absent never fires before this date
+let leaveRequests=[]; // {id, employeeId, fromDate, toDate, reason, status:'pending'|'approved'|'rejected', requestedAt, decidedAt}
+let waSettings={phone:'',idInstance:'',apiToken:''};
+let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null, unsubLeaveRequests=null;
+function todayStr(){return new Date().toISOString().slice(0,10);}
+
+async function fetchMyIp(){
+  try{
+    const res=await fetch('https://api.ipify.org?format=json');
+    const data=await res.json();
+    return data.ip;
+  }catch(e){ return null; }
+}
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt(n){return Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});}
+function curMonth(){return new Date().toISOString().slice(0,7);}
+function prevMonth(ym){const [y,m]=ym.split('-').map(Number);const d=new Date(y,m-2,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+
+async function fsGetAll(col){
+  const snap=await db.collection(col).get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+async function fsSet(col,id,data){ await db.collection(col).doc(id).set(data); }
+async function fsDelete(col,id){ await db.collection(col).doc(id).delete(); }
+async function fsUpdate(col,id,data){ await db.collection(col).doc(id).update(data); }
+
+const DEFAULT_ADMIN={id:'admin0',username:'admin',password:'kalpataru123'};
+let adminAuth={...DEFAULT_ADMIN}; // overridden from Firestore (kalpataru_att_meta/adminAuth) if the password was changed
+const DEFAULT_EMPLOYEES=Array.from({length:10},(_,i)=>({id:'e'+(i+1),name:'Employee '+(i+1),salary:15000,carryIn:0}));
+
+async function seedIfNeeded(){
+  const metaSnap=await db.collection(COL.meta).doc('seed').get();
+  const seededVersion=metaSnap.exists?metaSnap.data().version:0;
+  if(seededVersion<SEED_VERSION){
+    for(const e of DEFAULT_EMPLOYEES){ await fsSet(COL.employees,e.id,e); }
+    await db.collection(COL.meta).doc('seed').set({version:SEED_VERSION});
+  }
+}
+
+async function init(){
+  showLoading(true);
+  try{
+    employees=await fsGetAll(COL.employees);
+    if(employees.length===0){ await seedIfNeeded(); employees=await fsGetAll(COL.employees); }
+    leaves=await fsGetAll(COL.leaves);
+    attendance=await fsGetAll(COL.attendance);
+    leaveRequests=await fsGetAll(COL.leaveRequests);
+    const ipDoc=await db.collection(COL.meta).doc('officeIps').get();
+    officeIps=ipDoc.exists?(ipDoc.data().ips||[]):[];
+    const adminAuthDoc=await db.collection(COL.meta).doc('adminAuth').get();
+    if(adminAuthDoc.exists) adminAuth={...DEFAULT_ADMIN,...adminAuthDoc.data()};
+    const waDoc=await db.collection(COL.meta).doc('whatsappAlert').get();
+    if(waDoc.exists) waSettings={...waSettings,...waDoc.data()};
+    const startDoc=await db.collection(COL.meta).doc('attendanceStart').get();
+    if(startDoc.exists) attendanceStartDate=startDoc.data().date||null;
+  }catch(e){
+    employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[]; leaveRequests=[];
+  }
+  showLoading(false);
+  const sess=sessionStorage.getItem('kalpataru_att_session');
+  if(sess){ try{ currentUser=JSON.parse(sess); startApp(); startRealtime(); }catch(e){} }
+}
+
+function showLoading(show){
+  let el=document.getElementById('loading-overlay');
+  if(show&&!el){el=document.createElement('div');el.id='loading-overlay';el.style.cssText='position:fixed;inset:0;background:#1e3a5f;display:flex;align-items:center;justify-content:center;z-index:9999;color:#fff;font-size:18px;font-family:Poppins,sans-serif;';el.innerHTML='<div style="text-align:center;"><img src="logo.webp" alt="Kalpataru Polyplast" style="max-width:200px;width:80vw;margin-bottom:14px;"><div style="font-size:13px;opacity:0.7;">Loading...</div></div>';document.body.appendChild(el);}
+  else if(!show&&el) el.remove();
+}
+
+function startRealtime(){
+  if(unsubEmployees) unsubEmployees();
+  if(unsubLeaves) unsubLeaves();
+  if(unsubAttendance) unsubAttendance();
+  unsubEmployees=db.collection(COL.employees).onSnapshot(snap=>{
+    employees=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-employees') renderEmployees();
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+    if(pg&&pg.id==='page-leave') renderLeaveEntry();
+    // Attendance (Manual) is intentionally NOT auto-re-rendered here --
+    // doing so would wipe out an admin's in-progress, unsaved dropdown
+    // selections whenever any employee's record changes elsewhere.
+    if(pg&&pg.id==='page-my-salary') renderMySalary();
+  });
+  unsubLeaves=db.collection(COL.leaves).onSnapshot(snap=>{
+    leaves=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+    if(pg&&pg.id==='page-my-salary') renderMySalary();
+  });
+  unsubAttendance=db.collection(COL.attendance).onSnapshot(snap=>{
+    attendance=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    // Same reason as above: don't auto-re-render the admin's manual
+    // attendance form out from under unsaved edits.
+    if(pg&&pg.id==='page-my-attendance') renderMyAttendance();
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+  });
+  if(unsubOfficeIps) unsubOfficeIps();
+  unsubOfficeIps=db.collection(COL.meta).doc('officeIps').onSnapshot(doc=>{
+    officeIps=doc.exists?(doc.data().ips||[]):[];
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-office-wifi') renderOfficeWifi();
+  });
+  if(unsubLeaveRequests) unsubLeaveRequests();
+  unsubLeaveRequests=db.collection(COL.leaveRequests).onSnapshot(snap=>{
+    leaveRequests=snap.docs.map(d=>({id:d.id,...d.data()}));
+    updateLeaveRequestBadge();
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-leave-requests') renderLeaveRequests();
+    if(pg&&pg.id==='page-request-leave') renderRequestLeave();
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+  });
+}
+
+// ── AUTH ──────────────────────────────────────────────
+function doLogin(){
+  const uname=document.getElementById('login-user').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-error');
+  err.style.display='none';
+  if(uname===adminAuth.username && pass===adminAuth.password){
+    currentUser={id:'admin0',name:'Admin',username:adminAuth.username,role:'admin'};
+    sessionStorage.setItem('kalpataru_att_session',JSON.stringify(currentUser));
+    startApp();
+    startRealtime();
+    return;
+  }
+  const emp=employees.find(e=>e.username && e.username===uname && e.password===pass);
+  if(emp){
+    currentUser={id:emp.id,name:emp.name,username:emp.username,role:emp.isAdmin?'admin':'employee'};
+    sessionStorage.setItem('kalpataru_att_session',JSON.stringify(currentUser));
+    startApp();
+    startRealtime();
+    return;
+  }
+  err.textContent='Invalid username or password.';
+  err.style.display='block';
+}
+
+function doLogout(){
+  if(unsubEmployees){unsubEmployees();unsubEmployees=null;}
+  if(unsubLeaves){unsubLeaves();unsubLeaves=null;}
+  currentUser=null;
+  sessionStorage.removeItem('kalpataru_att_session');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+}
+
+function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('sb-avatar').textContent=currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('sb-avatar').className='user-avatar '+(currentUser.role==='admin'?'av-admin':'');
+  document.getElementById('sb-name').textContent=currentUser.name;
+  document.getElementById('sb-role').textContent=currentUser.role==='admin'?'Administrator':'Employee';
+  document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  const ym=curMonth();
+  const dm=document.getElementById('dash-month');if(dm)dm.value=ym;
+  const lm=document.getElementById('leave-month');if(lm)lm.value=ym;
+  const ad=document.getElementById('att-date');if(ad)ad.value=todayStr();
+  const msm=document.getElementById('my-salary-month');if(msm)msm.value=ym;
+  if(currentUser.role==='admin'){
+    document.getElementById('admin-nav-section').style.display='block';
+    document.getElementById('employee-nav-section').style.display='none';
+    showPage('dashboard');
+    updateLeaveRequestBadge();
+  }else{
+    document.getElementById('admin-nav-section').style.display='none';
+    document.getElementById('employee-nav-section').style.display='block';
+    showPage('my-attendance');
+  }
+  autoMarkAbsentees();
+}
+
+// Runs on every login (any role). If yesterday wasn't a Sunday and an
+// employee has no attendance record for it at all (never checked in,
+// nobody marked them manually), auto-marks them absent so a forgotten
+// login doesn't silently skip salary deduction. Admin can always fix a
+// wrong auto-mark from the Manual Attendance page afterwards.
+async function autoMarkAbsentees(){
+  try{
+    if(!attendanceStartDate) return; // admin hasn't set a go-live date yet -- never auto-mark
+    const y=new Date(); y.setDate(y.getDate()-1);
+    if(y.getDay()===0) return; // skip Sunday
+    const dateStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+    if(dateStr<attendanceStartDate) return; // before go-live -- never backfill absences
+    const ym=dateStr.slice(0,7);
+    const touched=[];
+    for(const emp of employees){
+      if(emp.isDemo) continue; // never auto-mark demo employees
+      const id=attendanceId(emp.id,dateStr);
+      if(attendance.find(a=>a.id===id)) continue;
+      const rec={id,employeeId:emp.id,date:dateStr,status:'absent',late:false,checkIn:null,checkOut:null,source:'auto',updatedAt:Date.now()};
+      await fsSet(COL.attendance,id,rec);
+      attendance.push(rec);
+      touched.push(emp.id);
+    }
+    if(touched.length===0) return;
+    for(const empId of touched){ await autoSyncLeaveFromAttendance(empId,ym); }
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-dashboard') renderDashboard();
+  }catch(e){}
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  const navEl=document.getElementById(`nav-${id}`);if(navEl)navEl.classList.add('active');
+  if(id==='change-password'){ const navEl2=document.getElementById('nav-change-password-admin'); if(navEl2)navEl2.classList.add('active'); }
+  const titles={dashboard:'Dashboard',leave:'Monthly Leave Entry',employees:'Employees',attendance:'Attendance (Manual)','my-attendance':'My Attendance','my-salary':'My Salary','change-password':'Change Password','office-wifi':'Office WiFi Restriction','leave-requests':'Leave Requests','request-leave':'Request Leave','whatsapp-alerts':'WhatsApp Alerts',reports:'Reports'};
+  document.getElementById('page-title').textContent=titles[id]||'';
+  if(id==='dashboard')renderDashboard();
+  if(id==='leave')renderLeaveEntry();
+  if(id==='employees')renderEmployees();
+  if(id==='attendance')renderAttendance();
+  if(id==='my-attendance')renderMyAttendance();
+  if(id==='my-salary')renderMySalary();
+  if(id==='office-wifi')renderOfficeWifi();
+  if(id==='leave-requests')renderLeaveRequests();
+  if(id==='request-leave')renderRequestLeave();
+  if(id==='whatsapp-alerts')renderWhatsAppAlerts();
+  if(id==='reports')renderReports();
+  if(id==='change-password'){
+    document.getElementById('cp-current').value='';
+    document.getElementById('cp-new').value='';
+    document.getElementById('cp-confirm').value='';
+  }
+}
+
+// ── LEAVE CALCULATION CORE ─────────────────────────────
+// Returns {carryIn, allowance, available, taken, balance, unpaidDays}
+function computeLeaveForMonth(empId, ym){
+  const emp=employees.find(e=>e.id===empId);
+  const openingCarry=emp?Number(emp.carryIn||0):0;
+  const pm=prevMonth(ym);
+  const prevRec=leaves.find(l=>l.employeeId===empId && l.month===pm);
+  const carryIn = prevRec ? Number(prevRec.balancePositive||0) : openingCarry;
+  const rec=leaves.find(l=>l.employeeId===empId && l.month===ym);
+  const taken=rec?Number(rec.taken||0):0;
+  const available=carryIn+MONTHLY_ALLOWANCE;
+  const balance=available-taken;
+  const unpaidDays=balance<0?Math.abs(balance):0;
+  const balancePositive=balance>0?balance:0;
+  return {carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive};
+}
+
+// ── LATE PUNCH-IN PENALTY ───────────────────────────────
+const FREE_LATE_PER_MONTH=3; // first 3 late punch-ins a month are free
+const LATE_PENALTY_DAYS=0.5; // each late beyond the free quota costs half a day's pay
+
+function getLateCount(empId,ym){
+  return attendance.filter(a=>a.employeeId===empId && a.date&&a.date.startsWith(ym) && a.late && !a.lateExcused).length;
+}
+function getLatePenaltyDays(empId,ym){
+  return Math.max(0,getLateCount(empId,ym)-FREE_LATE_PER_MONTH)*LATE_PENALTY_DAYS;
+}
+
+// Combines the leave-balance calc with the late-punch penalty into the
+// final salary numbers shown everywhere (Dashboard, My Salary, Reports).
+function computeSalaryForMonth(empId,ym){
+  const emp=employees.find(e=>e.id===empId);
+  const c=computeLeaveForMonth(empId,ym);
+  const salary=Number(emp?emp.salary:0||0);
+  const perDay=salary/30;
+  const lateCount=getLateCount(empId,ym);
+  const latePenaltyDays=getLatePenaltyDays(empId,ym);
+  const totalUnpaidDays=c.unpaidDays+latePenaltyDays;
+  const deduction=totalUnpaidDays*perDay;
+  const net=salary-deduction;
+  return {...c,salary,perDay,lateCount,latePenaltyDays,totalUnpaidDays,deduction,net};
+}
+
+async function toggleLateExcuse(empId,date){
+  const id=attendanceId(empId,date);
+  const rec=attendance.find(a=>a.id===id);
+  if(!rec) return;
+  const newVal=!rec.lateExcused;
+  await fsUpdate(COL.attendance,id,{lateExcused:newVal});
+  rec.lateExcused=newVal;
+  renderAttendance();
+  toast(newVal?'Late excuse kar diya — penalty count mein nahi gina jayega':'Excuse hata diya — ab penalty count hoga');
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+function renderDashboard(){
+  const ym=document.getElementById('dash-month').value||curMonth();
+  const realEmployees=employees.filter(e=>!e.isDemo);
+  const sorted=[...realEmployees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  let totalSalary=0, totalDeduction=0, totalNet=0, totalUnpaid=0;
+  const rows=sorted.map(emp=>{
+    const s=computeSalaryForMonth(emp.id,ym);
+    totalSalary+=s.salary;totalDeduction+=s.deduction;totalNet+=s.net;totalUnpaid+=s.totalUnpaidDays;
+    return {emp,c:s,salary:s.salary,deduction:s.deduction,net:s.net};
+  });
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-body"><div class="stat-label">Total Employees</div><div class="stat-value">${realEmployees.length}</div><div class="stat-sub">Active</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Total Salary (Gross)</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">This month</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
+
+  // Today's attendance snapshot
+  const today=todayStr();
+  const demoIds=new Set(employees.filter(e=>e.isDemo).map(e=>e.id));
+  const todayRecs=attendance.filter(a=>a.date===today && !demoIds.has(a.employeeId));
+  const presentList=todayRecs.filter(a=>a.status==='present');
+  const halfList=todayRecs.filter(a=>a.status==='half-day');
+  const absentList=todayRecs.filter(a=>a.status==='absent'||a.status==='leave');
+  const markedIds=new Set(todayRecs.map(a=>a.employeeId));
+  const pendingCount=realEmployees.filter(e=>!markedIds.has(e.id)).length;
+  const avatarColors=['#15803d','#2563eb','#d97706','#dc2626','#7c3aed','#0891b2','#be185d','#65a30d'];
+  function empColor(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))%avatarColors.length; return avatarColors[h]; }
+  function chip(empId){
+    const emp=employees.find(e=>e.id===empId);
+    const rec=todayRecs.find(a=>a.employeeId===empId);
+    const initial=emp?emp.name.charAt(0).toUpperCase():'?';
+    return `<div class="chip-avatar ${rec&&rec.late?'late':''}" style="background:${empColor(empId)};" title="${emp?esc(emp.name):''}${rec&&rec.late?' (Late)':''}">${initial}</div>`;
+  }
+  document.getElementById('dash-today-attendance').innerHTML=`
+    <div class="snap-grid">
+      <div class="snap-pill present"><div class="snap-n">${presentList.length}</div><div class="snap-l">Present</div></div>
+      <div class="snap-pill half"><div class="snap-n">${halfList.length}</div><div class="snap-l">Half Day</div></div>
+      <div class="snap-pill absent"><div class="snap-n">${absentList.length}</div><div class="snap-l">Absent</div></div>
+      <div class="snap-pill pending"><div class="snap-n">${pendingCount}</div><div class="snap-l">Not Marked</div></div>
+    </div>
+    ${todayRecs.length>0?`<div class="avatar-chips">${todayRecs.map(a=>chip(a.employeeId)).join('')}</div>`:'<p class="help-text" style="margin-top:12px;">Aaj abhi tak kisi ne check-in nahi kiya.</p>'}`;
+
+  const dashSearch=((document.getElementById('dash-search')||{}).value||'').toLowerCase();
+  const filteredRows=dashSearch?rows.filter(r=>r.emp.name.toLowerCase().includes(dashSearch)):rows;
+  document.getElementById('dash-body').innerHTML=filteredRows.length===0?`<tr><td colspan="9"><div class="empty-state"><div class="icon">👤</div><p>No employees found</p></div></td></tr>`:
+    filteredRows.map(r=>{
+      const pct=Math.max(0,Math.min(100,(r.c.balance/(r.c.allowance+13.5||1))*100));
+      const fillColor=r.c.balance<0?'var(--danger)':r.c.balance<1?'var(--warning)':'var(--success)';
+      return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div class="row-avatar" style="background:${empColor(r.emp.id)};">${esc(r.emp.name.charAt(0).toUpperCase())}</div><strong>${esc(r.emp.name)}</strong>${r.emp.isAdmin?' <span class="badge badge-amber">Admin</span>':''}</div></td>
+      <td class="amount">₹${fmt(r.salary)}</td>
+      <td>${fmt(r.c.carryIn)}</td>
+      <td>${fmt(r.c.allowance)}</td>
+      <td>${fmt(r.c.taken)}</td>
+      <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${pct}%;background:${fillColor};"></span></span></td>
+      <td>${r.c.totalUnpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.totalUnpaidDays)}</span>${r.c.latePenaltyDays>0?` <span class="badge badge-red" title="${fmt(r.c.lateCount)} late, ${FREE_LATE_PER_MONTH} free">+${fmt(r.c.latePenaltyDays)} late</span>`:''}`:'<span class="badge badge-green">0</span>'}</td>
+      <td class="amount" style="color:var(--danger);">₹${fmt(r.deduction)}</td>
+      <td class="amount" style="color:var(--success);">₹${fmt(r.net)}</td>
+    </tr>`;}).join('');
+}
+
+function exportDashboard(){
+  const ym=document.getElementById('dash-month').value||curMonth();
+  const sorted=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const data=sorted.map(emp=>{
+    const c=computeSalaryForMonth(emp.id,ym);
+    return {Employee:emp.name,'Monthly Salary':c.salary,'Carry Forward Leave':c.carryIn,'Monthly Allowance':c.allowance,'Leave Taken':c.taken,'Balance Leave':c.balance,'Unpaid Days':c.unpaidDays,'Late Punches':c.lateCount,'Late Penalty Days':c.latePenaltyDays,'Total Unpaid Days':c.totalUnpaidDays,'Deduction':c.deduction,'Net Salary':c.net};
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Salary-'+ym);
+  XLSX.writeFile(wb,`Kalpataru_Salary_${ym}.xlsx`);
+}
+
+// ── MY SALARY PASSWORD RE-CONFIRM ───────────────────────
+function openSalaryPinModal(){
+  const hasPin=currentUser.id==='admin0'?!!adminAuth.salaryPin:!!((employees.find(e=>e.id===currentUser.id)||{}).salaryPin);
+  document.getElementById('salary-pin-label').textContent=hasPin?'Salary dekhne se pehle apna PIN daalo.':'Salary dekhne se pehle apna password dobara daalo.';
+  document.getElementById('salary-pin-input').placeholder=hasPin?'PIN':'Password';
+  document.getElementById('salary-pin-input').value='';
+  openModal('salary-pin-modal');
+  setTimeout(()=>{
+    const inp=document.getElementById('salary-pin-input');
+    inp.focus();
+    inp.onkeydown=(e)=>{ if(e.key==='Enter') confirmSalaryPin(); };
+  },50);
+}
+
+function confirmSalaryPin(){
+  const pass=document.getElementById('salary-pin-input').value;
+  let expected;
+  if(currentUser.id==='admin0'){ expected=adminAuth.salaryPin||adminAuth.password; }
+  else{ const emp=employees.find(e=>e.id===currentUser.id)||{}; expected=emp.salaryPin||emp.password; }
+  if(pass!==expected){toast(currentUser.id==='admin0'||((employees.find(e=>e.id===currentUser.id)||{}).salaryPin)?'PIN galat hai':'Password galat hai','error');return;}
+  closeModal('salary-pin-modal');
+  showPage('my-salary');
+}
+
+async function setSalaryPin(){
+  const current=document.getElementById('sp-current').value;
+  const next=document.getElementById('sp-new').value;
+  const confirm=document.getElementById('sp-confirm').value;
+  if(!next||next.length<4){toast('PIN kam se kam 4 characters ka rakho','error');return;}
+  if(next!==confirm){toast('PIN match nahi ho raha','error');return;}
+  if(currentUser.id==='admin0'){
+    if(current!==adminAuth.password){toast('Current login password galat hai','error');return;}
+    await db.collection(COL.meta).doc('adminAuth').set({username:adminAuth.username,password:adminAuth.password,salaryPin:next});
+    adminAuth={...adminAuth,salaryPin:next};
+  }else{
+    const emp=employees.find(e=>e.id===currentUser.id);
+    if(!emp){toast('Employee record nahi mila','error');return;}
+    if(current!==emp.password){toast('Current login password galat hai','error');return;}
+    await fsUpdate(COL.employees,emp.id,{salaryPin:next});
+  }
+  document.getElementById('sp-current').value='';
+  document.getElementById('sp-new').value='';
+  document.getElementById('sp-confirm').value='';
+  toast('Salary PIN set ho gaya!');
+}
+
+async function clearSalaryPin(){
+  const current=document.getElementById('sp-current').value;
+  if(currentUser.id==='admin0'){
+    if(current!==adminAuth.password){toast('Current login password galat hai','error');return;}
+    await db.collection(COL.meta).doc('adminAuth').set({username:adminAuth.username,password:adminAuth.password,salaryPin:null});
+    adminAuth={...adminAuth,salaryPin:null};
+  }else{
+    const emp=employees.find(e=>e.id===currentUser.id);
+    if(!emp){toast('Employee record nahi mila','error');return;}
+    if(current!==emp.password){toast('Current login password galat hai','error');return;}
+    await fsUpdate(COL.employees,emp.id,{salaryPin:null});
+  }
+  document.getElementById('sp-current').value='';
+  toast('Salary PIN hata diya — ab login password hi chalega');
+}
+
+// ── MY SALARY (EMPLOYEE SELF-SERVICE) ──────────────────
+function renderMySalary(){
+  const ym=document.getElementById('my-salary-month').value||curMonth();
+  const emp=employees.find(e=>e.id===currentUser.id);
+  if(!emp) return;
+  const c=computeSalaryForMonth(emp.id,ym);
+
+  document.getElementById('my-salary-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Monthly Salary</div><div class="stat-value">₹${fmt(c.salary)}</div><div class="stat-sub">Gross</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Deduction</div><div class="stat-value">₹${fmt(c.deduction)}</div><div class="stat-sub">${fmt(c.totalUnpaidDays)} unpaid days${c.latePenaltyDays>0?` (${fmt(c.latePenaltyDays)} late penalty)`:''}</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Net Payable</div><div class="stat-value">₹${fmt(c.net)}</div><div class="stat-sub">After deductions</div></div></div>
+    <div class="stat-card ${c.lateCount>FREE_LATE_PER_MONTH?'red':'amber'}"><div class="stat-icon">⏰</div><div class="stat-body"><div class="stat-label">Late This Month</div><div class="stat-value">${fmt(c.lateCount)}</div><div class="stat-sub">${FREE_LATE_PER_MONTH} free, uske baad har late = ${LATE_PENALTY_DAYS} din ki katauti</div></div></div>`;
+
+  const availPct=Math.max(0,Math.min(100,(c.balance/(c.allowance+13.5||1))*100));
+  const availColor=c.balance<0?'var(--danger)':c.balance<1?'var(--warning)':'var(--success)';
+  document.getElementById('my-salary-body').innerHTML=`<tr>
+    <td>${fmt(c.carryIn)}</td>
+    <td>${fmt(c.allowance)}</td>
+    <td><strong>${fmt(c.available)}</strong></td>
+    <td>${fmt(c.taken)}</td>
+    <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${availPct}%;background:${availColor};"></span></span></td>
+    <td>${c.totalUnpaidDays>0?`<span class="badge badge-amber">${fmt(c.totalUnpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+  </tr>`;
+}
+
+// ── REPORTS (EMPLOYEE-WISE MONTHLY/QUARTERLY/YEARLY) ───
+function populateReportFilters(){
+  const empSel=document.getElementById('rep-employee');
+  if(empSel.options.length===0){
+    empSel.innerHTML=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  }
+  const yearSel=document.getElementById('rep-year');
+  if(yearSel.options.length===0){
+    const curY=new Date().getFullYear();
+    yearSel.innerHTML=[curY-1,curY,curY+1].map(y=>`<option value="${y}" ${y===curY?'selected':''}>${y}</option>`).join('');
+  }
+}
+
+function getReportMonths(){
+  const type=document.getElementById('rep-period-type').value;
+  if(type==='monthly'){
+    const ym=document.getElementById('rep-month').value||curMonth();
+    return [ym];
+  }
+  if(type==='quarterly'){
+    const q=parseInt(document.getElementById('rep-quarter').value||'1');
+    const y=document.getElementById('rep-year').value||new Date().getFullYear();
+    const startMonth=(q-1)*3+1;
+    return [0,1,2].map(i=>`${y}-${String(startMonth+i).padStart(2,'0')}`);
+  }
+  const y=document.getElementById('rep-year').value||new Date().getFullYear();
+  return Array.from({length:12},(_,i)=>`${y}-${String(i+1).padStart(2,'0')}`);
+}
+
+function renderReports(){
+  populateReportFilters();
+  const type=document.getElementById('rep-period-type').value;
+  document.getElementById('rep-month').style.display=type==='monthly'?'inline-block':'none';
+  document.getElementById('rep-quarter').style.display=type==='quarterly'?'inline-block':'none';
+  document.getElementById('rep-year').style.display=(type==='quarterly'||type==='yearly')?'inline-block':'none';
+  if(!document.getElementById('rep-month').value) document.getElementById('rep-month').value=curMonth();
+
+  const empId=document.getElementById('rep-employee').value;
+  const emp=employees.find(e=>e.id===empId);
+  if(!emp) return;
+  const months=getReportMonths();
+  let totalSalary=0,totalTaken=0,totalUnpaid=0,totalDeduction=0,totalNet=0;
+  const rows=months.map(ym=>{
+    const c=computeSalaryForMonth(empId,ym);
+    totalSalary+=c.salary;totalTaken+=c.taken;totalUnpaid+=c.totalUnpaidDays;totalDeduction+=c.deduction;totalNet+=c.net;
+    return {ym,c,salary:c.salary,deduction:c.deduction,net:c.net};
+  });
+
+  document.getElementById('rep-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Total Salary</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">${months.length} month(s)</div></div></div>
+    <div class="stat-card amber"><div class="stat-icon">📅</div><div class="stat-body"><div class="stat-label">Total Leave Taken</div><div class="stat-value">${fmt(totalTaken)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">Across period</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
+
+  document.getElementById('rep-table-title').textContent=`${esc(emp.name)} — Month-wise Breakdown`;
+  document.getElementById('rep-body').innerHTML=rows.map(r=>`<tr>
+    <td>${r.ym}</td>
+    <td class="amount">₹${fmt(r.salary)}</td>
+    <td>${fmt(r.c.carryIn)}</td>
+    <td>${fmt(r.c.allowance)}</td>
+    <td>${fmt(r.c.taken)}</td>
+    <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span></td>
+    <td>${r.c.unpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+    <td class="amount" style="color:var(--danger);">₹${fmt(r.deduction)}</td>
+    <td class="amount" style="color:var(--success);">₹${fmt(r.net)}</td>
+  </tr>`).join('');
+}
+
+function exportReport(){
+  const empId=document.getElementById('rep-employee').value;
+  const emp=employees.find(e=>e.id===empId);
+  if(!emp) return;
+  const months=getReportMonths();
+  const data=months.map(ym=>{
+    const c=computeSalaryForMonth(empId,ym);
+    return {Month:ym,'Monthly Salary':c.salary,'Carry Forward':c.carryIn,'Allowance':c.allowance,'Leave Taken':c.taken,'Balance':c.balance,'Unpaid Days':c.unpaidDays,'Late Punches':c.lateCount,'Late Penalty Days':c.latePenaltyDays,'Total Unpaid Days':c.totalUnpaidDays,'Deduction':c.deduction,'Net Salary':c.net};
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Report');
+  XLSX.writeFile(wb,`Kalpataru_Report_${emp.name.replace(/\s+/g,'_')}.xlsx`);
+}
+
+// ── WHATSAPP ALERTS ─────────────────────────────────────
+function renderWhatsAppAlerts(){
+  document.getElementById('wa-phone').value=waSettings.phone||'';
+  document.getElementById('wa-idinstance').value=waSettings.idInstance||'';
+  document.getElementById('wa-apitoken').value=waSettings.apiToken||'';
+}
+
+async function saveWhatsAppSettings(){
+  const phone=document.getElementById('wa-phone').value.trim();
+  const idInstance=document.getElementById('wa-idinstance').value.trim();
+  const apiToken=document.getElementById('wa-apitoken').value.trim();
+  if(!phone||!idInstance||!apiToken){toast('Phone number, idInstance aur apiTokenInstance teeno zaroori hain','error');return;}
+  waSettings={phone,idInstance,apiToken};
+  await db.collection(COL.meta).doc('whatsappAlert').set(waSettings);
+  toast('WhatsApp alert settings save ho gayi!');
+}
+
+async function sendWhatsAppAlert(message){
+  if(!waSettings.phone||!waSettings.idInstance||!waSettings.apiToken) return;
+  try{
+    const url=`https://api.green-api.com/waInstance${waSettings.idInstance}/sendMessage/${waSettings.apiToken}`;
+    await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chatId:`${waSettings.phone}@c.us`,message})
+    });
+  }catch(e){}
+}
+
+async function testWhatsAppAlert(){
+  const phone=document.getElementById('wa-phone').value.trim();
+  const idInstance=document.getElementById('wa-idinstance').value.trim();
+  const apiToken=document.getElementById('wa-apitoken').value.trim();
+  if(!phone||!idInstance||!apiToken){toast('Pehle saari settings save karo','error');return;}
+  waSettings={phone,idInstance,apiToken};
+  await sendWhatsAppAlert('Kalpataru Polyplast: test message — WhatsApp alerts set up ho gaye!');
+  toast('Test message bhej diya — WhatsApp check karo');
+}
+
+// ── LEAVE REQUESTS ──────────────────────────────────────
+function updateLeaveRequestBadge(){
+  const pendingCount=leaveRequests.filter(r=>r.status==='pending').length;
+  const badgeEl=document.getElementById('nav-leave-req-badge');
+  if(badgeEl){ badgeEl.style.display=pendingCount>0?'inline-flex':'none'; badgeEl.textContent=pendingCount; }
+}
+
+function dateRangeList(fromDate,toDate){
+  const dates=[];
+  let d=new Date(fromDate+'T00:00:00');
+  const end=new Date(toDate+'T00:00:00');
+  while(d<=end){
+    dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    d.setDate(d.getDate()+1);
+  }
+  return dates;
+}
+
+async function submitLeaveRequest(){
+  const fromDate=document.getElementById('rl-from').value;
+  const toDate=document.getElementById('rl-to').value;
+  const reason=document.getElementById('rl-reason').value.trim();
+  if(!fromDate||!toDate){toast('From aur To date dono zaroori hain','error');return;}
+  if(toDate<fromDate){toast('To date, From date se pehle nahi ho sakti','error');return;}
+  const id=uid();
+  await fsSet(COL.leaveRequests,id,{id,employeeId:currentUser.id,fromDate,toDate,reason,status:'pending',requestedAt:Date.now()});
+  document.getElementById('rl-from').value='';
+  document.getElementById('rl-to').value='';
+  document.getElementById('rl-reason').value='';
+  const emp=employees.find(e=>e.id===currentUser.id);
+  sendWhatsAppAlert(`Kalpataru Polyplast: ${emp?emp.name:'Employee'} ne leave request ki hai (${fromDate} se ${toDate}). Reason: ${reason||'-'}. App mein jaake approve/reject karo.`);
+  toast('Leave request bhej di! Admin approve karega to wo dates automatically leave mein count ho jayengi.');
+}
+
+function renderRequestLeave(){
+  const mine=leaveRequests.filter(r=>r.employeeId===currentUser.id).sort((a,b)=>b.requestedAt-a.requestedAt);
+  const badgeMap={pending:'badge-amber',approved:'badge-green',rejected:'badge-red'};
+  document.getElementById('my-leave-req-body').innerHTML=mine.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">📝</div><p>Koi request nahi</p></div></td></tr>`:
+    mine.map(r=>{
+      const days=dateRangeList(r.fromDate,r.toDate).length;
+      return `<tr><td class="date-chip">${r.fromDate}</td><td class="date-chip">${r.toDate}</td><td>${days}</td><td>${esc(r.reason||'-')}</td><td><span class="badge ${badgeMap[r.status]}">${esc(r.status)}</span></td></tr>`;
+    }).join('');
+}
+
+function renderLeaveRequests(){
+  const sorted=[...leaveRequests].sort((a,b)=>{
+    if(a.status==='pending'&&b.status!=='pending') return -1;
+    if(a.status!=='pending'&&b.status==='pending') return 1;
+    return b.requestedAt-a.requestedAt;
+  });
+  const badgeMap={pending:'badge-amber',approved:'badge-green',rejected:'badge-red'};
+  document.getElementById('leave-req-body').innerHTML=sorted.length===0?`<tr><td colspan="7"><div class="empty-state"><div class="icon">📝</div><p>Koi leave request nahi</p></div></td></tr>`:
+    sorted.map(r=>{
+      const emp=employees.find(e=>e.id===r.employeeId);
+      const days=dateRangeList(r.fromDate,r.toDate).length;
+      const actions=r.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="approveLeaveRequest('${r.id}')">✅ Approve</button> <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="rejectLeaveRequest('${r.id}')">❌ Reject</button>`:'-';
+      return `<tr><td><strong>${esc(emp?emp.name:'Unknown')}</strong></td><td class="date-chip">${r.fromDate}</td><td class="date-chip">${r.toDate}</td><td>${days}</td><td>${esc(r.reason||'-')}</td><td><span class="badge ${badgeMap[r.status]}">${esc(r.status)}</span></td><td style="white-space:nowrap;">${actions}</td></tr>`;
+    }).join('');
+}
+
+async function approveLeaveRequest(id){
+  const req=leaveRequests.find(r=>r.id===id);
+  if(!req) return;
+  const dates=dateRangeList(req.fromDate,req.toDate);
+  const months=new Set();
+  for(const date of dates){
+    const attId=attendanceId(req.employeeId,date);
+    const rec={id:attId,employeeId:req.employeeId,date,status:'leave',late:false,checkIn:null,checkOut:null,source:'leave-request',updatedAt:Date.now()};
+    await fsSet(COL.attendance,attId,rec);
+    const idx=attendance.findIndex(a=>a.id===attId);
+    if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
+    months.add(date.slice(0,7));
+  }
+  for(const ym of months){ await autoSyncLeaveFromAttendance(req.employeeId,ym); }
+  await fsUpdate(COL.leaveRequests,id,{status:'approved',decidedAt:Date.now()});
+  toast('Leave approve ho gayi! Attendance aur salary automatically update ho gaye.');
+}
+
+async function rejectLeaveRequest(id){
+  await fsUpdate(COL.leaveRequests,id,{status:'rejected',decidedAt:Date.now()});
+  toast('Leave request reject kar di','warning');
+}
+
+// ── CHANGE PASSWORD (EMPLOYEE SELF-SERVICE) ────────────
+async function changeMyPassword(){
+  const current=document.getElementById('cp-current').value;
+  const next=document.getElementById('cp-new').value;
+  const confirm=document.getElementById('cp-confirm').value;
+  if(!next||next.length<4){toast('Naya password kam se kam 4 characters ka rakho','error');return;}
+  if(next!==confirm){toast('Naya password match nahi ho raha','error');return;}
+  if(currentUser.id==='admin0'){
+    if(current!==adminAuth.password){toast('Current password galat hai','error');return;}
+    await db.collection(COL.meta).doc('adminAuth').set({username:adminAuth.username,password:next});
+    adminAuth={...adminAuth,password:next};
+  }else{
+    const emp=employees.find(e=>e.id===currentUser.id);
+    if(!emp){toast('Employee record nahi mila','error');return;}
+    if(current!==emp.password){toast('Current password galat hai','error');return;}
+    await fsUpdate(COL.employees,emp.id,{password:next});
+  }
+  document.getElementById('cp-current').value='';
+  document.getElementById('cp-new').value='';
+  document.getElementById('cp-confirm').value='';
+  toast('Password update ho gaya!');
+}
+
+// ── MONTHLY LEAVE ENTRY ────────────────────────────────
+function renderLeaveEntry(){
+  const ym=document.getElementById('leave-month').value||curMonth();
+  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  document.getElementById('leave-body').innerHTML=sorted.map(emp=>{
+    const c=computeLeaveForMonth(emp.id,ym);
+    return `<tr data-emp="${emp.id}">
+      <td><strong>${esc(emp.name)}</strong></td>
+      <td>${fmt(c.carryIn)}</td>
+      <td>${fmt(c.allowance)}</td>
+      <td><strong>${fmt(c.available)}</strong></td>
+      <td><input type="number" class="leave-input" min="0" step="0.5" value="${c.taken}" id="taken-${emp.id}" onchange="previewBalance('${emp.id}','${ym}')"></td>
+      <td id="bal-${emp.id}"><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span></td>
+      <td>${emp.username?`<button class="btn btn-ghost btn-sm" onclick="applyAttendanceToLeave('${emp.id}')" title="Attendance se auto-fill karo">📥 From Attendance</button>`:''}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="7"><div class="empty-state"><div class="icon">📅</div><p>No employees</p></div></td></tr>`;
+}
+
+function previewBalance(empId,ym){
+  const c=computeLeaveForMonth(empId,ym);
+  const taken=parseFloat(document.getElementById('taken-'+empId).value)||0;
+  const balance=c.available-taken;
+  document.getElementById('bal-'+empId).innerHTML=`<span class="badge ${balance<0?'badge-red':'badge-green'}">${fmt(balance)}</span>`;
+}
+
+async function saveLeaveEntries(){
+  const ym=document.getElementById('leave-month').value||curMonth();
+  const sorted=[...employees];
+  for(const emp of sorted){
+    const inputEl=document.getElementById('taken-'+emp.id);
+    if(!inputEl) continue;
+    const taken=parseFloat(inputEl.value)||0;
+    const c=computeLeaveForMonth(emp.id,ym);
+    const balance=c.available-taken;
+    const unpaidDays=balance<0?Math.abs(balance):0;
+    const balancePositive=balance>0?balance:0;
+    const existing=leaves.find(l=>l.employeeId===emp.id && l.month===ym);
+    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,updatedAt:Date.now()};
+    const id=existing?existing.id:uid();
+    await fsSet(COL.leaves,id,rec);
+  }
+  toast('Leave entries saved & salary calculated! (Agli baar is employee ki attendance mark hogi to ye number phir se attendance ke hisaab se update ho jayega)');
+}
+
+// ── OFFICE WIFI RESTRICTION ─────────────────────────────
+async function renderOfficeWifi(){
+  const ipEl=document.getElementById('my-current-ip');
+  fetchMyIp().then(ip=>{ ipEl.textContent=ip||'Pata nahi chal paya'; });
+  document.getElementById('office-ip-list').innerHTML=officeIps.length===0?
+    `<p class="help-text">Koi IP add nahi hui — abhi kisi bhi network se check-in ho sakta hai.</p>`:
+    officeIps.map(ip=>`<div class="user-card"><div class="info" style="flex:1;"><div class="nm">${esc(ip)}</div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeOfficeIp('${esc(ip)}')">🗑️ Remove</button></div>`).join('');
+  const sdInput=document.getElementById('start-date-input');
+  if(sdInput) sdInput.value=attendanceStartDate||'';
+}
+
+async function saveStartDate(){
+  const val=document.getElementById('start-date-input').value;
+  if(!val){toast('Date choose karo','error');return;}
+  attendanceStartDate=val;
+  await db.collection(COL.meta).doc('attendanceStart').set({date:val});
+  toast('Attendance start date set ho gayi! Ab is date se pehle kabhi auto-absent nahi lagega.');
+}
+
+async function addCurrentIpAsOffice(){
+  const ip=await fetchMyIp();
+  if(!ip){toast('IP pata nahi chal paya, dobara try karo','error');return;}
+  if(officeIps.includes(ip)){toast('Ye IP pehle se list mein hai');return;}
+  const updated=[...officeIps,ip];
+  await db.collection(COL.meta).doc('officeIps').set({ips:updated});
+  toast('Office IP add ho gaya: '+ip);
+}
+
+async function removeOfficeIp(ip){
+  const updated=officeIps.filter(x=>x!==ip);
+  await db.collection(COL.meta).doc('officeIps').set({ips:updated});
+  toast('IP list se hata diya');
+}
+
+async function isOnOfficeNetwork(){
+  if(!officeIps||officeIps.length===0) return true; // no restriction configured
+  const ip=await fetchMyIp();
+  if(!ip) return false;
+  return officeIps.includes(ip);
+}
+
+// Blocks check-in/out from phones/tablets -- only a desktop/laptop browser
+// (the office computer) is allowed, regardless of network.
+function isMobileDevice(){
+  const ua=navigator.userAgent||'';
+  const mobileUA=/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+  const touchSmallScreen=('ontouchstart' in window) && Math.min(window.screen.width,window.screen.height)<900;
+  return mobileUA || touchSmallScreen;
+}
+
+// ── ATTENDANCE (ADMIN MANUAL) ──────────────────────────
+function attendanceId(empId,date){return empId+'_'+date;}
+
+let attInitialStatus={};
+function renderAttendance(){
+  const date=document.getElementById('att-date').value||todayStr();
+  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  attInitialStatus={};
+  document.getElementById('att-body').innerHTML=sorted.map(emp=>{
+    const rec=attendance.find(a=>a.employeeId===emp.id && a.date===date);
+    const status=rec?rec.status:'not-marked';
+    attInitialStatus[emp.id]=status;
+    const checkIn=rec&&rec.checkIn?new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+    const checkOut=rec&&rec.checkOut?new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+    const markedByMap={self:'<span class="badge badge-blue">Self</span>',auto:'<span class="badge badge-amber">Auto</span>'};
+    const markedBy=rec?(markedByMap[rec.source]||'<span class="badge badge-gray">Admin</span>'):'';
+    const lateBadge=rec&&rec.late?(rec.lateExcused
+        ?` <span class="badge badge-green">Late (Excused)</span> <button class="btn btn-ghost btn-sm" onclick="toggleLateExcuse('${emp.id}','${date}')" style="padding:2px 8px;font-size:11px;">Undo Excuse</button>`
+        :` <span class="badge badge-amber">Late</span> <button class="btn btn-ghost btn-sm" onclick="toggleLateExcuse('${emp.id}','${date}')" style="padding:2px 8px;font-size:11px;">Excuse (Emergency)</button>`
+      ):'';
+    return `<tr data-emp="${emp.id}">
+      <td><strong>${esc(emp.name)}</strong></td>
+      <td>${checkIn}${lateBadge}</td>
+      <td>${checkOut}</td>
+      <td>
+        <select class="form-control" id="att-status-${emp.id}" style="padding:6px 8px;font-size:12px;">
+          <option value="not-marked" ${status==='not-marked'?'selected':''}>Not Marked</option>
+          <option value="present" ${status==='present'?'selected':''}>✅ Present</option>
+          <option value="absent" ${status==='absent'?'selected':''}>❌ Absent (Unpaid)</option>
+          <option value="leave" ${status==='leave'?'selected':''}>📅 On Leave</option>
+          <option value="half-day" ${status==='half-day'?'selected':''}>🌓 Half Day</option>
+        </select>
+      </td>
+      <td>${markedBy}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="5"><div class="empty-state"><div class="icon">🕒</div><p>No employees</p></div></td></tr>`;
+}
+
+async function saveAttendance(){
+  const date=document.getElementById('att-date').value||todayStr();
+  const ym=date.slice(0,7);
+  const touched=[];
+  for(const emp of employees){
+    const sel=document.getElementById('att-status-'+emp.id);
+    if(!sel) continue;
+    const status=sel.value;
+    if(status==='not-marked') continue;
+    if(status===attInitialStatus[emp.id]) continue; // unchanged -- don't overwrite (preserves "Self" attribution)
+    const id=attendanceId(emp.id,date);
+    const existing=attendance.find(a=>a.id===id);
+    const rec={id,employeeId:emp.id,date,status,late:existing?!!existing.late:false,checkIn:existing?existing.checkIn||null:null,checkOut:existing?existing.checkOut||null:null,source:'admin',updatedAt:Date.now()};
+    await fsSet(COL.attendance,id,rec);
+    const idx=attendance.findIndex(a=>a.id===id);
+    if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
+    attInitialStatus[emp.id]=status;
+    touched.push(emp.id);
+  }
+  if(touched.length===0){toast('Koi naya change nahi tha','warning');return;}
+  for(const empId of touched){ await autoSyncLeaveFromAttendance(empId,ym); }
+  toast('Attendance saved! Salary auto-updated.');
+}
+
+// ── MY ATTENDANCE (EMPLOYEE SELF-SERVICE) ──────────────
+function getMyAttendanceToday(){
+  return attendance.find(a=>a.employeeId===currentUser.id && a.date===todayStr());
+}
+
+function renderMyAttendance(){
+  document.getElementById('my-att-date-title').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const rec=getMyAttendanceToday();
+  const statusEl=document.getElementById('my-att-status');
+  const inBtn=document.getElementById('my-checkin-btn');
+  const outBtn=document.getElementById('my-checkout-btn');
+  const iconEl=document.getElementById('my-att-hero-icon');
+  if(!rec || !rec.checkIn){
+    statusEl.innerHTML=`<span class="badge badge-amber">Aaj abhi check-in nahi kiya</span>`;
+    inBtn.style.display='block'; outBtn.style.display='none';
+    iconEl.textContent='⏳';
+  }else if(rec.checkIn && !rec.checkOut){
+    const t=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const hint=rec.status==='half-day'?' <span class="badge badge-amber">1:30 ke baad — half-day</span>':'';
+    const lateHint=rec.late?' <span class="badge badge-amber">Late punch-in</span>':'';
+    statusEl.innerHTML=`<span class="badge badge-green">Checked in at ${t}</span>${hint}${lateHint}`;
+    inBtn.style.display='none'; outBtn.style.display='block';
+    iconEl.textContent='🟢';
+  }else{
+    const ti=new Date(rec.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const to=new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const badgeMap={present:'badge-green',absent:'badge-red','half-day':'badge-amber'};
+    const lateHint=rec.late?' <span class="badge badge-amber">Late punch-in</span>':'';
+    statusEl.innerHTML=`<span class="badge ${badgeMap[rec.status]||'badge-blue'}">Done for today: ${ti} → ${to} (${esc(rec.status)})</span>${lateHint}`;
+    inBtn.style.display='none'; outBtn.style.display='none';
+    iconEl.textContent=rec.status==='present'?'✅':rec.status==='half-day'?'🌓':'🏁';
+  }
+  const ym=curMonth();
+  const mine=attendance.filter(a=>a.employeeId===currentUser.id && a.date&&a.date.startsWith(ym)).sort((a,b)=>b.date.localeCompare(a.date));
+  const lateCount=mine.filter(a=>a.late).length;
+  document.getElementById('my-att-late-count').textContent=`${lateCount} late this month`;
+  const presentCount=mine.filter(a=>a.status==='present').length;
+  const halfCount=mine.filter(a=>a.status==='half-day').length;
+  const absentCount=mine.filter(a=>a.status==='absent'||a.status==='leave').length;
+  document.getElementById('my-att-month-stats').innerHTML=`
+    <div class="snap-pill present"><div class="snap-n">${presentCount}</div><div class="snap-l">Present</div></div>
+    <div class="snap-pill half"><div class="snap-n">${halfCount}</div><div class="snap-l">Half Day</div></div>
+    <div class="snap-pill absent"><div class="snap-n">${absentCount}</div><div class="snap-l">Absent</div></div>
+    <div class="snap-pill pending"><div class="snap-n">${lateCount}</div><div class="snap-l">Late</div></div>`;
+  document.getElementById('my-att-body').innerHTML=mine.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">📅</div><p>Is month koi record nahi</p></div></td></tr>`:
+    mine.map(a=>{
+      const ci=a.checkIn?new Date(a.checkIn).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+      const co=a.checkOut?new Date(a.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
+      const badgeMap={present:'badge-green',absent:'badge-red',leave:'badge-amber','half-day':'badge-blue'};
+      const lateBadge=a.late?' <span class="badge badge-amber">Late</span>':'';
+      return `<tr><td class="date-chip">${a.date}</td><td>${ci}${lateBadge}</td><td>${co}</td><td><span class="badge ${badgeMap[a.status]||'badge-gray'}">${esc(a.status)}</span></td></tr>`;
+    }).join('');
+}
+
+async function employeeCheckIn(){
+  if(isMobileDevice()){toast('Check-in sirf office computer se hota hai, mobile/phone se nahi','error');return;}
+  const inBtn=document.getElementById('my-checkin-btn');
+  inBtn.disabled=true; inBtn.textContent='Checking network...';
+  const onOffice=await isOnOfficeNetwork();
+  inBtn.disabled=false; inBtn.innerHTML='✅ Check In';
+  if(!onOffice){toast('Aap office WiFi se connect nahi ho — check-in sirf office network se hota hai','error');return;}
+  const date=todayStr();
+  const id=attendanceId(currentUser.id,date);
+  const now=Date.now();
+  const status=computeAutoStatus(now,null);
+  const late=isLatePunch(now);
+  const rec={id,employeeId:currentUser.id,date,status,late,checkIn:now,checkOut:null,source:'self',updatedAt:now};
+  await fsSet(COL.attendance,id,rec);
+  const idx=attendance.findIndex(a=>a.id===id);
+  if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
+  await autoSyncLeaveFromAttendance(currentUser.id,curMonth());
+  if(late){
+    const emp=employees.find(e=>e.id===currentUser.id);
+    const t=new Date(now).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    sendWhatsAppAlert(`Kalpataru Polyplast: ${emp?emp.name:'Employee'} ne aaj late check-in kiya (${t}, 9:50 AM ke baad).`);
+  }
+  toast((late?'Late punch-in noted (9:50 ke baad). ':'')+(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!'));
+}
+
+async function employeeCheckOut(){
+  if(isMobileDevice()){toast('Check-out sirf office computer se hota hai, mobile/phone se nahi','error');return;}
+  const date=todayStr();
+  const id=attendanceId(currentUser.id,date);
+  const existing=attendance.find(a=>a.id===id);
+  if(!existing||!existing.checkIn){toast('Pehle check-in karo','error');return;}
+  const outBtn=document.getElementById('my-checkout-btn');
+  outBtn.disabled=true; outBtn.textContent='Checking network...';
+  const onOffice=await isOnOfficeNetwork();
+  outBtn.disabled=false; outBtn.innerHTML='🚪 Check Out';
+  if(!onOffice){toast('Aap office WiFi se connect nahi ho — check-out sirf office network se hota hai','error');return;}
+  const now=Date.now();
+  const status=computeAutoStatus(existing.checkIn,now);
+  await fsUpdate(COL.attendance,id,{checkOut:now,status,updatedAt:now});
+  existing.checkOut=now; existing.status=status;
+  await autoSyncLeaveFromAttendance(currentUser.id,curMonth());
+  toast(status==='half-day'?'Check-out done! (Half-day count hua)':status==='present'?'Check-out done! Full day present.':'Check-out done!');
+}
+
+function countAttendanceLeaveDays(empId,ym){
+  const recs=attendance.filter(a=>a.employeeId===empId && a.date&&a.date.startsWith(ym));
+  let total=0;
+  recs.forEach(a=>{
+    if(a.status==='absent'||a.status==='leave') total+=1;
+    if(a.status==='half-day') total+=0.5;
+  });
+  return total;
+}
+
+function applyAttendanceToLeave(empId){
+  const ym=document.getElementById('leave-month').value||curMonth();
+  const days=countAttendanceLeaveDays(empId,ym);
+  const inputEl=document.getElementById('taken-'+empId);
+  if(inputEl){ inputEl.value=days; previewBalance(empId,ym); }
+}
+
+// Auto-calculates an employee's leave/salary record for a month straight
+// from their attendance, and saves it -- unless an admin has manually
+// overridden that month (Monthly Leave Entry "Save & Calculate"), in which
+// case the override is left untouched.
+async function autoSyncLeaveFromAttendance(empId,ym){
+  // Attendance is always the source of truth: any check-in/check-out,
+  // admin manual mark, or auto-absent-mark recalculates and overwrites
+  // Leave Taken for that month, even if it was previously hand-typed on
+  // the Monthly Leave Entry page.
+  const existing=leaves.find(l=>l.employeeId===empId && l.month===ym);
+  const emp=employees.find(e=>e.id===empId);
+  if(!emp) return;
+  const openingCarry=Number(emp.carryIn||0);
+  const pm=prevMonth(ym);
+  const prevRec=leaves.find(l=>l.employeeId===empId && l.month===pm);
+  const carryIn=prevRec?Number(prevRec.balancePositive||0):openingCarry;
+  const taken=countAttendanceLeaveDays(empId,ym);
+  const available=carryIn+MONTHLY_ALLOWANCE;
+  const balance=available-taken;
+  const unpaidDays=balance<0?Math.abs(balance):0;
+  const balancePositive=balance>0?balance:0;
+  const id=existing?existing.id:uid();
+  await fsSet(COL.leaves,id,{employeeId:empId,month:ym,carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive,manualOverride:false,updatedAt:Date.now()});
+}
+
+async function autoSyncAllEmployeesForMonth(ym){
+  for(const emp of employees){ await autoSyncLeaveFromAttendance(emp.id,ym); }
+}
+
+
+// ── EMPLOYEES ─────────────────────────────────────────
+function renderEmployees(){
+  const search=((document.getElementById('emp-search')||{}).value||'').toLowerCase();
+  let sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  if(search) sorted=sorted.filter(e=>e.name.toLowerCase().includes(search)||(e.username||'').toLowerCase().includes(search));
+  document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><p>No employees found</p></div></td></tr>`:
+    sorted.map(e=>`<tr>
+      <td><strong>${esc(e.name)}</strong>${e.isAdmin?' <span class="badge badge-amber">Admin</span>':''}${e.isDemo?' <span class="badge badge-blue">Demo</span>':''}</td>
+      <td>${e.username?esc(e.username):'<span class="badge badge-gray">Not set</span>'}</td>
+      <td class="amount">₹${fmt(e.salary)}</td>
+      <td>${fmt(e.carryIn||0)}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="openEditEmployee('${e.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteEmployee('${e.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openAddEmployee(){
+  document.getElementById('emp-modal-title').textContent='Add Employee';
+  document.getElementById('emp-id').value='';
+  document.getElementById('emp-name').value='';
+  document.getElementById('emp-salary').value='';
+  document.getElementById('emp-carry').value='0';
+  document.getElementById('emp-username').value='';
+  document.getElementById('emp-password').value='';
+  document.getElementById('emp-admin').checked=false;
+  document.getElementById('emp-demo').checked=false;
+  openModal('emp-modal');
+}
+
+function openEditEmployee(id){
+  const e=employees.find(x=>x.id===id); if(!e) return;
+  document.getElementById('emp-modal-title').textContent='Edit Employee';
+  document.getElementById('emp-id').value=e.id;
+  document.getElementById('emp-name').value=e.name;
+  document.getElementById('emp-salary').value=e.salary;
+  document.getElementById('emp-carry').value=e.carryIn||0;
+  document.getElementById('emp-username').value=e.username||'';
+  document.getElementById('emp-password').value=e.password||'';
+  document.getElementById('emp-admin').checked=!!e.isAdmin;
+  document.getElementById('emp-demo').checked=!!e.isDemo;
+  openModal('emp-modal');
+}
+
+async function saveEmployee(){
+  const id=document.getElementById('emp-id').value;
+  const name=document.getElementById('emp-name').value.trim();
+  const salary=parseFloat(document.getElementById('emp-salary').value);
+  const carryIn=parseFloat(document.getElementById('emp-carry').value)||0;
+  const username=document.getElementById('emp-username').value.trim();
+  const password=document.getElementById('emp-password').value;
+  const isAdmin=document.getElementById('emp-admin').checked;
+  const isDemo=document.getElementById('emp-demo').checked;
+  if(!name){toast('Name enter karo','error');return;}
+  if(!salary||salary<=0){toast('Valid salary enter karo','error');return;}
+  if(username && !password){toast('Username ke saath password bhi set karo','error');return;}
+  if(isAdmin && !username){toast('Admin access ke liye username/password zaroor set karo','error');return;}
+  if(username){
+    const clash=employees.find(e=>e.username===username && e.id!==id);
+    if(clash){toast('Ye username pehle se kisi aur employee ka hai','error');return;}
+  }
+  const empId=id||uid();
+  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn,username:username||null,password:username?password:null,isAdmin:username?isAdmin:false,isDemo});
+  closeModal('emp-modal');
+  toast(id?'Employee updated!':'Employee added!');
+}
+
+async function deleteEmployee(id){
+  if(!confirm('Is employee ko delete karna chahte ho?'))return;
+  await fsDelete(COL.employees,id);
+  toast('Employee deleted','warning');
+}
+
+// ── MODAL / TOAST ─────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function toast(msg,type='success'){
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className='toast'+(type==='error'?' error':type==='warning'?' warning':'');
+  el.textContent=msg;
+  c.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
+init();
+</script>
+</body>
+</html>
