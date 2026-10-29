@@ -841,19 +841,52 @@ function computeLeaveForMonth(empId, ym){
   return {carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive};
 }
 
+// ── LATE PUNCH-IN PENALTY ───────────────────────────────
+const FREE_LATE_PER_MONTH=3; // first 3 late punch-ins a month are free
+const LATE_PENALTY_DAYS=0.5; // each late beyond the free quota costs half a day's pay
+
+function getLateCount(empId,ym){
+  return attendance.filter(a=>a.employeeId===empId && a.date&&a.date.startsWith(ym) && a.late && !a.lateExcused).length;
+}
+function getLatePenaltyDays(empId,ym){
+  return Math.max(0,getLateCount(empId,ym)-FREE_LATE_PER_MONTH)*LATE_PENALTY_DAYS;
+}
+
+// Combines the leave-balance calc with the late-punch penalty into the
+// final salary numbers shown everywhere (Dashboard, My Salary, Reports).
+function computeSalaryForMonth(empId,ym){
+  const emp=employees.find(e=>e.id===empId);
+  const c=computeLeaveForMonth(empId,ym);
+  const salary=Number(emp?emp.salary:0||0);
+  const perDay=salary/30;
+  const lateCount=getLateCount(empId,ym);
+  const latePenaltyDays=getLatePenaltyDays(empId,ym);
+  const totalUnpaidDays=c.unpaidDays+latePenaltyDays;
+  const deduction=totalUnpaidDays*perDay;
+  const net=salary-deduction;
+  return {...c,salary,perDay,lateCount,latePenaltyDays,totalUnpaidDays,deduction,net};
+}
+
+async function toggleLateExcuse(empId,date){
+  const id=attendanceId(empId,date);
+  const rec=attendance.find(a=>a.id===id);
+  if(!rec) return;
+  const newVal=!rec.lateExcused;
+  await fsUpdate(COL.attendance,id,{lateExcused:newVal});
+  rec.lateExcused=newVal;
+  renderAttendance();
+  toast(newVal?'Late excuse kar diya — penalty count mein nahi gina jayega':'Excuse hata diya — ab penalty count hoga');
+}
+
 // ── DASHBOARD ─────────────────────────────────────────
 function renderDashboard(){
   const ym=document.getElementById('dash-month').value||curMonth();
   const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
   let totalSalary=0, totalDeduction=0, totalNet=0, totalUnpaid=0;
   const rows=sorted.map(emp=>{
-    const c=computeLeaveForMonth(emp.id,ym);
-    const salary=Number(emp.salary||0);
-    const perDay=salary/30;
-    const deduction=c.unpaidDays*perDay;
-    const net=salary-deduction;
-    totalSalary+=salary;totalDeduction+=deduction;totalNet+=net;totalUnpaid+=c.unpaidDays;
-    return {emp,c,salary,deduction,net};
+    const s=computeSalaryForMonth(emp.id,ym);
+    totalSalary+=s.salary;totalDeduction+=s.deduction;totalNet+=s.net;totalUnpaid+=s.totalUnpaidDays;
+    return {emp,c:s,salary:s.salary,deduction:s.deduction,net:s.net};
   });
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-body"><div class="stat-label">Total Employees</div><div class="stat-value">${employees.length}</div><div class="stat-sub">Active</div></div></div>
@@ -899,7 +932,7 @@ function renderDashboard(){
       <td>${fmt(r.c.allowance)}</td>
       <td>${fmt(r.c.taken)}</td>
       <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${pct}%;background:${fillColor};"></span></span></td>
-      <td>${r.c.unpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+      <td>${r.c.totalUnpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.totalUnpaidDays)}</span>${r.c.latePenaltyDays>0?` <span class="badge badge-red" title="${fmt(r.c.lateCount)} late, ${FREE_LATE_PER_MONTH} free">+${fmt(r.c.latePenaltyDays)} late</span>`:''}`:'<span class="badge badge-green">0</span>'}</td>
       <td class="amount" style="color:var(--danger);">₹${fmt(r.deduction)}</td>
       <td class="amount" style="color:var(--success);">₹${fmt(r.net)}</td>
     </tr>`;}).join('');
@@ -909,12 +942,8 @@ function exportDashboard(){
   const ym=document.getElementById('dash-month').value||curMonth();
   const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
   const data=sorted.map(emp=>{
-    const c=computeLeaveForMonth(emp.id,ym);
-    const salary=Number(emp.salary||0);
-    const perDay=salary/30;
-    const deduction=c.unpaidDays*perDay;
-    const net=salary-deduction;
-    return {Employee:emp.name,'Monthly Salary':salary,'Carry Forward Leave':c.carryIn,'Monthly Allowance':c.allowance,'Leave Taken':c.taken,'Balance Leave':c.balance,'Unpaid Days':c.unpaidDays,'Deduction':deduction,'Net Salary':net};
+    const c=computeSalaryForMonth(emp.id,ym);
+    return {Employee:emp.name,'Monthly Salary':c.salary,'Carry Forward Leave':c.carryIn,'Monthly Allowance':c.allowance,'Leave Taken':c.taken,'Balance Leave':c.balance,'Unpaid Days':c.unpaidDays,'Late Punches':c.lateCount,'Late Penalty Days':c.latePenaltyDays,'Total Unpaid Days':c.totalUnpaidDays,'Deduction':c.deduction,'Net Salary':c.net};
   });
   const ws=XLSX.utils.json_to_sheet(data);
   const wb=XLSX.utils.book_new();
@@ -989,16 +1018,13 @@ function renderMySalary(){
   const ym=document.getElementById('my-salary-month').value||curMonth();
   const emp=employees.find(e=>e.id===currentUser.id);
   if(!emp) return;
-  const c=computeLeaveForMonth(emp.id,ym);
-  const salary=Number(emp.salary||0);
-  const perDay=salary/30;
-  const deduction=c.unpaidDays*perDay;
-  const net=salary-deduction;
+  const c=computeSalaryForMonth(emp.id,ym);
 
   document.getElementById('my-salary-stats').innerHTML=`
-    <div class="stat-card blue"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Monthly Salary</div><div class="stat-value">₹${fmt(salary)}</div><div class="stat-sub">Gross</div></div></div>
-    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Deduction</div><div class="stat-value">₹${fmt(deduction)}</div><div class="stat-sub">${fmt(c.unpaidDays)} unpaid days</div></div></div>
-    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Net Payable</div><div class="stat-value">₹${fmt(net)}</div><div class="stat-sub">After deductions</div></div></div>`;
+    <div class="stat-card blue"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Monthly Salary</div><div class="stat-value">₹${fmt(c.salary)}</div><div class="stat-sub">Gross</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Deduction</div><div class="stat-value">₹${fmt(c.deduction)}</div><div class="stat-sub">${fmt(c.totalUnpaidDays)} unpaid days${c.latePenaltyDays>0?` (${fmt(c.latePenaltyDays)} late penalty)`:''}</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Net Payable</div><div class="stat-value">₹${fmt(c.net)}</div><div class="stat-sub">After deductions</div></div></div>
+    <div class="stat-card ${c.lateCount>FREE_LATE_PER_MONTH?'red':'amber'}"><div class="stat-icon">⏰</div><div class="stat-body"><div class="stat-label">Late This Month</div><div class="stat-value">${fmt(c.lateCount)}</div><div class="stat-sub">${FREE_LATE_PER_MONTH} free, uske baad har late = ${LATE_PENALTY_DAYS} din ki katauti</div></div></div>`;
 
   const availPct=Math.max(0,Math.min(100,(c.balance/(c.allowance+13.5||1))*100));
   const availColor=c.balance<0?'var(--danger)':c.balance<1?'var(--warning)':'var(--success)';
@@ -1008,7 +1034,7 @@ function renderMySalary(){
     <td><strong>${fmt(c.available)}</strong></td>
     <td>${fmt(c.taken)}</td>
     <td><span class="badge ${c.balance<0?'badge-red':'badge-green'}">${fmt(c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${availPct}%;background:${availColor};"></span></span></td>
-    <td>${c.unpaidDays>0?`<span class="badge badge-amber">${fmt(c.unpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+    <td>${c.totalUnpaidDays>0?`<span class="badge badge-amber">${fmt(c.totalUnpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
   </tr>`;
 }
 
@@ -1055,13 +1081,9 @@ function renderReports(){
   const months=getReportMonths();
   let totalSalary=0,totalTaken=0,totalUnpaid=0,totalDeduction=0,totalNet=0;
   const rows=months.map(ym=>{
-    const c=computeLeaveForMonth(empId,ym);
-    const salary=Number(emp.salary||0);
-    const perDay=salary/30;
-    const deduction=c.unpaidDays*perDay;
-    const net=salary-deduction;
-    totalSalary+=salary;totalTaken+=c.taken;totalUnpaid+=c.unpaidDays;totalDeduction+=deduction;totalNet+=net;
-    return {ym,c,salary,deduction,net};
+    const c=computeSalaryForMonth(empId,ym);
+    totalSalary+=c.salary;totalTaken+=c.taken;totalUnpaid+=c.totalUnpaidDays;totalDeduction+=c.deduction;totalNet+=c.net;
+    return {ym,c,salary:c.salary,deduction:c.deduction,net:c.net};
   });
 
   document.getElementById('rep-stats').innerHTML=`
@@ -1090,12 +1112,8 @@ function exportReport(){
   if(!emp) return;
   const months=getReportMonths();
   const data=months.map(ym=>{
-    const c=computeLeaveForMonth(empId,ym);
-    const salary=Number(emp.salary||0);
-    const perDay=salary/30;
-    const deduction=c.unpaidDays*perDay;
-    const net=salary-deduction;
-    return {Month:ym,'Monthly Salary':salary,'Carry Forward':c.carryIn,'Allowance':c.allowance,'Leave Taken':c.taken,'Balance':c.balance,'Unpaid Days':c.unpaidDays,'Deduction':deduction,'Net Salary':net};
+    const c=computeSalaryForMonth(empId,ym);
+    return {Month:ym,'Monthly Salary':c.salary,'Carry Forward':c.carryIn,'Allowance':c.allowance,'Leave Taken':c.taken,'Balance':c.balance,'Unpaid Days':c.unpaidDays,'Late Punches':c.lateCount,'Late Penalty Days':c.latePenaltyDays,'Total Unpaid Days':c.totalUnpaidDays,'Deduction':c.deduction,'Net Salary':c.net};
   });
   const ws=XLSX.utils.json_to_sheet(data);
   const wb=XLSX.utils.book_new();
@@ -1358,7 +1376,10 @@ function renderAttendance(){
     const checkOut=rec&&rec.checkOut?new Date(rec.checkOut).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'-';
     const markedByMap={self:'<span class="badge badge-blue">Self</span>',auto:'<span class="badge badge-amber">Auto</span>'};
     const markedBy=rec?(markedByMap[rec.source]||'<span class="badge badge-gray">Admin</span>'):'';
-    const lateBadge=rec&&rec.late?' <span class="badge badge-amber">Late</span>':'';
+    const lateBadge=rec&&rec.late?(rec.lateExcused
+        ?` <span class="badge badge-green">Late (Excused)</span> <button class="btn btn-ghost btn-sm" onclick="toggleLateExcuse('${emp.id}','${date}')" style="padding:2px 8px;font-size:11px;">Undo Excuse</button>`
+        :` <span class="badge badge-amber">Late</span> <button class="btn btn-ghost btn-sm" onclick="toggleLateExcuse('${emp.id}','${date}')" style="padding:2px 8px;font-size:11px;">Excuse (Emergency)</button>`
+      ):'';
     return `<tr data-emp="${emp.id}">
       <td><strong>${esc(emp.name)}</strong></td>
       <td>${checkIn}${lateBadge}</td>
