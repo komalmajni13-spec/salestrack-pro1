@@ -639,7 +639,6 @@ async function init(){
   showLoading(true);
   try{
     employees=await fsGetAll(COL.employees);
-    if(employees.length===0){ await seedIfNeeded(); employees=await fsGetAll(COL.employees); }
     leaves=await fsGetAll(COL.leaves);
     attendance=await fsGetAll(COL.attendance);
     leaveRequests=await fsGetAll(COL.leaveRequests);
