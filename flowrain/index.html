@@ -1449,6 +1449,11 @@ async function employeeCheckIn(){
   const idx=attendance.findIndex(a=>a.id===id);
   if(idx>=0) attendance[idx]=rec; else attendance.push(rec);
   await autoSyncLeaveFromAttendance(currentUser.id,curMonth());
+  if(late){
+    const emp=employees.find(e=>e.id===currentUser.id);
+    const t=new Date(now).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    sendWhatsAppAlert(`Flowrain: ${emp?emp.name:'Employee'} ne aaj late check-in kiya (${t}, 10:45 AM ke baad).`);
+  }
   toast((late?'Late punch-in noted (10:45 ke baad). ':'')+(status==='half-day'?'Check-in done! (1:30 ke baad aane se half-day count hoga)':'Check-in done!'));
 }
 
