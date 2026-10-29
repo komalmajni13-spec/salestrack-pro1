@@ -321,6 +321,14 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <div id="office-ip-list"></div>
             </div>
           </div>
+          <div class="card" style="max-width:560px;">
+            <div class="card-header"><div class="card-title">🚀 Attendance Start Date</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">System sirf is date se "Auto Absent" mark karega — isse pehle ke dinon ko kabhi absent nahi karega, chahe koi check-in na ho (jab tak app test ho raha tha unke liye). Jab roz ka real use shuru karna ho, aaj ki date yahan set kar do.</p>
+              <div class="form-group"><input class="form-control" type="date" id="start-date-input" style="max-width:220px;"></div>
+              <button class="btn btn-primary btn-sm" onclick="saveStartDate()">Save</button>
+            </div>
+          </div>
         </div>
 
         <!-- REPORTS (EMPLOYEE-WISE MONTHLY/QUARTERLY/YEARLY) -->
@@ -582,6 +590,7 @@ function computeAutoStatus(checkIn,checkOut){
 let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
 let officeIps=[];
+let attendanceStartDate=null; // YYYY-MM-DD; auto-absent never fires before this date
 let leaveRequests=[]; // {id, employeeId, fromDate, toDate, reason, status:'pending'|'approved'|'rejected', requestedAt, decidedAt}
 let waSettings={phone:'',idInstance:'',apiToken:''};
 let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null, unsubLeaveRequests=null;
@@ -636,6 +645,8 @@ async function init(){
     if(adminAuthDoc.exists) adminAuth={...DEFAULT_ADMIN,...adminAuthDoc.data()};
     const waDoc=await db.collection(COL.meta).doc('whatsappAlert').get();
     if(waDoc.exists) waSettings={...waSettings,...waDoc.data()};
+    const startDoc=await db.collection(COL.meta).doc('attendanceStart').get();
+    if(startDoc.exists) attendanceStartDate=startDoc.data().date||null;
   }catch(e){
     employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[]; leaveRequests=[];
   }
@@ -765,9 +776,11 @@ function startApp(){
 // wrong auto-mark from the Manual Attendance page afterwards.
 async function autoMarkAbsentees(){
   try{
+    if(!attendanceStartDate) return; // admin hasn't set a go-live date yet -- never auto-mark
     const y=new Date(); y.setDate(y.getDate()-1);
     if(y.getDay()===0) return; // skip Sunday
     const dateStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+    if(dateStr<attendanceStartDate) return; // before go-live -- never backfill absences
     const ym=dateStr.slice(0,7);
     const touched=[];
     for(const emp of employees){
@@ -1286,6 +1299,16 @@ async function renderOfficeWifi(){
   document.getElementById('office-ip-list').innerHTML=officeIps.length===0?
     `<p class="help-text">Koi IP add nahi hui — abhi kisi bhi network se check-in ho sakta hai.</p>`:
     officeIps.map(ip=>`<div class="user-card"><div class="info" style="flex:1;"><div class="nm">${esc(ip)}</div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeOfficeIp('${esc(ip)}')">🗑️ Remove</button></div>`).join('');
+  const sdInput=document.getElementById('start-date-input');
+  if(sdInput) sdInput.value=attendanceStartDate||'';
+}
+
+async function saveStartDate(){
+  const val=document.getElementById('start-date-input').value;
+  if(!val){toast('Date choose karo','error');return;}
+  attendanceStartDate=val;
+  await db.collection(COL.meta).doc('attendanceStart').set({date:val});
+  toast('Attendance start date set ho gayi! Ab is date se pehle kabhi auto-absent nahi lagega.');
 }
 
 async function addCurrentIpAsOffice(){
