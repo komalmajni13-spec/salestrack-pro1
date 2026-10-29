@@ -533,6 +533,10 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
         <input type="checkbox" id="emp-admin" style="width:16px;height:16px;">
         <label style="margin:0;text-transform:none;font-size:13px;color:var(--text);" for="emp-admin">Admin Access do (full dashboard, sab employees manage kar sakega)</label>
       </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="emp-demo" style="width:16px;height:16px;">
+        <label style="margin:0;text-transform:none;font-size:13px;color:var(--text);" for="emp-demo">Demo Employee (naye employees ko demo dikhane ke liye — yeh kisi bhi total/salary report mein count nahi hoga)</label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('emp-modal')">Cancel</button>
@@ -784,6 +788,7 @@ async function autoMarkAbsentees(){
     const ym=dateStr.slice(0,7);
     const touched=[];
     for(const emp of employees){
+      if(emp.isDemo) continue; // never auto-mark demo employees
       const id=attendanceId(emp.id,dateStr);
       if(attendance.find(a=>a.id===id)) continue;
       const rec={id,employeeId:emp.id,date:dateStr,status:'absent',late:false,checkIn:null,checkOut:null,source:'auto',updatedAt:Date.now()};
@@ -881,7 +886,8 @@ async function toggleLateExcuse(empId,date){
 // ── DASHBOARD ─────────────────────────────────────────
 function renderDashboard(){
   const ym=document.getElementById('dash-month').value||curMonth();
-  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const realEmployees=employees.filter(e=>!e.isDemo);
+  const sorted=[...realEmployees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
   let totalSalary=0, totalDeduction=0, totalNet=0, totalUnpaid=0;
   const rows=sorted.map(emp=>{
     const s=computeSalaryForMonth(emp.id,ym);
@@ -889,19 +895,20 @@ function renderDashboard(){
     return {emp,c:s,salary:s.salary,deduction:s.deduction,net:s.net};
   });
   document.getElementById('dash-stats').innerHTML=`
-    <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-body"><div class="stat-label">Total Employees</div><div class="stat-value">${employees.length}</div><div class="stat-sub">Active</div></div></div>
+    <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-body"><div class="stat-label">Total Employees</div><div class="stat-value">${realEmployees.length}</div><div class="stat-sub">Active</div></div></div>
     <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Total Salary (Gross)</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">This month</div></div></div>
     <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div></div>
     <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
 
   // Today's attendance snapshot
   const today=todayStr();
-  const todayRecs=attendance.filter(a=>a.date===today);
+  const demoIds=new Set(employees.filter(e=>e.isDemo).map(e=>e.id));
+  const todayRecs=attendance.filter(a=>a.date===today && !demoIds.has(a.employeeId));
   const presentList=todayRecs.filter(a=>a.status==='present');
   const halfList=todayRecs.filter(a=>a.status==='half-day');
   const absentList=todayRecs.filter(a=>a.status==='absent'||a.status==='leave');
   const markedIds=new Set(todayRecs.map(a=>a.employeeId));
-  const pendingCount=employees.filter(e=>!markedIds.has(e.id)).length;
+  const pendingCount=realEmployees.filter(e=>!markedIds.has(e.id)).length;
   const avatarColors=['#15803d','#2563eb','#d97706','#dc2626','#7c3aed','#0891b2','#be185d','#65a30d'];
   function empColor(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))%avatarColors.length; return avatarColors[h]; }
   function chip(empId){
@@ -940,7 +947,7 @@ function renderDashboard(){
 
 function exportDashboard(){
   const ym=document.getElementById('dash-month').value||curMonth();
-  const sorted=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const sorted=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
   const data=sorted.map(emp=>{
     const c=computeSalaryForMonth(emp.id,ym);
     return {Employee:emp.name,'Monthly Salary':c.salary,'Carry Forward Leave':c.carryIn,'Monthly Allowance':c.allowance,'Leave Taken':c.taken,'Balance Leave':c.balance,'Unpaid Days':c.unpaidDays,'Late Punches':c.lateCount,'Late Penalty Days':c.latePenaltyDays,'Total Unpaid Days':c.totalUnpaidDays,'Deduction':c.deduction,'Net Salary':c.net};
@@ -1042,7 +1049,7 @@ function renderMySalary(){
 function populateReportFilters(){
   const empSel=document.getElementById('rep-employee');
   if(empSel.options.length===0){
-    empSel.innerHTML=[...employees].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+    empSel.innerHTML=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
   }
   const yearSel=document.getElementById('rep-year');
   if(yearSel.options.length===0){
@@ -1574,7 +1581,7 @@ function renderEmployees(){
   if(search) sorted=sorted.filter(e=>e.name.toLowerCase().includes(search)||(e.username||'').toLowerCase().includes(search));
   document.getElementById('emp-body').innerHTML=sorted.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><p>No employees found</p></div></td></tr>`:
     sorted.map(e=>`<tr>
-      <td><strong>${esc(e.name)}</strong>${e.isAdmin?' <span class="badge badge-amber">Admin</span>':''}</td>
+      <td><strong>${esc(e.name)}</strong>${e.isAdmin?' <span class="badge badge-amber">Admin</span>':''}${e.isDemo?' <span class="badge badge-blue">Demo</span>':''}</td>
       <td>${e.username?esc(e.username):'<span class="badge badge-gray">Not set</span>'}</td>
       <td class="amount">₹${fmt(e.salary)}</td>
       <td>${fmt(e.carryIn||0)}</td>
@@ -1594,6 +1601,7 @@ function openAddEmployee(){
   document.getElementById('emp-username').value='';
   document.getElementById('emp-password').value='';
   document.getElementById('emp-admin').checked=false;
+  document.getElementById('emp-demo').checked=false;
   openModal('emp-modal');
 }
 
@@ -1607,6 +1615,7 @@ function openEditEmployee(id){
   document.getElementById('emp-username').value=e.username||'';
   document.getElementById('emp-password').value=e.password||'';
   document.getElementById('emp-admin').checked=!!e.isAdmin;
+  document.getElementById('emp-demo').checked=!!e.isDemo;
   openModal('emp-modal');
 }
 
@@ -1618,6 +1627,7 @@ async function saveEmployee(){
   const username=document.getElementById('emp-username').value.trim();
   const password=document.getElementById('emp-password').value;
   const isAdmin=document.getElementById('emp-admin').checked;
+  const isDemo=document.getElementById('emp-demo').checked;
   if(!name){toast('Name enter karo','error');return;}
   if(!salary||salary<=0){toast('Valid salary enter karo','error');return;}
   if(username && !password){toast('Username ke saath password bhi set karo','error');return;}
@@ -1627,7 +1637,7 @@ async function saveEmployee(){
     if(clash){toast('Ye username pehle se kisi aur employee ka hai','error');return;}
   }
   const empId=id||uid();
-  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn,username:username||null,password:username?password:null,isAdmin:username?isAdmin:false});
+  await fsSet(COL.employees,empId,{id:empId,name,salary,carryIn,username:username||null,password:username?password:null,isAdmin:username?isAdmin:false,isDemo});
   closeModal('emp-modal');
   toast(id?'Employee updated!':'Employee added!');
 }
