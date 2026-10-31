@@ -1112,7 +1112,8 @@ function renderReport(){
     empList.forEach(e=>{e.monthly.forEach((v,i)=>monthTotals[i]+=v);e.monthlyBase.forEach((v,i)=>monthTotalsBase[i]+=v);});
     content.innerHTML=empList.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi ${year} mein</p></div>`:`
       <div class="stat-grid">
-        <div class="stat-card green"><div class="stat-label">${year} Turnover (With GST)</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">Base: ₹${fmt(grandTotalBase)} · ${allOrders.length} orders</div></div>
+        <div class="stat-card green"><div class="stat-label">${year} Turnover (With GST)</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">${allOrders.length} orders</div></div>
+        <div class="stat-card"><div class="stat-label">${year} Base (Excl. GST)</div><div class="stat-value">₹${fmt(grandTotalBase)}</div><div class="stat-sub">GST: ₹${fmt(grandTotal-grandTotalBase)}</div></div>
         <div class="stat-card blue"><div class="stat-label">Active Executives</div><div class="stat-value">${empList.length}</div></div>
       </div>
       <div class="card"><div class="card-header"><div class="card-title">📅 ${year} — Employee-wise Monthly Sales (With GST)</div></div>
@@ -1133,7 +1134,8 @@ function renderReport(){
     const grandTotalBase=vis.reduce((s,o)=>s+Number(o.amount),0);
     content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi</p></div>`:`
       <div class="stat-grid">
-        <div class="stat-card green"><div class="stat-label">Month Total (With GST)</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">Base: ₹${fmt(grandTotalBase)} · ${vis.length} orders</div></div>
+        <div class="stat-card green"><div class="stat-label">Month Total (With GST)</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">${vis.length} orders</div></div>
+        <div class="stat-card"><div class="stat-label">Month Base (Excl. GST)</div><div class="stat-value">₹${fmt(grandTotalBase)}</div><div class="stat-sub">GST: ₹${fmt(grandTotal-grandTotalBase)}</div></div>
         <div class="stat-card blue"><div class="stat-label">Active Executives</div><div class="stat-value">${sorted.length}</div></div>
       </div>
       <div class="card"><div class="card-header"><div class="card-title">Executive-wise Monthly Breakdown</div></div><div class="table-wrap"><table><thead><tr><th>Executive</th><th>Department</th><th>Orders</th><th>Total Sales</th><th>Avg Order</th></tr></thead><tbody>${sorted.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td><span class="badge ${e.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(e.dept)}</span></td><td>${e.orders.length}</td><td class="amount">₹${fmt(e.total)}</td><td class="amount">₹${fmt(e.total/e.orders.length)}</td></tr>`).join('')}</tbody></table></div></div>`;
