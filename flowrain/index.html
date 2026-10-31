@@ -354,7 +354,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           <div class="card">
             <div class="card-header"><div class="card-title" id="rep-table-title">Month-wise Breakdown</div></div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Month</th><th>Salary (₹)</th><th>Carry Fwd</th><th>Allowance</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net (₹)</th></tr></thead>
+              <thead><tr><th id="rep-col1-th">Month</th><th>Salary (₹)</th><th>Carry Fwd</th><th>Allowance</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net (₹)</th></tr></thead>
               <tbody id="rep-body"></tbody>
             </table></div>
           </div>
@@ -1049,7 +1049,7 @@ function renderMySalary(){
 function populateReportFilters(){
   const empSel=document.getElementById('rep-employee');
   if(empSel.options.length===0){
-    empSel.innerHTML=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+    empSel.innerHTML='<option value="__all__">👥 All Employees</option>'+[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
   }
   const yearSel=document.getElementById('rep-year');
   if(yearSel.options.length===0){
@@ -1083,6 +1083,7 @@ function renderReports(){
   if(!document.getElementById('rep-month').value) document.getElementById('rep-month').value=curMonth();
 
   const empId=document.getElementById('rep-employee').value;
+  if(empId==='__all__'){ renderAllEmployeesReport(); return; }
   const emp=employees.find(e=>e.id===empId);
   if(!emp) return;
   const months=getReportMonths();
@@ -1100,6 +1101,7 @@ function renderReports(){
     <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
 
   document.getElementById('rep-table-title').textContent=`${esc(emp.name)} — Month-wise Breakdown`;
+  document.getElementById('rep-col1-th').textContent='Month';
   document.getElementById('rep-body').innerHTML=rows.map(r=>`<tr>
     <td>${r.ym}</td>
     <td class="amount">₹${fmt(r.salary)}</td>
@@ -1113,8 +1115,43 @@ function renderReports(){
   </tr>`).join('');
 }
 
+// All-employees-for-one-month view, for handing the whole company's salary straight to accounts.
+function renderAllEmployeesReport(){
+  document.getElementById('rep-period-type').value='monthly';
+  document.getElementById('rep-month').style.display='inline-block';
+  document.getElementById('rep-quarter').style.display='none';
+  document.getElementById('rep-year').style.display='none';
+  const ym=document.getElementById('rep-month').value||curMonth();
+  const sorted=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  let totalSalary=0,totalTaken=0,totalUnpaid=0,totalDeduction=0,totalNet=0;
+  const rows=sorted.map(emp=>{
+    const c=computeSalaryForMonth(emp.id,ym);
+    totalSalary+=c.salary;totalTaken+=c.taken;totalUnpaid+=c.totalUnpaidDays;totalDeduction+=c.deduction;totalNet+=c.net;
+    return {emp,c};
+  });
+  document.getElementById('rep-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Total Salary</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">${sorted.length} employees — ${ym}</div></div></div>
+    <div class="stat-card amber"><div class="stat-icon">📅</div><div class="stat-body"><div class="stat-label">Total Leave Taken</div><div class="stat-value">${fmt(totalTaken)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">Across company</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
+  document.getElementById('rep-table-title').textContent=`All Employees — ${ym}`;
+  document.getElementById('rep-col1-th').textContent='Employee';
+  document.getElementById('rep-body').innerHTML=rows.map(r=>`<tr>
+    <td><strong>${esc(r.emp.name)}</strong></td>
+    <td class="amount">₹${fmt(r.c.salary)}</td>
+    <td>${fmt(r.c.carryIn)}</td>
+    <td>${fmt(r.c.allowance)}</td>
+    <td>${fmt(r.c.taken)}</td>
+    <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span></td>
+    <td>${r.c.totalUnpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.totalUnpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+    <td class="amount" style="color:var(--danger);">₹${fmt(r.c.deduction)}</td>
+    <td class="amount" style="color:var(--success);">₹${fmt(r.c.net)}</td>
+  </tr>`).join('');
+}
+
 function exportReport(){
   const empId=document.getElementById('rep-employee').value;
+  if(empId==='__all__'){ exportAllEmployeesReport(); return; }
   const emp=employees.find(e=>e.id===empId);
   if(!emp) return;
   const months=getReportMonths();
@@ -1126,6 +1163,19 @@ function exportReport(){
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Report');
   XLSX.writeFile(wb,`Flowrain_Report_${emp.name.replace(/\s+/g,'_')}.xlsx`);
+}
+
+function exportAllEmployeesReport(){
+  const ym=document.getElementById('rep-month').value||curMonth();
+  const sorted=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const data=sorted.map(emp=>{
+    const c=computeSalaryForMonth(emp.id,ym);
+    return {Employee:emp.name,'Monthly Salary':c.salary,'Carry Forward Leave':c.carryIn,'Monthly Allowance':c.allowance,'Leave Taken':c.taken,'Balance Leave':c.balance,'Unpaid Days':c.unpaidDays,'Late Punches':c.lateCount,'Late Penalty Days':c.latePenaltyDays,'Total Unpaid Days':c.totalUnpaidDays,'Deduction':c.deduction,'Net Salary':c.net};
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'All-'+ym);
+  XLSX.writeFile(wb,`Flowrain_Salary_Report_${ym}.xlsx`);
 }
 
 // ── WHATSAPP ALERTS ─────────────────────────────────────
