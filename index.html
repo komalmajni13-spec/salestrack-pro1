@@ -1159,7 +1159,9 @@ function uploadFile(orderId, type){
       fd.append('file',file);
       fd.append('upload_preset',UPLOAD_PRESET);
       fd.append('folder','salestrack');
-      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`,{method:'POST',body:fd});
+      const isPdf=file.type==='application/pdf';
+      const endpoint=isPdf?'raw':'image';
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${endpoint}/upload`,{method:'POST',body:fd});
       const data=await res.json();
       if(data.secure_url){
         const field=type==='bill'?'billUrl':'lrUrl';
