@@ -762,7 +762,11 @@ function showPage(id){
     if(b&&currentUser.dept&&currentUser.dept!=='admin') b.innerHTML=`<span class="badge ${currentUser.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${currentUser.dept}</span>`;
   }
   if(id==='dashboard')renderDashboard();
-  if(id==='orders')renderOrders();
+  if(id==='orders'){
+    const mEl=document.getElementById('ord-month');
+    if(mEl&&!mEl.value) mEl.value=new Date().toISOString().slice(0,7);
+    renderOrders();
+  }
   if(id==='customers')renderCustomers();
   if(id==='reports')renderReport();
   if(id==='sources')renderSources();
