@@ -1309,12 +1309,15 @@ async function saveLeaveEntries(){
     const balance=c.available-taken;
     const unpaidDays=balance<0?Math.abs(balance):0;
     const balancePositive=balance>0?balance:0;
+    // store the gap between what admin typed and what attendance alone accounts for,
+    // so a later check-in/attendance sync doesn't wipe this manual entry -- it keeps adding this offset back.
+    const manualExtra=taken-countAttendanceLeaveDays(emp.id,ym);
     const existing=leaves.find(l=>l.employeeId===emp.id && l.month===ym);
-    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,updatedAt:Date.now()};
+    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,manualExtra,updatedAt:Date.now()};
     const id=existing?existing.id:uid();
     await fsSet(COL.leaves,id,rec);
   }
-  toast('Leave entries saved & salary calculated! (Agli baar is employee ki attendance mark hogi to ye number phir se attendance ke hisaab se update ho jayega)');
+  toast('Leave entries saved & salary calculated!');
 }
 
 // ── OFFICE WIFI RESTRICTION ─────────────────────────────
@@ -1560,13 +1563,14 @@ async function autoSyncLeaveFromAttendance(empId,ym){
   const pm=prevMonth(ym);
   const prevRec=leaves.find(l=>l.employeeId===empId && l.month===pm);
   const carryIn=prevRec?Number(prevRec.balancePositive||0):openingCarry;
-  const taken=countAttendanceLeaveDays(empId,ym);
+  const manualExtra=existing?Number(existing.manualExtra||0):0;
+  const taken=countAttendanceLeaveDays(empId,ym)+manualExtra;
   const available=carryIn+MONTHLY_ALLOWANCE;
   const balance=available-taken;
   const unpaidDays=balance<0?Math.abs(balance):0;
   const balancePositive=balance>0?balance:0;
   const id=existing?existing.id:uid();
-  await fsSet(COL.leaves,id,{employeeId:empId,month:ym,carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive,manualOverride:false,updatedAt:Date.now()});
+  await fsSet(COL.leaves,id,{employeeId:empId,month:ym,carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive,manualExtra,updatedAt:Date.now()});
 }
 
 async function autoSyncAllEmployeesForMonth(ym){
