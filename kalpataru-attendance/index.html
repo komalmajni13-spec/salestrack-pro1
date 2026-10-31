@@ -329,6 +329,19 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <button class="btn btn-primary btn-sm" onclick="saveStartDate()">Save</button>
             </div>
           </div>
+          <div class="card" style="max-width:560px;">
+            <div class="card-header"><div class="card-title">🎉 Holidays</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">In dates pe koi bhi employee check-in na kare to "Auto Absent" nahi lagega aur leave balance bhi nahi katega — company holiday maana jayega, sabki full salary rahegi.</p>
+              <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;">
+                <div class="form-group" style="margin:0;"><label>From</label><input class="form-control" type="date" id="holiday-from" style="max-width:170px;"></div>
+                <div class="form-group" style="margin:0;"><label>To</label><input class="form-control" type="date" id="holiday-to" style="max-width:170px;"></div>
+                <div class="form-group" style="margin:0;flex:1;min-width:150px;"><label>Reason</label><input class="form-control" type="text" id="holiday-reason" placeholder="jaise Diwali"></div>
+                <button class="btn btn-primary btn-sm" onclick="addHolidayRange()">+ Add</button>
+              </div>
+              <div id="holiday-list"></div>
+            </div>
+          </div>
         </div>
 
         <!-- REPORTS (EMPLOYEE-WISE MONTHLY/QUARTERLY/YEARLY) -->
@@ -354,7 +367,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
           <div class="card">
             <div class="card-header"><div class="card-title" id="rep-table-title">Month-wise Breakdown</div></div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Month</th><th>Salary (₹)</th><th>Carry Fwd</th><th>Allowance</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net (₹)</th></tr></thead>
+              <thead><tr><th id="rep-col1-th">Month</th><th>Salary (₹)</th><th>Carry Fwd</th><th>Allowance</th><th>Leave Taken</th><th>Balance</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net (₹)</th></tr></thead>
               <tbody id="rep-body"></tbody>
             </table></div>
           </div>
@@ -421,6 +434,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <button class="btn btn-danger btn-full" id="my-checkout-btn" style="display:none;margin-top:10px;" onclick="employeeCheckOut()">🚪 Check Out</button>
             </div>
           </div>
+          <div id="my-att-holiday-banner" style="max-width:460px;"></div>
           <p class="help-text" style="max-width:460px;margin:10px 0 18px;">Office time: 9:30 AM – 6:30 PM. Kam se kam <strong>7 ghante kaam</strong> karne par full day present count hoga, <strong>4 ghante se kam</strong> kaam kiya to absent maana jayega (half-day nahi milega) — sirf check-in karke turant check-out karne se half-day nahi ban jayega. <strong>Check-in/check-out sirf office ke computer se hoga — mobile/phone se nahi hoga.</strong></p>
           <div class="snap-grid" id="my-att-month-stats" style="margin-bottom:18px;"></div>
           <div class="card">
@@ -595,6 +609,7 @@ let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
 let officeIps=[];
 let attendanceStartDate=null; // YYYY-MM-DD; auto-absent never fires before this date
+let holidays=[]; // [{id,from,to,reason}] -- auto-absent & leave deduction skipped on these dates
 let leaveRequests=[]; // {id, employeeId, fromDate, toDate, reason, status:'pending'|'approved'|'rejected', requestedAt, decidedAt}
 let waSettings={phone:'',idInstance:'',apiToken:''};
 let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null, unsubLeaveRequests=null;
@@ -650,6 +665,8 @@ async function init(){
     if(waDoc.exists) waSettings={...waSettings,...waDoc.data()};
     const startDoc=await db.collection(COL.meta).doc('attendanceStart').get();
     if(startDoc.exists) attendanceStartDate=startDoc.data().date||null;
+    const holDoc=await db.collection(COL.meta).doc('holidays').get();
+    holidays=holDoc.exists?(holDoc.data().list||[]):[];
   }catch(e){
     employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[]; leaveRequests=[];
   }
@@ -784,6 +801,7 @@ async function autoMarkAbsentees(){
     if(y.getDay()===0) return; // skip Sunday
     const dateStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
     if(dateStr<attendanceStartDate) return; // before go-live -- never backfill absences
+    if(isHoliday(dateStr)) return; // company holiday -- never auto-mark absent
     const ym=dateStr.slice(0,7);
     const touched=[];
     for(const emp of employees){
@@ -1048,7 +1066,7 @@ function renderMySalary(){
 function populateReportFilters(){
   const empSel=document.getElementById('rep-employee');
   if(empSel.options.length===0){
-    empSel.innerHTML=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+    empSel.innerHTML='<option value="__all__">👥 All Employees</option>'+[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
   }
   const yearSel=document.getElementById('rep-year');
   if(yearSel.options.length===0){
@@ -1082,6 +1100,7 @@ function renderReports(){
   if(!document.getElementById('rep-month').value) document.getElementById('rep-month').value=curMonth();
 
   const empId=document.getElementById('rep-employee').value;
+  if(empId==='__all__'){ renderAllEmployeesReport(); return; }
   const emp=employees.find(e=>e.id===empId);
   if(!emp) return;
   const months=getReportMonths();
@@ -1099,6 +1118,7 @@ function renderReports(){
     <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
 
   document.getElementById('rep-table-title').textContent=`${esc(emp.name)} — Month-wise Breakdown`;
+  document.getElementById('rep-col1-th').textContent='Month';
   document.getElementById('rep-body').innerHTML=rows.map(r=>`<tr>
     <td>${r.ym}</td>
     <td class="amount">₹${fmt(r.salary)}</td>
@@ -1112,8 +1132,43 @@ function renderReports(){
   </tr>`).join('');
 }
 
+// All-employees-for-one-month view, for handing the whole company's salary straight to accounts.
+function renderAllEmployeesReport(){
+  document.getElementById('rep-period-type').value='monthly';
+  document.getElementById('rep-month').style.display='inline-block';
+  document.getElementById('rep-quarter').style.display='none';
+  document.getElementById('rep-year').style.display='none';
+  const ym=document.getElementById('rep-month').value||curMonth();
+  const sorted=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  let totalSalary=0,totalTaken=0,totalUnpaid=0,totalDeduction=0,totalNet=0;
+  const rows=sorted.map(emp=>{
+    const c=computeSalaryForMonth(emp.id,ym);
+    totalSalary+=c.salary;totalTaken+=c.taken;totalUnpaid+=c.totalUnpaidDays;totalDeduction+=c.deduction;totalNet+=c.net;
+    return {emp,c};
+  });
+  document.getElementById('rep-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-body"><div class="stat-label">Total Salary</div><div class="stat-value">₹${fmt(totalSalary)}</div><div class="stat-sub">${sorted.length} employees — ${ym}</div></div></div>
+    <div class="stat-card amber"><div class="stat-icon">📅</div><div class="stat-body"><div class="stat-label">Total Leave Taken</div><div class="stat-value">${fmt(totalTaken)}</div><div class="stat-sub">${fmt(totalUnpaid)} unpaid days</div></div></div>
+    <div class="stat-card red"><div class="stat-icon">📉</div><div class="stat-body"><div class="stat-label">Total Deduction</div><div class="stat-value">₹${fmt(totalDeduction)}</div><div class="stat-sub">Across company</div></div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-body"><div class="stat-label">Total Net Payable</div><div class="stat-value">₹${fmt(totalNet)}</div><div class="stat-sub">After deductions</div></div></div>`;
+  document.getElementById('rep-table-title').textContent=`All Employees — ${ym}`;
+  document.getElementById('rep-col1-th').textContent='Employee';
+  document.getElementById('rep-body').innerHTML=rows.map(r=>`<tr>
+    <td><strong>${esc(r.emp.name)}</strong></td>
+    <td class="amount">₹${fmt(r.c.salary)}</td>
+    <td>${fmt(r.c.carryIn)}</td>
+    <td>${fmt(r.c.allowance)}</td>
+    <td>${fmt(r.c.taken)}</td>
+    <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span></td>
+    <td>${r.c.totalUnpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.totalUnpaidDays)}</span>`:'<span class="badge badge-green">0</span>'}</td>
+    <td class="amount" style="color:var(--danger);">₹${fmt(r.c.deduction)}</td>
+    <td class="amount" style="color:var(--success);">₹${fmt(r.c.net)}</td>
+  </tr>`).join('');
+}
+
 function exportReport(){
   const empId=document.getElementById('rep-employee').value;
+  if(empId==='__all__'){ exportAllEmployeesReport(); return; }
   const emp=employees.find(e=>e.id===empId);
   if(!emp) return;
   const months=getReportMonths();
@@ -1125,6 +1180,19 @@ function exportReport(){
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Report');
   XLSX.writeFile(wb,`Kalpataru_Report_${emp.name.replace(/\s+/g,'_')}.xlsx`);
+}
+
+function exportAllEmployeesReport(){
+  const ym=document.getElementById('rep-month').value||curMonth();
+  const sorted=[...employees].filter(e=>!e.isDemo).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  const data=sorted.map(emp=>{
+    const c=computeSalaryForMonth(emp.id,ym);
+    return {Employee:emp.name,'Monthly Salary':c.salary,'Carry Forward Leave':c.carryIn,'Monthly Allowance':c.allowance,'Leave Taken':c.taken,'Balance Leave':c.balance,'Unpaid Days':c.unpaidDays,'Late Punches':c.lateCount,'Late Penalty Days':c.latePenaltyDays,'Total Unpaid Days':c.totalUnpaidDays,'Deduction':c.deduction,'Net Salary':c.net};
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'All-'+ym);
+  XLSX.writeFile(wb,`Kalpataru_Salary_Report_${ym}.xlsx`);
 }
 
 // ── WHATSAPP ALERTS ─────────────────────────────────────
@@ -1308,12 +1376,15 @@ async function saveLeaveEntries(){
     const balance=c.available-taken;
     const unpaidDays=balance<0?Math.abs(balance):0;
     const balancePositive=balance>0?balance:0;
+    // store the gap between what admin typed and what attendance alone accounts for,
+    // so a later check-in/attendance sync doesn't wipe this manual entry -- it keeps adding this offset back.
+    const manualExtra=taken-countAttendanceLeaveDays(emp.id,ym);
     const existing=leaves.find(l=>l.employeeId===emp.id && l.month===ym);
-    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,updatedAt:Date.now()};
+    const rec={employeeId:emp.id,month:ym,carryIn:c.carryIn,allowance:c.allowance,available:c.available,taken,balance,unpaidDays,balancePositive,manualExtra,updatedAt:Date.now()};
     const id=existing?existing.id:uid();
     await fsSet(COL.leaves,id,rec);
   }
-  toast('Leave entries saved & salary calculated! (Agli baar is employee ki attendance mark hogi to ye number phir se attendance ke hisaab se update ho jayega)');
+  toast('Leave entries saved & salary calculated!');
 }
 
 // ── OFFICE WIFI RESTRICTION ─────────────────────────────
@@ -1325,6 +1396,7 @@ async function renderOfficeWifi(){
     officeIps.map(ip=>`<div class="user-card"><div class="info" style="flex:1;"><div class="nm">${esc(ip)}</div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeOfficeIp('${esc(ip)}')">🗑️ Remove</button></div>`).join('');
   const sdInput=document.getElementById('start-date-input');
   if(sdInput) sdInput.value=attendanceStartDate||'';
+  renderHolidays();
 }
 
 async function saveStartDate(){
@@ -1333,6 +1405,41 @@ async function saveStartDate(){
   attendanceStartDate=val;
   await db.collection(COL.meta).doc('attendanceStart').set({date:val});
   toast('Attendance start date set ho gayi! Ab is date se pehle kabhi auto-absent nahi lagega.');
+}
+
+// ── HOLIDAYS ─────────────────────────────────────────────
+function isHoliday(dateStr){
+  return holidays.some(h=>dateStr>=h.from && dateStr<=h.to);
+}
+
+function renderHolidays(){
+  const sorted=[...holidays].sort((a,b)=>a.from.localeCompare(b.from));
+  document.getElementById('holiday-list').innerHTML=sorted.length===0?
+    `<p class="help-text">Koi holiday add nahi hui.</p>`:
+    sorted.map(h=>`<div class="user-card"><div class="info" style="flex:1;"><div class="nm">${esc(h.reason||'Holiday')}</div><div class="sub">${h.from}${h.to!==h.from?' se '+h.to:''}</div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteHoliday('${h.id}')">🗑️ Remove</button></div>`).join('');
+}
+
+async function addHolidayRange(){
+  const from=document.getElementById('holiday-from').value;
+  const to=document.getElementById('holiday-to').value||from;
+  const reason=document.getElementById('holiday-reason').value.trim();
+  if(!from){toast('From date choose karo','error');return;}
+  if(to<from){toast('To date, From date se pehle nahi ho sakti','error');return;}
+  const h={id:uid(),from,to,reason};
+  holidays.push(h);
+  await db.collection(COL.meta).doc('holidays').set({list:holidays});
+  document.getElementById('holiday-from').value='';
+  document.getElementById('holiday-to').value='';
+  document.getElementById('holiday-reason').value='';
+  renderHolidays();
+  toast('Holiday add ho gayi! Inn dates mein auto-absent nahi lagega.');
+}
+
+async function deleteHoliday(id){
+  holidays=holidays.filter(h=>h.id!==id);
+  await db.collection(COL.meta).doc('holidays').set({list:holidays});
+  renderHolidays();
+  toast('Holiday remove kar di','warning');
 }
 
 async function addCurrentIpAsOffice(){
@@ -1435,6 +1542,16 @@ function getMyAttendanceToday(){
 
 function renderMyAttendance(){
   document.getElementById('my-att-date-title').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const todayStrNow=todayStr();
+  const upcomingHolidays=[...holidays].filter(h=>h.to>=todayStrNow).sort((a,b)=>a.from.localeCompare(b.from));
+  const holBanner=document.getElementById('my-att-holiday-banner');
+  if(holBanner){
+    holBanner.innerHTML=upcomingHolidays.map(h=>{
+      const live=h.from<=todayStrNow && todayStrNow<=h.to;
+      const rangeTxt=h.from===h.to?h.from:`${h.from} se ${h.to}`;
+      return `<div class="card" style="background:var(--success-bg);border:1px solid var(--success);margin-bottom:10px;"><div class="card-body" style="padding:12px 16px;display:flex;align-items:center;gap:10px;">🎉 <div><strong>${esc(h.reason||'Holiday')}</strong> — ${rangeTxt}${live?' <span class="badge badge-green">Aaj Holiday hai</span>':''}<div class="help-text" style="margin-top:2px;">Is din check-in zaroori nahi — na absent lagega, na leave katega.</div></div></div></div>`;
+    }).join('');
+  }
   const rec=getMyAttendanceToday();
   const statusEl=document.getElementById('my-att-status');
   const inBtn=document.getElementById('my-checkin-btn');
@@ -1559,13 +1676,14 @@ async function autoSyncLeaveFromAttendance(empId,ym){
   const pm=prevMonth(ym);
   const prevRec=leaves.find(l=>l.employeeId===empId && l.month===pm);
   const carryIn=prevRec?Number(prevRec.balancePositive||0):openingCarry;
-  const taken=countAttendanceLeaveDays(empId,ym);
+  const manualExtra=existing?Number(existing.manualExtra||0):0;
+  const taken=countAttendanceLeaveDays(empId,ym)+manualExtra;
   const available=carryIn+MONTHLY_ALLOWANCE;
   const balance=available-taken;
   const unpaidDays=balance<0?Math.abs(balance):0;
   const balancePositive=balance>0?balance:0;
   const id=existing?existing.id:uid();
-  await fsSet(COL.leaves,id,{employeeId:empId,month:ym,carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive,manualOverride:false,updatedAt:Date.now()});
+  await fsSet(COL.leaves,id,{employeeId:empId,month:ym,carryIn,allowance:MONTHLY_ALLOWANCE,available,taken,balance,unpaidDays,balancePositive,manualExtra,updatedAt:Date.now()});
 }
 
 async function autoSyncAllEmployeesForMonth(ym){
