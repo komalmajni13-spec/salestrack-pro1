@@ -846,8 +846,8 @@ function renderOrders(){
       <td>${esc(o.employeeName)}</td>
       <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.notes||'')}</td>
       <td style="white-space:nowrap;">
-        ${o.billUrl?`<a href="${o.billUrl}" target="_blank" class="btn btn-ghost btn-sm" title="View Bill">📄</a>`:`<button class="btn btn-ghost btn-sm" title="Upload Bill" onclick="uploadFile('${o.id}','bill')">📄+</button>`}
-        ${o.lrUrl?`<a href="${o.lrUrl}" target="_blank" class="btn btn-ghost btn-sm" title="View LR">🚚</a>`:`<button class="btn btn-ghost btn-sm" title="Upload LR" onclick="uploadFile('${o.id}','lr')">🚚+</button>`}
+        ${o.billUrl?`<a href="${o.billUrl}" target="_blank" class="btn btn-ghost btn-sm" title="View Bill">📄</a><button class="btn btn-ghost btn-sm" style="color:var(--danger);" title="Delete Bill" onclick="deleteFileUrl('${o.id}','bill')">✕</button>`:`<button class="btn btn-ghost btn-sm" title="Upload Bill" onclick="uploadFile('${o.id}','bill')">📄+</button>`}
+        ${o.lrUrl?`<a href="${o.lrUrl}" target="_blank" class="btn btn-ghost btn-sm" title="View LR">🚚</a><button class="btn btn-ghost btn-sm" style="color:var(--danger);" title="Delete LR" onclick="deleteFileUrl('${o.id}','lr')">✕</button>`:`<button class="btn btn-ghost btn-sm" title="Upload LR" onclick="uploadFile('${o.id}','lr')">🚚+</button>`}
         <button class="btn btn-ghost btn-sm" onclick="openEditOrder('${o.id}')">✏️</button>
         ${currentUser.role==='admin'||o.employeeId===currentUser.id?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteOrder('${o.id}')">🗑️</button>`:''}
       </td>
@@ -1148,6 +1148,13 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 const SB_URL='https://firmujsvqdadgsvbtokc.supabase.co';
 const SB_KEY='sb_publishable_8qQxmZO_irpttzn1XqgySA_p6GACahZ';
 const SB_BUCKET='salestrack-files';
+
+async function deleteFileUrl(orderId, type){
+  if(!confirm(`${type==='bill'?'Bill':'LR'} delete karna chahte ho?`)) return;
+  const field=type==='bill'?'billUrl':'lrUrl';
+  await fsUpdate('orders',orderId,{[field]:firebase.firestore.FieldValue.delete()});
+  toast(`${type==='bill'?'Bill':'LR'} delete ho gaya!`);
+}
 
 function uploadFile(orderId, type){
   const input=document.createElement('input');
