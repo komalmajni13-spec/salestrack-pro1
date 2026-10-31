@@ -1150,7 +1150,7 @@ const CLOUD_NAME='ewwjfkmz', UPLOAD_PRESET='salestrack';
 function uploadFile(orderId, type){
   const input=document.createElement('input');
   input.type='file';
-  input.accept= type==='bill' ? '.pdf,image/*' : 'image/*';
+  input.accept='.pdf,image/*';
   input.onchange=async(e)=>{
     const file=e.target.files[0]; if(!file) return;
     toast(`${type==='bill'?'Bill':'LR'} upload ho raha hai...`);
