@@ -390,6 +390,7 @@ tr:hover td{background:var(--surface2);}
                   <option value="Pending">⏳ Pending</option>
                   <option value="Done">🚚 Done</option>
                 </select>
+                <input type="month" id="ord-month" onchange="onMonthFilter()" style="min-width:140px;">
                 <input type="date" id="ord-from" onchange="renderOrders()">
                 <input type="date" id="ord-to" onchange="renderOrders()">
               </div>
@@ -841,6 +842,15 @@ function renderDashboard(){
 }
 
 // ── ORDERS ────────────────────────────────────────────
+function onMonthFilter(){
+  const m=(document.getElementById('ord-month')||{}).value||'';
+  if(m){
+    document.getElementById('ord-from').value='';
+    document.getElementById('ord-to').value='';
+  }
+  renderOrders();
+}
+
 function renderOrders(){
   const search=(document.getElementById('ord-search')||{}).value||'';
   const empF=(document.getElementById('ord-emp-filter')||{}).value||'';
@@ -848,6 +858,7 @@ function renderOrders(){
   const srcF=(document.getElementById('ord-src-filter')||{}).value||'';
   const payF=(document.getElementById('ord-pay-filter')||{}).value||'';
   const disF=(document.getElementById('ord-dis-filter')||{}).value||'';
+  const monthF=(document.getElementById('ord-month')||{}).value||'';
   const fromF=(document.getElementById('ord-from')||{}).value||'';
   const toF=(document.getElementById('ord-to')||{}).value||'';
   let vis=getMyOrders();
@@ -856,6 +867,7 @@ function renderOrders(){
   if(srcF) vis=vis.filter(o=>o.source===srcF);
   if(payF) vis=vis.filter(o=>(o.payment||'Pending')===payF);
   if(disF) vis=vis.filter(o=>(o.dispatch||'Pending')===disF);
+  if(monthF) vis=vis.filter(o=>o.date&&o.date.startsWith(monthF));
   if(fromF) vis=vis.filter(o=>o.date>=fromF);
   if(toF) vis=vis.filter(o=>o.date<=toF);
   if(search) vis=vis.filter(o=>(o.customerName+o.customerPhone).toLowerCase().includes(search.toLowerCase()));
