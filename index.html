@@ -1078,26 +1078,35 @@ function renderReport(){
     const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const empMap={};
     allOrders.forEach(o=>{
-      if(!empMap[o.employeeId]) empMap[o.employeeId]={name:o.employeeName,dept:o.employeeDept||'',monthly:Array(12).fill(0),total:0};
+      if(!empMap[o.employeeId]) empMap[o.employeeId]={name:o.employeeName,dept:o.employeeDept||'',monthly:Array(12).fill(0),monthlyBase:Array(12).fill(0),total:0,totalBase:0};
       const m=new Date(o.date).getMonth();
-      empMap[o.employeeId].monthly[m]+=Number(o.amount);
-      empMap[o.employeeId].total+=Number(o.amount);
+      const withGST=Number(o.amountWithGST||o.amount);
+      const base=Number(o.amount);
+      empMap[o.employeeId].monthly[m]+=withGST;
+      empMap[o.employeeId].monthlyBase[m]+=base;
+      empMap[o.employeeId].total+=withGST;
+      empMap[o.employeeId].totalBase+=base;
     });
     const empList=Object.values(empMap).sort((a,b)=>b.total-a.total);
     const grandTotal=allOrders.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
     const grandTotalBase=allOrders.reduce((s,o)=>s+Number(o.amount),0);
     const monthTotals=Array(12).fill(0);
-    empList.forEach(e=>e.monthly.forEach((v,i)=>monthTotals[i]+=v));
+    const monthTotalsBase=Array(12).fill(0);
+    empList.forEach(e=>{e.monthly.forEach((v,i)=>monthTotals[i]+=v);e.monthlyBase.forEach((v,i)=>monthTotalsBase[i]+=v);});
     content.innerHTML=empList.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi ${year} mein</p></div>`:`
       <div class="stat-grid">
         <div class="stat-card green"><div class="stat-label">${year} Turnover (With GST)</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">Base: ₹${fmt(grandTotalBase)} · ${allOrders.length} orders</div></div>
         <div class="stat-card blue"><div class="stat-label">Active Executives</div><div class="stat-value">${empList.length}</div></div>
       </div>
-      <div class="card"><div class="card-header"><div class="card-title">📅 ${year} — Employee-wise Monthly Sales</div></div>
+      <div class="card"><div class="card-header"><div class="card-title">📅 ${year} — Employee-wise Monthly Sales (With GST)</div></div>
       <div class="table-wrap"><table><thead><tr><th>Executive</th><th>Dept</th>${months.map(m=>`<th>${m}</th>`).join('')}<th style="background:var(--bg2);font-weight:700;">Total</th></tr></thead>
       <tbody>
-        ${empList.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td><span class="badge ${e.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(e.dept)}</span></td>${e.monthly.map(v=>`<td class="amount" style="font-size:12px;">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-weight:700;color:var(--success);">₹${fmt(e.total)}</td></tr>`).join('')}
-        <tr style="background:var(--bg2);font-weight:700;border-top:2px solid var(--border);"><td colspan="2">🏢 Office Total</td>${monthTotals.map(v=>`<td class="amount" style="font-size:12px;font-weight:700;">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-weight:700;color:var(--success);font-size:15px;">₹${fmt(grandTotal)}</td></tr>
+        ${empList.map(e=>`
+          <tr><td><strong>${esc(e.name)}</strong></td><td><span class="badge ${e.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(e.dept)}</span></td>${e.monthly.map(v=>`<td class="amount" style="font-size:12px;">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-weight:700;color:var(--success);">₹${fmt(e.total)}</td></tr>
+          <tr style="opacity:0.6;"><td style="font-size:11px;color:var(--text3);padding-left:20px;">Base (excl.GST)</td><td></td>${e.monthlyBase.map(v=>`<td class="amount" style="font-size:11px;color:var(--text3);">${v>0?'₹'+fmt(v):''}</td>`).join('')}<td class="amount" style="font-size:11px;color:var(--text3);">₹${fmt(e.totalBase)}</td></tr>
+        `).join('')}
+        <tr style="background:var(--bg2);font-weight:700;border-top:2px solid var(--border);"><td colspan="2">🏢 Office Total (With GST)</td>${monthTotals.map(v=>`<td class="amount" style="font-size:12px;font-weight:700;">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-weight:700;color:var(--success);font-size:15px;">₹${fmt(grandTotal)}</td></tr>
+        <tr style="background:var(--bg2);border-top:1px solid var(--border);opacity:0.7;"><td colspan="2" style="font-size:12px;">🏢 Office Base (excl.GST)</td>${monthTotalsBase.map(v=>`<td class="amount" style="font-size:11px;color:var(--text3);">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-size:12px;color:var(--text3);">₹${fmt(grandTotalBase)}</td></tr>
       </tbody></table></div></div>`;
   } else {
     const emps={};
