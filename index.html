@@ -310,7 +310,7 @@ tr:hover td{background:var(--surface2);}
                 <div class="form-group"><label>Phone Number *</label><input class="form-control" type="tel" id="order-cust-phone" placeholder="Phone number"></div>
               </div>
               <div class="grid-2">
-                <div class="form-group"><label>Sale Amount (₹) * <small style="color:var(--text3)">(Without GST)</small></label><input class="form-control" type="number" id="order-amount" placeholder="0.00" min="0" step="0.01" oninput="calcGST()"></div>
+                <div class="form-group"><label>Sale Amount (₹) * <small style="color:var(--text3)">(With GST)</small></label><input class="form-control" type="number" id="order-amount" placeholder="0.00" min="0" step="0.01" oninput="calcGST()"></div>
                 <div class="form-group"><label>Date</label><input class="form-control" type="date" id="order-date"></div>
               </div>
               <div class="form-group">
@@ -341,14 +341,14 @@ tr:hover td{background:var(--surface2);}
                 </div>
               </div>
               <div class="grid-2">
-                <div class="form-group"><label>GST</label>
-                  <select class="form-control" id="order-gst" onchange="calcGST()">
-                    <option value="18">18% GST</option>
-                    <option value="0">0% (Without GST)</option>
-                  </select>
+                <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:500;">
+                    <input type="checkbox" id="order-gst-check" checked onchange="calcGST()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary);">
+                    GST Included (18%)
+                  </label>
                 </div>
-                <div class="form-group"><label>With GST Amount (₹)</label>
-                  <input class="form-control" type="text" id="order-amount-gst" placeholder="Auto calculate" readonly style="background:var(--bg2);font-weight:700;color:var(--success);">
+                <div class="form-group"><label>Base Amount (₹) <small style="color:var(--text3)">excl. GST</small></label>
+                  <input class="form-control" type="text" id="order-amount-gst" placeholder="Auto calculate" readonly style="background:var(--bg2);font-weight:700;color:var(--text2);">
                 </div>
               </div>
               <div class="form-group"><label>Notes (Optional)</label><textarea class="form-control" id="order-notes" rows="2" placeholder="Product details, remarks..."></textarea></div>
@@ -395,7 +395,7 @@ tr:hover td{background:var(--surface2);}
               </div>
             </div>
             <div class="table-wrap">
-              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Without GST</th><th>With GST</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Dept</th><th>Executive</th><th>Notes</th><th>Bill</th><th>LR</th><th>Actions</th></tr></thead>
+              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>With GST</th><th>Base Amt</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Dept</th><th>Executive</th><th>Notes</th><th>Bill</th><th>LR</th><th>Actions</th></tr></thead>
               <tbody id="orders-body"></tbody></table>
             </div>
           </div>
@@ -519,7 +519,7 @@ tr:hover td{background:var(--surface2);}
       <input type="hidden" id="edit-order-id">
       <div class="form-group"><label>Customer</label><input class="form-control" type="text" id="edit-cust-name" readonly style="opacity:0.7;"></div>
       <div class="grid-2">
-        <div class="form-group"><label>Amount (₹) * <small style="color:var(--text3)">(Without GST)</small></label><input class="form-control" type="number" id="edit-amount" min="0" step="0.01" oninput="calcEditGST()"></div>
+        <div class="form-group"><label>Amount (₹) * <small style="color:var(--text3)">(With GST)</small></label><input class="form-control" type="number" id="edit-amount" min="0" step="0.01" oninput="calcEditGST()"></div>
         <div class="form-group"><label>Date</label><input class="form-control" type="date" id="edit-date"></div>
       </div>
       <div class="form-group"><label>Lead Source</label>
@@ -536,14 +536,14 @@ tr:hover td{background:var(--surface2);}
         </div>
       </div>
       <div class="grid-2">
-        <div class="form-group"><label>GST</label>
-          <select class="form-control" id="edit-gst" onchange="calcEditGST()">
-            <option value="18">18% GST</option>
-            <option value="0">0% (Without GST)</option>
-          </select>
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:500;">
+            <input type="checkbox" id="edit-gst-check" checked onchange="calcEditGST()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary);">
+            GST Included (18%)
+          </label>
         </div>
-        <div class="form-group"><label>With GST Amount (₹)</label>
-          <input class="form-control" type="text" id="edit-amount-gst" placeholder="Auto calculate" readonly style="background:var(--bg2);font-weight:700;color:var(--success);">
+        <div class="form-group"><label>Base Amount (₹) <small style="color:var(--text3)">excl. GST</small></label>
+          <input class="form-control" type="text" id="edit-amount-gst" placeholder="Auto calculate" readonly style="background:var(--bg2);font-weight:700;color:var(--text2);">
         </div>
       </div>
       <div class="form-group"><label>Notes</label><textarea class="form-control" id="edit-notes" rows="2"></textarea></div>
@@ -863,8 +863,8 @@ function renderOrders(){
       <td class="date-chip">${o.date||''}</td>
       <td><strong>${esc(o.customerName)}</strong></td>
       <td>${esc(o.customerPhone||'')}</td>
-      <td class="amount">₹${fmt(o.amount)}</td>
       <td class="amount" style="color:var(--success);font-weight:600;">₹${fmt(o.amountWithGST||o.amount)}</td>
+      <td class="amount" style="color:var(--text3);font-size:12px;">₹${fmt(o.amount)}${o.gstPct===0?' <small>(No GST)</small>':''}</td>
       <td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td>
       <td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${(o.payment||'Pending')==='Received'?'✅ Received':'⏳ Pending'}</span></td>
       <td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${(o.dispatch||'Pending')==='Done'?'🚚 Done':'⏳ Pending'}</span></td>
@@ -884,8 +884,9 @@ function openEditOrder(id){
   const o=orders.find(x=>x.id===id);if(!o)return;
   document.getElementById('edit-order-id').value=id;
   document.getElementById('edit-cust-name').value=o.customerName;
-  document.getElementById('edit-amount').value=o.amount;
-  document.getElementById('edit-gst').value=o.gstPct!==undefined?o.gstPct:18;
+  const hasGST=o.gstPct===undefined||o.gstPct===18;
+  document.getElementById('edit-amount').value=o.amountWithGST||o.amount;
+  document.getElementById('edit-gst-check').checked=hasGST;
   document.getElementById('edit-date').value=o.date||'';
   document.getElementById('edit-source').value=o.source;
   document.getElementById('edit-payment').value=o.payment||'Pending';
@@ -898,10 +899,12 @@ function openEditOrder(id){
 async function saveEdit(){
   const id=document.getElementById('edit-order-id').value;
   const amt=parseFloat(document.getElementById('edit-amount').value);
-  const gstPct=parseInt(document.getElementById('edit-gst').value)||0;
-  const amountWithGST=Math.round(amt*(1+gstPct/100)*100)/100;
+  const gstOn=document.getElementById('edit-gst-check').checked;
+  const gstPct=gstOn?18:0;
+  const amountWithGST=amt;
+  const amountBase=gstOn?Math.round(amt/1.18*100)/100:amt;
   if(!amt||amt<=0){toast('Valid amount enter karo','error');return;}
-  const updates={amount:amt,gstPct,amountWithGST,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
+  const updates={amount:amountBase,gstPct,amountWithGST,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
   await fsUpdate('orders',id,updates);
   closeModal('edit-modal');toast('Order updated!');
 }
@@ -950,23 +953,25 @@ function clearOrderForm(){
 
 function calcGST(){
   const a=parseFloat(document.getElementById('order-amount').value)||0;
-  const gst=parseInt(document.getElementById('order-gst').value)||0;
-  const withGST=a*(1+gst/100);
-  document.getElementById('order-amount-gst').value=withGST>0?'₹'+fmt(withGST):'';
+  const gstOn=document.getElementById('order-gst-check').checked;
+  const base=gstOn&&a>0?Math.round(a/1.18*100)/100:a;
+  document.getElementById('order-amount-gst').value=gstOn&&a>0?'₹'+fmt(base):'No GST';
 }
 function calcEditGST(){
   const a=parseFloat(document.getElementById('edit-amount').value)||0;
-  const gst=parseInt(document.getElementById('edit-gst').value)||0;
-  const withGST=a*(1+gst/100);
-  document.getElementById('edit-amount-gst').value=withGST>0?'₹'+fmt(withGST):'';
+  const gstOn=document.getElementById('edit-gst-check').checked;
+  const base=gstOn&&a>0?Math.round(a/1.18*100)/100:a;
+  document.getElementById('edit-amount-gst').value=gstOn&&a>0?'₹'+fmt(base):'No GST';
 }
 
 async function submitOrder(){
   const name=document.getElementById('order-cust-name').value.trim();
   const phone=document.getElementById('order-cust-phone').value.trim();
   const amount=parseFloat(document.getElementById('order-amount').value);
-  const gstPct=parseInt(document.getElementById('order-gst').value)||0;
-  const amountWithGST=Math.round(amount*(1+gstPct/100)*100)/100;
+  const gstOn=document.getElementById('order-gst-check').checked;
+  const gstPct=gstOn?18:0;
+  const amountWithGST=amount;
+  const amountBase=gstOn?Math.round(amount/1.18*100)/100:amount;
   const date=document.getElementById('order-date').value;
   const notes=document.getElementById('order-notes').value.trim();
   const payment=document.getElementById('order-payment').value;
@@ -982,7 +987,7 @@ async function submitOrder(){
     if(existing){custId=existing.id;}
     else{const nc={id:uid(),name,phone,address:'',createdAt:Date.now()};await fsSet('customers',nc.id,nc);customers.push(nc);custId=nc.id;}
   }
-  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount,gstPct,amountWithGST,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,employeeDept:currentUser.dept||'',notes,date,createdAt:Date.now()};
+  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount:amountBase,gstPct,amountWithGST,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,employeeDept:currentUser.dept||'',notes,date,createdAt:Date.now()};
   await fsSet('orders',order.id,order);
   clearOrderForm();toast('Order save ho gaya! ✅');showPage('orders');
 }
