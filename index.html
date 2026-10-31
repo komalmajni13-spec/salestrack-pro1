@@ -1144,31 +1144,36 @@ function toast(msg,type=''){const t=document.createElement('div');t.className='t
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
-// ── CLOUDINARY UPLOAD ─────────────────────────────────
-const CLOUD_NAME='ewwjfkmz', UPLOAD_PRESET='salestrack';
+// ── SUPABASE STORAGE UPLOAD ───────────────────────────
+const SB_URL='https://firmujsvqdadgsvbtokc.supabase.co';
+const SB_KEY='sb_publishable_8qQxmZO_irpttzn1XqgySA_p6GACahZ';
+const SB_BUCKET='salestrack-files';
 
 function uploadFile(orderId, type){
   const input=document.createElement('input');
   input.type='file';
-  input.accept='.pdf,image/*';
+  input.accept='.pdf,image/*,.jpg,.jpeg,.png';
   input.onchange=async(e)=>{
     const file=e.target.files[0]; if(!file) return;
     toast(`${type==='bill'?'Bill':'LR'} upload ho raha hai...`);
     try{
-      const fd=new FormData();
-      fd.append('file',file);
-      fd.append('upload_preset',UPLOAD_PRESET);
-      fd.append('folder','salestrack');
-      const isPdf=file.type==='application/pdf';
-      const endpoint=isPdf?'raw':'image';
-      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${endpoint}/upload`,{method:'POST',body:fd});
-      const data=await res.json();
-      if(data.secure_url){
+      const ext=file.name.split('.').pop();
+      const fileName=`${orderId}_${type}_${Date.now()}.${ext}`;
+      const res=await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${fileName}`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${SB_KEY}`,'Content-Type':file.type,'x-upsert':'true'},
+        body:file
+      });
+      if(res.ok){
+        const publicUrl=`${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${fileName}`;
         const field=type==='bill'?'billUrl':'lrUrl';
-        await fsUpdate('orders',orderId,{[field]:data.secure_url});
+        await fsUpdate('orders',orderId,{[field]:publicUrl});
         toast(`${type==='bill'?'Bill':'LR'} upload ho gaya! ✅`);
-      } else { toast('Upload failed','error'); }
-    }catch(e){ toast('Upload error','error'); }
+      } else {
+        const err=await res.json();
+        toast('Upload failed: '+(err.message||res.status),'error');
+      }
+    }catch(e){ toast('Upload error: '+e.message,'error'); }
   };
   input.click();
 }
