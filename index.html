@@ -384,7 +384,7 @@ tr:hover td{background:var(--surface2);}
               </div>
             </div>
             <div class="table-wrap">
-              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Dept</th><th>Executive</th><th>Notes</th><th>Actions</th></tr></thead>
+              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Dept</th><th>Executive</th><th>Notes</th><th>Bill</th><th>LR</th><th>Actions</th></tr></thead>
               <tbody id="orders-body"></tbody></table>
             </div>
           </div>
@@ -833,7 +833,7 @@ function renderOrders(){
   if(toF) vis=vis.filter(o=>o.date<=toF);
   if(search) vis=vis.filter(o=>(o.customerName+o.customerPhone).toLowerCase().includes(search.toLowerCase()));
   vis=[...vis].sort((a,b)=>b.createdAt-a.createdAt);
-  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="11"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
+  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="13"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
     vis.map(o=>`<tr>
       <td class="date-chip">${o.date||''}</td>
       <td><strong>${esc(o.customerName)}</strong></td>
@@ -846,6 +846,8 @@ function renderOrders(){
       <td>${esc(o.employeeName)}</td>
       <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.notes||'')}</td>
       <td style="white-space:nowrap;">
+        ${o.billUrl?`<a href="${o.billUrl}" target="_blank" class="btn btn-ghost btn-sm" title="View Bill">📄</a>`:`<button class="btn btn-ghost btn-sm" title="Upload Bill" onclick="uploadFile('${o.id}','bill')">📄+</button>`}
+        ${o.lrUrl?`<a href="${o.lrUrl}" target="_blank" class="btn btn-ghost btn-sm" title="View LR">🚚</a>`:`<button class="btn btn-ghost btn-sm" title="Upload LR" onclick="uploadFile('${o.id}','lr')">🚚+</button>`}
         <button class="btn btn-ghost btn-sm" onclick="openEditOrder('${o.id}')">✏️</button>
         ${currentUser.role==='admin'||o.employeeId===currentUser.id?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteOrder('${o.id}')">🗑️</button>`:''}
       </td>
@@ -1141,6 +1143,33 @@ function weekLabel(d){return`Week ${getWeekNum(d)} — ${d.toLocaleDateString('e
 function toast(msg,type=''){const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;document.getElementById('toast-container').appendChild(t);setTimeout(()=>t.remove(),3000);}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── CLOUDINARY UPLOAD ─────────────────────────────────
+const CLOUD_NAME='ewwjfkmz', UPLOAD_PRESET='salestrack';
+
+function uploadFile(orderId, type){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept= type==='bill' ? '.pdf,image/*' : 'image/*';
+  input.onchange=async(e)=>{
+    const file=e.target.files[0]; if(!file) return;
+    toast(`${type==='bill'?'Bill':'LR'} upload ho raha hai...`);
+    try{
+      const fd=new FormData();
+      fd.append('file',file);
+      fd.append('upload_preset',UPLOAD_PRESET);
+      fd.append('folder','salestrack');
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,{method:'POST',body:fd});
+      const data=await res.json();
+      if(data.secure_url){
+        const field=type==='bill'?'billUrl':'lrUrl';
+        await fsUpdate('orders',orderId,{[field]:data.secure_url});
+        toast(`${type==='bill'?'Bill':'LR'} upload ho gaya! ✅`);
+      } else { toast('Upload failed','error'); }
+    }catch(e){ toast('Upload error','error'); }
+  };
+  input.click();
+}
 
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.querySelectorAll('.autocomplete-dropdown').forEach(d=>d.classList.remove('open'));});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
