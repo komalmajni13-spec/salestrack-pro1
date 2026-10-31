@@ -885,8 +885,14 @@ function renderOrders(){
       <td class="amount">${o.gstPct!==0?'₹'+fmt(Math.round((( o.amountWithGST||o.amount)-o.amount)*100)/100):'-'}</td>
       <td class="amount" style="font-weight:700;color:var(--success);">₹${fmt(o.amountWithGST||o.amount)}</td>
       <td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td>
-      <td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${(o.payment||'Pending')==='Received'?'✅ Received':'⏳ Pending'}</span></td>
-      <td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${(o.dispatch||'Pending')==='Done'?'🚚 Done':'⏳ Pending'}</span></td>
+      <td><select class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}" onchange="updateOrderField('${o.id}','payment',this.value);this.className='badge '+(this.value==='Received'?'badge-green':'badge-amber');" style="border:none;cursor:pointer;font-size:12px;padding:3px 6px;border-radius:20px;">
+        <option value="Pending" ${(o.payment||'Pending')==='Pending'?'selected':''}>⏳ Pending</option>
+        <option value="Received" ${(o.payment||'Pending')==='Received'?'selected':''}>✅ Received</option>
+      </select></td>
+      <td><select class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}" onchange="updateOrderField('${o.id}','dispatch',this.value);this.className='badge '+(this.value==='Done'?'badge-green':'badge-red');" style="border:none;cursor:pointer;font-size:12px;padding:3px 6px;border-radius:20px;">
+        <option value="Pending" ${(o.dispatch||'Pending')==='Pending'?'selected':''}>⏳ Pending</option>
+        <option value="Done" ${(o.dispatch||'Pending')==='Done'?'selected':''}>🚚 Done</option>
+      </select></td>
       <td><span class="badge ${(o.employeeDept||'')==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(o.employeeDept||'')}</span></td>
       <td>${esc(o.employeeName)}</td>
       <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.notes||'')}</td>
@@ -926,6 +932,11 @@ async function saveEdit(){
   const updates={amount:amountBase,gstPct,amountWithGST,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
   await fsUpdate('orders',id,updates);
   closeModal('edit-modal');toast('Order updated!');
+}
+
+async function updateOrderField(id, field, value){
+  await fsUpdate('orders', id, {[field]: value});
+  toast(`${field==='payment'?'Payment':'Dispatch'} updated! ✅`);
 }
 
 async function deleteOrder(id){
