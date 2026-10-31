@@ -329,6 +329,19 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               <button class="btn btn-primary btn-sm" onclick="saveStartDate()">Save</button>
             </div>
           </div>
+          <div class="card" style="max-width:560px;">
+            <div class="card-header"><div class="card-title">🎉 Holidays</div></div>
+            <div class="card-body">
+              <p class="help-text" style="margin-bottom:14px;">In dates pe koi bhi employee check-in na kare to "Auto Absent" nahi lagega aur leave balance se bhi nahi katega — company holiday maana jayega, sabki full salary rahegi.</p>
+              <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;">
+                <div class="form-group" style="margin:0;"><label>From</label><input class="form-control" type="date" id="holiday-from" style="max-width:170px;"></div>
+                <div class="form-group" style="margin:0;"><label>To</label><input class="form-control" type="date" id="holiday-to" style="max-width:170px;"></div>
+                <div class="form-group" style="margin:0;flex:1;min-width:150px;"><label>Reason</label><input class="form-control" type="text" id="holiday-reason" placeholder="jaise Diwali"></div>
+                <button class="btn btn-primary btn-sm" onclick="addHolidayRange()">+ Add</button>
+              </div>
+              <div id="holiday-list"></div>
+            </div>
+          </div>
         </div>
 
         <!-- REPORTS (EMPLOYEE-WISE MONTHLY/QUARTERLY/YEARLY) -->
@@ -595,6 +608,7 @@ let currentUser=null;
 let employees=[], leaves=[], attendance=[]; // leaves: {id, employeeId, month:'YYYY-MM', carryIn, taken, balance, unpaidDays, deduction}
 let officeIps=[];
 let attendanceStartDate=null; // YYYY-MM-DD; auto-absent never fires before this date
+let holidays=[]; // [{id,from,to,reason}] -- auto-absent & leave deduction skipped on these dates
 let leaveRequests=[]; // {id, employeeId, fromDate, toDate, reason, status:'pending'|'approved'|'rejected', requestedAt, decidedAt}
 let waSettings={phone:'',idInstance:'',apiToken:''};
 let unsubEmployees=null, unsubLeaves=null, unsubAttendance=null, unsubOfficeIps=null, unsubLeaveRequests=null;
@@ -651,6 +665,8 @@ async function init(){
     if(waDoc.exists) waSettings={...waSettings,...waDoc.data()};
     const startDoc=await db.collection(COL.meta).doc('attendanceStart').get();
     if(startDoc.exists) attendanceStartDate=startDoc.data().date||null;
+    const holDoc=await db.collection(COL.meta).doc('holidays').get();
+    holidays=holDoc.exists?(holDoc.data().list||[]):[];
   }catch(e){
     employees=[...DEFAULT_EMPLOYEES]; leaves=[]; attendance=[]; officeIps=[]; leaveRequests=[];
   }
@@ -785,6 +801,7 @@ async function autoMarkAbsentees(){
     if(y.getDay()===0) return; // skip Sunday
     const dateStr=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
     if(dateStr<attendanceStartDate) return; // before go-live -- never backfill absences
+    if(isHoliday(dateStr)) return; // company holiday -- never auto-mark absent
     const ym=dateStr.slice(0,7);
     const touched=[];
     for(const emp of employees){
@@ -1379,6 +1396,7 @@ async function renderOfficeWifi(){
     officeIps.map(ip=>`<div class="user-card"><div class="info" style="flex:1;"><div class="nm">${esc(ip)}</div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeOfficeIp('${esc(ip)}')">🗑️ Remove</button></div>`).join('');
   const sdInput=document.getElementById('start-date-input');
   if(sdInput) sdInput.value=attendanceStartDate||'';
+  renderHolidays();
 }
 
 async function saveStartDate(){
@@ -1387,6 +1405,41 @@ async function saveStartDate(){
   attendanceStartDate=val;
   await db.collection(COL.meta).doc('attendanceStart').set({date:val});
   toast('Attendance start date set ho gayi! Ab is date se pehle kabhi auto-absent nahi lagega.');
+}
+
+// ── HOLIDAYS ─────────────────────────────────────────────
+function isHoliday(dateStr){
+  return holidays.some(h=>dateStr>=h.from && dateStr<=h.to);
+}
+
+function renderHolidays(){
+  const sorted=[...holidays].sort((a,b)=>a.from.localeCompare(b.from));
+  document.getElementById('holiday-list').innerHTML=sorted.length===0?
+    `<p class="help-text">Koi holiday add nahi hui.</p>`:
+    sorted.map(h=>`<div class="user-card"><div class="info" style="flex:1;"><div class="nm">${esc(h.reason||'Holiday')}</div><div class="sub">${h.from}${h.to!==h.from?' se '+h.to:''}</div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteHoliday('${h.id}')">🗑️ Remove</button></div>`).join('');
+}
+
+async function addHolidayRange(){
+  const from=document.getElementById('holiday-from').value;
+  const to=document.getElementById('holiday-to').value||from;
+  const reason=document.getElementById('holiday-reason').value.trim();
+  if(!from){toast('From date choose karo','error');return;}
+  if(to<from){toast('To date, From date se pehle nahi ho sakti','error');return;}
+  const h={id:uid(),from,to,reason};
+  holidays.push(h);
+  await db.collection(COL.meta).doc('holidays').set({list:holidays});
+  document.getElementById('holiday-from').value='';
+  document.getElementById('holiday-to').value='';
+  document.getElementById('holiday-reason').value='';
+  renderHolidays();
+  toast('Holiday add ho gayi! Inn dates mein auto-absent nahi lagega.');
+}
+
+async function deleteHoliday(id){
+  holidays=holidays.filter(h=>h.id!==id);
+  await db.collection(COL.meta).doc('holidays').set({list:holidays});
+  renderHolidays();
+  toast('Holiday remove kar di','warning');
 }
 
 async function addCurrentIpAsOffice(){
