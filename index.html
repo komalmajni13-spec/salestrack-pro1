@@ -671,6 +671,7 @@ tr:hover td{background:var(--surface2);}
         <div style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:12px;" id="qb-items-table">
             <thead><tr style="background:var(--surface2);">
+              <th style="padding:6px;border:1px solid var(--border);text-align:center;">Photo</th>
               <th style="padding:6px;border:1px solid var(--border);text-align:left;">Description</th>
               <th style="padding:6px;border:1px solid var(--border);">HSN</th>
               <th style="padding:6px;border:1px solid var(--border);">Qty</th>
@@ -1621,6 +1622,11 @@ function openQuotationBuilder(leadId){
 function renderQuotItems(){
   const tbody=document.getElementById('qb-items-body');
   tbody.innerHTML=quotItems.map((it,i)=>`<tr>
+    <td style="padding:4px;border:1px solid var(--border);text-align:center;min-width:70px;">
+      ${it.photo?`<img src="${it.photo}" style="width:60px;height:60px;object-fit:contain;display:block;margin:0 auto 4px;" />`:''}
+      <button onclick="uploadQuotItemPhoto(${i})" style="font-size:10px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text2);cursor:pointer;">${it.photo?'Change':'📷 Photo'}</button>
+      ${it.photo?`<button onclick="quotItems[${i}].photo='';renderQuotItems()" style="font-size:10px;padding:2px 4px;border:none;background:none;color:var(--danger);cursor:pointer;">✕</button>`:''}
+    </td>
     <td style="padding:4px;border:1px solid var(--border);"><input style="width:100%;border:none;background:transparent;color:var(--text);font-size:12px;padding:2px;" value="${esc(it.desc)}" oninput="quotItems[${i}].desc=this.value"></td>
     <td style="padding:4px;border:1px solid var(--border);"><input style="width:70px;border:none;background:transparent;color:var(--text);font-size:12px;text-align:center;" value="${it.hsn}" oninput="quotItems[${i}].hsn=this.value"></td>
     <td style="padding:4px;border:1px solid var(--border);"><input type="number" style="width:55px;border:none;background:transparent;color:var(--text);font-size:12px;text-align:center;" value="${it.qty}" oninput="quotItems[${i}].qty=parseFloat(this.value)||0;updateQuotTotals()"></td>
@@ -1661,8 +1667,23 @@ function updateQuotTotals(){
 }
 
 function addQuotItem(){
-  quotItems.push({desc:'',hsn:'',qty:1,unit:'pcs',rate:0,disc:0,gst:18});
+  quotItems.push({desc:'',hsn:'',qty:1,unit:'pcs',rate:0,disc:0,gst:18,photo:''});
   renderQuotItems();
+}
+
+function uploadQuotItemPhoto(i){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';
+  inp.onchange=function(){
+    const file=inp.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+      quotItems[i].photo=e.target.result;
+      renderQuotItems();
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
 }
 
 function numToWords(n){
@@ -1768,8 +1789,8 @@ async function generateQuotationPrint(){
     <div class="ac"><div class="al">Shipping Address</div>${esc(custName)}${addrBlock}</div>
   </div>
   <table>
-    <thead><tr><th>No.</th><th>Item &amp; Description</th><th>HSN / SAC</th><th class="cen">Qty</th><th class="cen">Unit</th><th class="num">Rate (₹)</th><th class="num">Discount</th><th class="num">Taxable (₹)</th><th class="num">IGST</th><th class="num">Amount (₹)</th></tr></thead>
-    <tbody>${quotItems.map((it,i)=>{const tax=calcRowTaxable(it);const gst=tax*it.gst/100;return`<tr><td class="cen">${i+1}</td><td>${esc(it.desc)}</td><td class="cen">${esc(it.hsn)}</td><td class="cen">${it.qty}</td><td class="cen">${esc(it.unit)}</td><td class="num">${it.rate.toFixed(2)}</td><td class="num">${it.disc.toFixed(2)}%</td><td class="num">${tax.toFixed(2)}</td><td class="num">${it.gst}.00%</td><td class="num">${(tax+gst).toFixed(2)}</td></tr>`;}).join('')}</tbody>
+    <thead><tr><th>No.</th><th>Photo</th><th>Item &amp; Description</th><th>HSN / SAC</th><th class="cen">Qty</th><th class="cen">Unit</th><th class="num">Rate (₹)</th><th class="num">Discount</th><th class="num">Taxable (₹)</th><th class="num">IGST</th><th class="num">Amount (₹)</th></tr></thead>
+    <tbody>${quotItems.map((it,i)=>{const tax=calcRowTaxable(it);const gst=tax*it.gst/100;return`<tr><td class="cen">${i+1}</td><td class="cen" style="width:80px;">${it.photo?`<img src="${it.photo}" style="width:70px;height:70px;object-fit:contain;" />`:'—'}</td><td>${esc(it.desc)}</td><td class="cen">${esc(it.hsn)}</td><td class="cen">${it.qty}</td><td class="cen">${esc(it.unit)}</td><td class="num">${it.rate.toFixed(2)}</td><td class="num">${it.disc.toFixed(2)}%</td><td class="num">${tax.toFixed(2)}</td><td class="num">${it.gst}.00%</td><td class="num">${(tax+gst).toFixed(2)}</td></tr>`;}).join('')}</tbody>
   </table>
   <div class="fg">
     <div class="bb"><strong>Bank Details :</strong><br>Bank Name : ${esc(c.bank_name||'')}<br>Branch : ${esc(c.bank_branch||'')}<br>Account No. : ${esc(c.bank_acc||'')}<br>IFSC : ${esc(c.bank_ifsc||'')}</div>
