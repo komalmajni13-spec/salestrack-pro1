@@ -982,6 +982,8 @@ function clearOrderForm(){
   document.getElementById('order-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('order-payment').value='Pending';
   document.getElementById('order-dispatch').value='Pending';
+  document.getElementById('order-gst-check').checked=true;
+  document.getElementById('order-amount-gst').value='';
   document.querySelectorAll('#order-source-chips .source-chip').forEach((x,i)=>x.classList.toggle('selected',i===0));
 }
 
