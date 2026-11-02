@@ -460,6 +460,10 @@ tr:hover td{background:var(--surface2);}
 
         <!-- USERS (Admin) -->
         <div class="page" id="page-users">
+          <div style="margin-bottom:12px;padding:12px;background:var(--bg2);border-radius:10px;display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:var(--text2);">🔧 Admin Tools:</span>
+            <button class="btn btn-sm" style="background:#f59e0b;color:#fff;" onclick="fixGSTOrders()">Fix GST (Purane Orders)</button>
+          </div>
           <div class="grid-2">
             <div>
               <div class="card">
@@ -1172,6 +1176,25 @@ function renderSources(){
 }
 
 // ── USERS (Admin) ─────────────────────────────────────
+async function fixGSTOrders(){
+  if(!confirm('Saare orders jinme amountWithGST nahi hai, unka reverse GST calculate karke fix karega. Continue?')) return;
+  toast('Fix ho raha hai...');
+  try{
+    const snap=await db.collection('orders').get();
+    const toFix=snap.docs.filter(d=>!d.data().amountWithGST);
+    if(toFix.length===0){toast('Sab already fix hai! ✅');return;}
+    const batch=db.batch();
+    toFix.forEach(d=>{
+      const amt=Number(d.data().amount);
+      const base=Math.round(amt/1.18*100)/100;
+      batch.update(d.ref,{amountWithGST:amt,amount:base,gstPct:18});
+    });
+    await batch.commit();
+    toast(`${toFix.length} orders fix ho gaye! ✅`);
+    await loadData();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
 function renderUsers(){
   ['MDPE/HDPE','UPVC/CPVC'].forEach(dept=>{
     const elId=dept==='MDPE/HDPE'?'users-mdpe':'users-upvc';
