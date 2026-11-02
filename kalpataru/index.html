@@ -281,8 +281,19 @@ tr:hover td{background:var(--surface2);}
                 <div class="form-group"><label>Phone Number *</label><input class="form-control" type="tel" id="order-cust-phone" placeholder="Phone number"></div>
               </div>
               <div class="grid-2">
-                <div class="form-group"><label>Sale Amount (₹) *</label><input class="form-control" type="number" id="order-amount" placeholder="0.00" min="0" step="0.01"></div>
+                <div class="form-group"><label>Sale Amount (₹) * <small style="color:var(--text3)">(With GST)</small></label><input class="form-control" type="number" id="order-amount" placeholder="0.00" min="0" step="0.01" oninput="calcGST()"></div>
                 <div class="form-group"><label>Date</label><input class="form-control" type="date" id="order-date"></div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:500;">
+                    <input type="checkbox" id="order-gst-check" checked onchange="calcGST()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary);">
+                    GST Included (18%)
+                  </label>
+                </div>
+                <div class="form-group"><label>Base Amount (₹) <small style="color:var(--text3)">excl. GST</small></label>
+                  <input class="form-control" type="text" id="order-amount-gst" placeholder="Auto calculate" readonly style="background:var(--surface2);font-weight:700;color:var(--text2);">
+                </div>
               </div>
               <div class="form-group">
                 <label>Lead Source *</label>
@@ -350,7 +361,7 @@ tr:hover td{background:var(--surface2);}
               </div>
             </div>
             <div class="table-wrap">
-              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Executive</th><th>Notes</th><th>Actions</th></tr></thead>
+              <table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Base Amt</th><th>GST Amt</th><th>Total</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Executive</th><th>Notes</th><th>Actions</th></tr></thead>
               <tbody id="orders-body"></tbody></table>
             </div>
           </div>
@@ -381,10 +392,12 @@ tr:hover td{background:var(--surface2);}
             <button class="tab-btn active" onclick="switchReportTab('daily',this)">Daily</button>
             <button class="tab-btn" onclick="switchReportTab('weekly',this)">Weekly</button>
             <button class="tab-btn" onclick="switchReportTab('monthly',this)">Monthly</button>
+            <button class="tab-btn" onclick="switchReportTab('yearly',this)">📅 Yearly</button>
           </div>
           <div class="filter-bar">
             <select id="rep-emp-filter" onchange="renderReport()"></select>
             <input type="month" id="rep-month" onchange="renderReport()">
+            <select id="rep-year" onchange="renderReport()" style="display:none;"></select>
             <button class="btn btn-ghost btn-sm" onclick="exportReport()">📥 Export</button>
           </div>
           <div id="report-content"></div>
@@ -448,8 +461,19 @@ tr:hover td{background:var(--surface2);}
       <input type="hidden" id="edit-order-id">
       <div class="form-group"><label>Customer</label><input class="form-control" type="text" id="edit-cust-name" readonly style="opacity:0.7;"></div>
       <div class="grid-2">
-        <div class="form-group"><label>Amount (₹) *</label><input class="form-control" type="number" id="edit-amount" min="0" step="0.01"></div>
+        <div class="form-group"><label>Amount (₹) * <small style="color:var(--text3)">(With GST)</small></label><input class="form-control" type="number" id="edit-amount" min="0" step="0.01" oninput="calcEditGST()"></div>
         <div class="form-group"><label>Date</label><input class="form-control" type="date" id="edit-date"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:500;">
+            <input type="checkbox" id="edit-gst-check" checked onchange="calcEditGST()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary);">
+            GST Included (18%)
+          </label>
+        </div>
+        <div class="form-group"><label>Base Amount (₹) <small style="color:var(--text3)">excl. GST</small></label>
+          <input class="form-control" type="text" id="edit-amount-gst" placeholder="Auto calculate" readonly style="background:var(--surface2);font-weight:700;color:var(--text2);">
+        </div>
       </div>
       <div class="form-group"><label>Lead Source</label>
         <select class="form-control" id="edit-source">
@@ -691,8 +715,8 @@ function renderDashboard(){
   const thisMonth=today.slice(0,7);
   const todayOrd=vis.filter(o=>o.date===today);
   const monthOrd=vis.filter(o=>o.date&&o.date.startsWith(thisMonth));
-  const todaySales=todayOrd.reduce((s,o)=>s+Number(o.amount),0);
-  const monthSales=monthOrd.reduce((s,o)=>s+Number(o.amount),0);
+  const todaySales=todayOrd.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
+  const monthSales=monthOrd.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
 
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card green"><div class="stat-label">Today's Sales</div><div class="stat-value">₹${fmt(todaySales)}</div><div class="stat-sub">${todayOrd.length} orders</div></div>
@@ -712,9 +736,9 @@ function renderDashboard(){
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:26px;height:26px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${u.name.charAt(0)}</div><strong>${esc(u.name)}</strong></div></td>
       <td>${uToday.length}</td>
-      <td class="amount" style="color:var(--success);">₹${fmt(uToday.reduce((s,o)=>s+Number(o.amount),0))}</td>
+      <td class="amount" style="color:var(--success);">₹${fmt(uToday.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0))}</td>
       <td>${uMonth.length}</td>
-      <td class="amount" style="color:var(--primary);">₹${fmt(uMonth.reduce((s,o)=>s+Number(o.amount),0))}</td>
+      <td class="amount" style="color:var(--primary);">₹${fmt(uMonth.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0))}</td>
       <td><span class="badge ${pendPay>0?'badge-amber':'badge-green'}">${pendPay}</span></td>
       <td><span class="badge ${pendDis>0?'badge-red':'badge-green'}">${pendDis}</span></td>
     </tr>`;
@@ -723,7 +747,7 @@ function renderDashboard(){
   // Recent
   const recent=[...vis].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
   document.getElementById('dash-recent-body').innerHTML=recent.length===0?`<tr><td colspan="4"><div class="empty-state"><div class="icon">📋</div><p>No orders yet</p></div></td></tr>`:
-    recent.map(o=>`<tr><td><strong>${esc(o.customerName)}</strong></td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('');
+    recent.map(o=>`<tr><td><strong>${esc(o.customerName)}</strong></td><td class="amount">₹${fmt(o.amountWithGST||o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('');
 
   // Sources
   const srcMap={};
@@ -755,12 +779,14 @@ function renderOrders(){
   if(toF) vis=vis.filter(o=>o.date<=toF);
   if(search) vis=vis.filter(o=>(o.customerName+o.customerPhone).toLowerCase().includes(search.toLowerCase()));
   vis=[...vis].sort((a,b)=>b.createdAt-a.createdAt);
-  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="10"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
+  document.getElementById('orders-body').innerHTML=vis.length===0?`<tr><td colspan="11"><div class="empty-state"><div class="icon">📋</div><p>No orders found</p></div></td></tr>`:
     vis.map(o=>`<tr>
       <td class="date-chip">${o.date||''}</td>
       <td><strong>${esc(o.customerName)}</strong></td>
       <td>${esc(o.customerPhone||'')}</td>
       <td class="amount">₹${fmt(o.amount)}</td>
+      <td class="amount">${o.gstPct!==0?'₹'+fmt(Math.round(((o.amountWithGST||o.amount)-o.amount)*100)/100):'-'}</td>
+      <td class="amount" style="font-weight:700;color:var(--success);">₹${fmt(o.amountWithGST||o.amount)}</td>
       <td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td>
       <td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${(o.payment||'Pending')==='Received'?'✅ Received':'⏳ Pending'}</span></td>
       <td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${(o.dispatch||'Pending')==='Done'?'🚚 Done':'⏳ Pending'}</span></td>
@@ -775,14 +801,17 @@ function renderOrders(){
 
 function openEditOrder(id){
   const o=orders.find(x=>x.id===id);if(!o)return;
+  const hasGST=o.gstPct===undefined||o.gstPct===18;
   document.getElementById('edit-order-id').value=id;
   document.getElementById('edit-cust-name').value=o.customerName;
-  document.getElementById('edit-amount').value=o.amount;
+  document.getElementById('edit-amount').value=o.amountWithGST||o.amount;
+  document.getElementById('edit-gst-check').checked=hasGST;
   document.getElementById('edit-date').value=o.date||'';
   document.getElementById('edit-source').value=o.source;
   document.getElementById('edit-payment').value=o.payment||'Pending';
   document.getElementById('edit-dispatch').value=o.dispatch||'Pending';
   document.getElementById('edit-notes').value=o.notes||'';
+  calcEditGST();
   openModal('edit-modal');
 }
 
@@ -790,7 +819,11 @@ async function saveEdit(){
   const id=document.getElementById('edit-order-id').value;
   const amt=parseFloat(document.getElementById('edit-amount').value);
   if(!amt||amt<=0){toast('Valid amount enter karo','error');return;}
-  const updates={amount:amt,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
+  const gstOn=document.getElementById('edit-gst-check').checked;
+  const gstPct=gstOn?18:0;
+  const amountWithGST=amt;
+  const amountBase=gstOn?Math.round(amt/1.18*100)/100:amt;
+  const updates={amount:amountBase,gstPct,amountWithGST,date:document.getElementById('edit-date').value,source:document.getElementById('edit-source').value,payment:document.getElementById('edit-payment').value,dispatch:document.getElementById('edit-dispatch').value,notes:document.getElementById('edit-notes').value,updatedAt:Date.now()};
   await fsUpdate(COL.orders,id,updates);
   closeModal('edit-modal');toast('Order updated!');
 }
@@ -834,7 +867,22 @@ function clearOrderForm(){
   document.getElementById('order-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('order-payment').value='Pending';
   document.getElementById('order-dispatch').value='Pending';
+  document.getElementById('order-gst-check').checked=true;
+  document.getElementById('order-amount-gst').value='';
   document.querySelectorAll('#order-source-chips .source-chip').forEach((x,i)=>x.classList.toggle('selected',i===0));
+}
+
+function calcGST(){
+  const a=parseFloat(document.getElementById('order-amount').value)||0;
+  const gstOn=document.getElementById('order-gst-check').checked;
+  const base=gstOn&&a>0?Math.round(a/1.18*100)/100:a;
+  document.getElementById('order-amount-gst').value=gstOn&&a>0?'₹'+fmt(base):'No GST';
+}
+function calcEditGST(){
+  const a=parseFloat(document.getElementById('edit-amount').value)||0;
+  const gstOn=document.getElementById('edit-gst-check').checked;
+  const base=gstOn&&a>0?Math.round(a/1.18*100)/100:a;
+  document.getElementById('edit-amount-gst').value=gstOn&&a>0?'₹'+fmt(base):'No GST';
 }
 
 async function submitOrder(){
@@ -856,7 +904,11 @@ async function submitOrder(){
     if(existing){custId=existing.id;}
     else{const nc={id:uid(),name,phone,address:'',createdAt:Date.now()};await fsSet(COL.customers,nc.id,nc);customers.push(nc);custId=nc.id;}
   }
-  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,notes,date,createdAt:Date.now()};
+  const gstOn=document.getElementById('order-gst-check').checked;
+  const gstPct=gstOn?18:0;
+  const amountWithGST=amount;
+  const amountBase=gstOn?Math.round(amount/1.18*100)/100:amount;
+  const order={id:uid(),customerId:custId,customerName:name,customerPhone:phone,amount:amountBase,gstPct,amountWithGST,source,payment,dispatch,employeeId:currentUser.id,employeeName:currentUser.name,notes,date,createdAt:Date.now()};
   await fsSet(COL.orders,order.id,order);
   clearOrderForm();toast('Order save ho gaya! ✅');showPage('orders');
 }
@@ -897,6 +949,21 @@ function switchReportTab(period,btn){
   reportPeriod=period;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  const monthEl=document.getElementById('rep-month');
+  const yearEl=document.getElementById('rep-year');
+  if(period==='yearly'){
+    if(monthEl) monthEl.style.display='none';
+    if(yearEl){
+      yearEl.style.display='';
+      if(!yearEl.options.length){
+        const cy=new Date().getFullYear();
+        for(let y=cy;y>=cy-5;y--){const o=document.createElement('option');o.value=y;o.textContent=y;yearEl.appendChild(o);}
+      }
+    }
+  } else {
+    if(monthEl) monthEl.style.display='';
+    if(yearEl) yearEl.style.display='none';
+  }
   renderReport();
 }
 
@@ -910,27 +977,67 @@ function renderReport(){
 
   if(reportPeriod==='daily'){
     const days={};
-    vis.forEach(o=>{if(!days[o.date])days[o.date]={orders:[],total:0};days[o.date].orders.push(o);days[o.date].total+=Number(o.amount);});
+    vis.forEach(o=>{if(!days[o.date])days[o.date]={orders:[],total:0};days[o.date].orders.push(o);days[o.date].total+=Number(o.amountWithGST||o.amount);});
     const sorted=Object.entries(days).sort((a,b)=>b[0].localeCompare(a[0]));
     content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi is month mein</p></div>`:
-      sorted.map(([date,{orders:od,total}])=>`<div class="card"><div class="card-header"><div class="card-title">${formatDate(date)}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Executive</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${o.payment||'Pending'}</span></td><td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${o.dispatch||'Pending'}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
+      sorted.map(([date,{orders:od,total}])=>`<div class="card"><div class="card-header"><div class="card-title">${formatDate(date)}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Base</th><th>Total(GST)</th><th>Source</th><th>Payment</th><th>Dispatch</th><th>Executive</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amount)}</td><td class="amount" style="font-weight:700;">₹${fmt(o.amountWithGST||o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td><span class="badge ${(o.payment||'Pending')==='Received'?'badge-green':'badge-amber'}">${o.payment||'Pending'}</span></td><td><span class="badge ${(o.dispatch||'Pending')==='Done'?'badge-green':'badge-red'}">${o.dispatch||'Pending'}</span></td><td>${esc(o.employeeName)}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
   } else if(reportPeriod==='weekly'){
     const weeks={};
-    vis.forEach(o=>{const d=new Date(o.date);const w=getWeekNum(d);if(!weeks[w])weeks[w]={label:weekLabel(d),orders:[],total:0};weeks[w].orders.push(o);weeks[w].total+=Number(o.amount);});
+    vis.forEach(o=>{const d=new Date(o.date);const w=getWeekNum(d);if(!weeks[w])weeks[w]={label:weekLabel(d),orders:[],total:0};weeks[w].orders.push(o);weeks[w].total+=Number(o.amountWithGST||o.amount);});
     const sorted=Object.entries(weeks).sort((a,b)=>b[0]-a[0]);
     content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi</p></div>`:
-      sorted.map(([,{label,orders:od,total}])=>`<div class="card"><div class="card-header"><div class="card-title">${label}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Source</th><th>Executive</th><th>Date</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td><td class="date-chip">${o.date}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
+      sorted.map(([,{label,orders:od,total}])=>`<div class="card"><div class="card-header"><div class="card-title">${label}</div><span class="amount" style="font-size:18px;color:var(--success);">₹${fmt(total)}</span></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Total(GST)</th><th>Source</th><th>Executive</th><th>Date</th></tr></thead><tbody>${od.map(o=>`<tr><td>${esc(o.customerName)}</td><td class="amount">₹${fmt(o.amountWithGST||o.amount)}</td><td><span class="badge ${srcBadge(o.source)}">${esc(o.source)}</span></td><td>${esc(o.employeeName)}</td><td class="date-chip">${o.date}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
+  } else if(reportPeriod==='yearly'){
+    const year=Number((document.getElementById('rep-year')||{}).value||new Date().getFullYear());
+    let allOrders=getMyOrders().filter(o=>o.date&&o.date.startsWith(String(year)));
+    if(empId) allOrders=allOrders.filter(o=>o.employeeId===empId);
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const empMap={};
+    allOrders.forEach(o=>{
+      if(!empMap[o.employeeId]) empMap[o.employeeId]={name:o.employeeName,monthly:Array(12).fill(0),monthlyBase:Array(12).fill(0),total:0,totalBase:0};
+      const m=new Date(o.date).getMonth();
+      const withGST=Number(o.amountWithGST||o.amount);
+      const base=Number(o.amount);
+      empMap[o.employeeId].monthly[m]+=withGST;
+      empMap[o.employeeId].monthlyBase[m]+=base;
+      empMap[o.employeeId].total+=withGST;
+      empMap[o.employeeId].totalBase+=base;
+    });
+    const empList=Object.values(empMap).sort((a,b)=>b.total-a.total);
+    const grandTotal=allOrders.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
+    const grandTotalBase=allOrders.reduce((s,o)=>s+Number(o.amount),0);
+    const monthTotals=Array(12).fill(0);
+    const monthTotalsBase=Array(12).fill(0);
+    empList.forEach(e=>{e.monthly.forEach((v,i)=>monthTotals[i]+=v);e.monthlyBase.forEach((v,i)=>monthTotalsBase[i]+=v);});
+    content.innerHTML=empList.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi ${year} mein</p></div>`:`
+      <div class="stat-grid">
+        <div class="stat-card green"><div class="stat-label">${year} Turnover (With GST)</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">${allOrders.length} orders</div></div>
+        <div class="stat-card"><div class="stat-label">${year} Base (Excl. GST)</div><div class="stat-value">₹${fmt(grandTotalBase)}</div><div class="stat-sub">GST: ₹${fmt(grandTotal-grandTotalBase)}</div></div>
+        <div class="stat-card blue"><div class="stat-label">Active Executives</div><div class="stat-value">${empList.length}</div></div>
+      </div>
+      <div class="card"><div class="card-header"><div class="card-title">📅 ${year} — Employee-wise Monthly Sales (With GST)</div></div>
+      <div class="table-wrap"><table><thead><tr><th>Executive</th>${months.map(m=>`<th>${m}</th>`).join('')}<th style="background:var(--surface2);font-weight:700;">Total</th></tr></thead>
+      <tbody>
+        ${empList.map(e=>`
+          <tr><td><strong>${esc(e.name)}</strong></td>${e.monthly.map(v=>`<td class="amount" style="font-size:12px;">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-weight:700;color:var(--success);">₹${fmt(e.total)}</td></tr>
+          <tr style="background:var(--surface2);"><td style="font-size:12px;font-weight:600;padding-left:20px;color:var(--text2);">Base (excl.GST)</td>${e.monthlyBase.map(v=>`<td class="amount" style="font-size:12px;color:var(--text2);">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-size:12px;font-weight:600;color:var(--text2);">₹${fmt(e.totalBase)}</td></tr>
+        `).join('')}
+        <tr style="background:var(--primary);color:#fff;font-weight:700;border-top:2px solid var(--border);"><td>🏢 Office Total (With GST)</td>${monthTotals.map(v=>`<td class="amount" style="font-size:12px;font-weight:700;color:#fff;">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-weight:700;color:#fff;font-size:15px;">₹${fmt(grandTotal)}</td></tr>
+        <tr style="background:var(--surface2);font-weight:600;border-top:1px solid var(--border);"><td style="font-size:12px;color:var(--text2);">🏢 Office Base (excl.GST)</td>${monthTotalsBase.map(v=>`<td class="amount" style="font-size:12px;color:var(--text2);">${v>0?'₹'+fmt(v):'-'}</td>`).join('')}<td class="amount" style="font-size:13px;font-weight:700;color:var(--text2);">₹${fmt(grandTotalBase)}</td></tr>
+      </tbody></table></div></div>`;
   } else {
     const emps={};
-    vis.forEach(o=>{if(!emps[o.employeeId])emps[o.employeeId]={name:o.employeeName,orders:[],total:0};emps[o.employeeId].orders.push(o);emps[o.employeeId].total+=Number(o.amount);});
+    vis.forEach(o=>{if(!emps[o.employeeId])emps[o.employeeId]={name:o.employeeName,orders:[],total:0,totalBase:0};emps[o.employeeId].orders.push(o);emps[o.employeeId].total+=Number(o.amountWithGST||o.amount);emps[o.employeeId].totalBase+=Number(o.amount);});
     const sorted=Object.values(emps).sort((a,b)=>b.total-a.total);
-    const grandTotal=vis.reduce((s,o)=>s+Number(o.amount),0);
+    const grandTotal=vis.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
+    const grandTotalBase=vis.reduce((s,o)=>s+Number(o.amount),0);
     content.innerHTML=sorted.length===0?`<div class="empty-state"><div class="icon">📊</div><p>Koi order nahi</p></div>`:`
       <div class="stat-grid">
-        <div class="stat-card green"><div class="stat-label">Month Total</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">${vis.length} orders</div></div>
+        <div class="stat-card green"><div class="stat-label">Month Total (With GST)</div><div class="stat-value">₹${fmt(grandTotal)}</div><div class="stat-sub">${vis.length} orders</div></div>
+        <div class="stat-card"><div class="stat-label">Month Base (Excl. GST)</div><div class="stat-value">₹${fmt(grandTotalBase)}</div><div class="stat-sub">GST: ₹${fmt(grandTotal-grandTotalBase)}</div></div>
         <div class="stat-card blue"><div class="stat-label">Active Executives</div><div class="stat-value">${sorted.length}</div></div>
       </div>
-      <div class="card"><div class="card-header"><div class="card-title">Executive-wise Monthly Breakdown</div></div><div class="table-wrap"><table><thead><tr><th>Executive</th><th>Orders</th><th>Total Sales</th><th>Avg Order</th></tr></thead><tbody>${sorted.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td>${e.orders.length}</td><td class="amount">₹${fmt(e.total)}</td><td class="amount">₹${fmt(e.total/e.orders.length)}</td></tr>`).join('')}</tbody></table></div></div>`;
+      <div class="card"><div class="card-header"><div class="card-title">Executive-wise Monthly Breakdown</div></div><div class="table-wrap"><table><thead><tr><th>Executive</th><th>Orders</th><th>Base</th><th>Total Sales (GST)</th><th>Avg Order</th></tr></thead><tbody>${sorted.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td>${e.orders.length}</td><td class="amount">₹${fmt(e.totalBase)}</td><td class="amount" style="font-weight:700;">₹${fmt(e.total)}</td><td class="amount">₹${fmt(e.total/e.orders.length)}</td></tr>`).join('')}</tbody></table></div></div>`;
   }
 }
 
@@ -1016,8 +1123,8 @@ async function removeUser(id){
 // ── EXPORT ────────────────────────────────────────────
 function exportOrders(){
   const vis=getMyOrders().sort((a,b)=>b.createdAt-a.createdAt);
-  const rows=[['Date','Customer','Phone','Amount','Source','Payment','Dispatch','Executive','Notes']];
-  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeName,o.notes||'']));
+  const rows=[['Date','Customer','Phone','Base Amount','GST Amount','Total (With GST)','Source','Payment','Dispatch','Executive','Notes']];
+  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,Math.round(((o.amountWithGST||o.amount)-o.amount)*100)/100,o.amountWithGST||o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeName,o.notes||'']));
   downloadXLSX(rows,'Orders');
 }
 
@@ -1027,8 +1134,8 @@ function exportReport(){
   let vis=getMyOrders();
   if(empId) vis=vis.filter(o=>o.employeeId===empId);
   vis=vis.filter(o=>o.date&&o.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date));
-  const rows=[['Date','Customer','Phone','Amount','Source','Payment','Dispatch','Executive','Notes']];
-  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeName,o.notes||'']));
+  const rows=[['Date','Customer','Phone','Base Amount','GST Amount','Total (With GST)','Source','Payment','Dispatch','Executive','Notes']];
+  vis.forEach(o=>rows.push([o.date,o.customerName,o.customerPhone,o.amount,Math.round(((o.amountWithGST||o.amount)-o.amount)*100)/100,o.amountWithGST||o.amount,o.source,o.payment||'Pending',o.dispatch||'Pending',o.employeeName,o.notes||'']));
   downloadXLSX(rows,`Report_${month}`);
 }
 
