@@ -1830,8 +1830,10 @@ async function generateQuotationPrint(){
     #quot-preview-overlay .divider{height:2px;background:linear-gradient(90deg,#1e3a5f,#4a90d9,#1e3a5f);margin:14px 0;border-radius:2px;}
     @media print{
       #quot-preview-overlay .no-print{display:none!important;}
-      #quot-preview-overlay{background:#fff!important;padding:0!important;}
-      #quot-preview-overlay .qpage{box-shadow:none!important;padding:16px 20px!important;max-width:100%!important;}
+      #quot-preview-overlay{background:#fff!important;padding:0!important;position:static!important;overflow:visible!important;}
+      #quot-preview-overlay .qpage{box-shadow:none!important;padding:10px 16px!important;max-width:100%!important;}
+      #quot-preview-overlay img{max-width:100%!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+      body > *:not(#quot-preview-overlay){display:none!important;}
     }
   `;
   document.head.appendChild(style);
@@ -1841,7 +1843,7 @@ async function generateQuotationPrint(){
     <button onclick="document.getElementById('quot-preview-overlay').remove();document.getElementById('quot-print-style').remove();" style="padding:9px 18px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">✕ Close</button>
   </div>
   <div class="qpage">
-    ${c.quot_header?`<div style="width:100%;margin-bottom:0;"><img src="${c.quot_header}" style="width:100%;max-height:160px;object-fit:contain;display:block;" /></div>`:''}
+    ${c.quot_header?`<div style="width:100%;margin-bottom:0;page-break-inside:avoid;"><img src="${c.quot_header}" style="width:100%;height:auto;display:block;" /></div>`:''}
     <div class="qh" style="${c.quot_header?'border-top:none;margin-top:0;':''}">
       ${c.quot_header?'':`<div>
         <div class="qcn">${esc(c.company_name||'Company Name')}</div>
@@ -2038,7 +2040,7 @@ async function reprintQuotation(id){
     <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">Customer Signature</div></div>
     <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">For ${esc(c.company_name||'')}</div></div>
   </div>
-  ${c.quot_footer?`<div style="width:100%;margin-top:16px;"><img src="${c.quot_footer}" style="width:100%;max-height:120px;object-fit:contain;display:block;" /></div>`:''}
+  ${c.quot_footer?`<div style="width:100%;margin-top:16px;page-break-inside:avoid;"><img src="${c.quot_footer}" style="width:100%;height:auto;display:block;" /></div>`:''}
   </div>`;
 }
 
