@@ -2229,8 +2229,37 @@ function openLeadDetail(id){
       <div style="font-weight:600;margin-bottom:8px;">Discussion History (${(l.discussions||[]).length}):</div>
       ${(l.discussions||[]).length===0?'<div style="color:var(--text3);font-size:13px;">Abhi koi discussion nahi</div>':
         [...(l.discussions||[])].reverse().map(d=>`<div class="discussion-item"><div style="font-size:12px;color:var(--text2);">${d.date} — ${esc(d.by||'')}</div><div style="margin-top:4px;">${esc(d.note)}</div></div>`).join('')}
-    </div>`;
+    </div>
+    ${currentUser.role==='admin'?`
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-weight:600;margin-bottom:8px;">Assign to Executive:</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <select id="ld-assign-sel" class="form-control" style="max-width:220px;">
+          <option value="">-- Select Executive --</option>
+          ${users.filter(u=>u.role==='employee').map(u=>`<option value="${u.id}" ${l.employeeId===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}
+        </select>
+        <button class="btn btn-sm btn-primary" onclick="assignLead('${l.id}')">Assign</button>
+      </div>
+      <button class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;" onclick="deleteLead('${l.id}')">🗑️ Delete Lead</button>
+    </div>`:''}` ;
   document.getElementById('lead-detail-modal').style.display='flex';
+}
+
+async function deleteLead(id){
+  if(!confirm('Yeh lead delete karna chahte ho? Yeh wapas nahi aayega!')) return;
+  await fsDelete('leads',id);
+  closeModal('lead-detail-modal');
+  toast('Lead delete ho gaya! 🗑️');
+}
+
+async function assignLead(id){
+  const empId=document.getElementById('ld-assign-sel').value;
+  if(!empId) return;
+  const emp=users.find(u=>u.id===empId);
+  if(!emp) return;
+  await fsUpdate('leads',id,{employeeId:emp.id,employeeName:emp.name,updatedAt:Date.now()});
+  toast('Lead assign ho gaya! ✅');
+  closeModal('lead-detail-modal');
 }
 
 async function updateLeadStage(id, stage){
