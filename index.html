@@ -1828,6 +1828,14 @@ async function generateQuotationPrint(){
   // Save quotation to Firestore
   const quot={id:uid(),quotNo:qNo,date:qDate,validTill:qValid,custName,custCompany,custAddr,custCity,custGstin,custPhone,items:quotItems,taxable,gstAmt,total,rounded,leadId:currentQuotLeadId,employeeId:(leads.find(l=>l.id===currentQuotLeadId)||{}).employeeId||currentUser.id,createdAt:Date.now()};
   await fsSet('quotations',quot.id,quot);
+  // Auto-update lead stage to quotation + save amount
+  if(currentQuotLeadId){
+    const lead=leads.find(l=>l.id===currentQuotLeadId);
+    if(lead&&lead.stage!=='converted'){
+      const hist=[...(lead.stageHistory||[]),{from:lead.stage,to:'quotation',by:currentUser.name,at:new Date().toISOString().slice(0,16)}];
+      await fsUpdate('leads',currentQuotLeadId,{stage:'quotation',quotationAmount:rounded,stageHistory:hist,updatedAt:Date.now()});
+    }
+  }
   // Generate print window
   const addrBlock=`${custCompany?'<br><strong>'+esc(custCompany)+'</strong>':''}${custAddr?'<br>'+esc(custAddr):''}${custCity?'<br>'+esc(custCity):''}${custGstin?'<br>GSTIN : '+esc(custGstin):''}${custPhone?'<br>Phone : '+esc(custPhone):''}`;
   // Render quotation in full-screen overlay (no popup blocker issues)
@@ -2364,7 +2372,10 @@ function openLeadDetail(id){
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">FOLLOW-UP</div><div style="${overdue?'color:var(--danger);font-weight:700;':''}">${l.followUpDate||'-'}${overdue?' ⚠️ Overdue':''}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">EXECUTIVE</div><div>${esc(l.employeeName||'')}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">LEAD AGE</div><div style="font-weight:600;">${l.createdAt?Math.floor((Date.now()-l.createdAt)/86400000)+' days ago':'-'}</div></div>
-        ${l.quotationAmount?`<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;"><div><div style="font-size:11px;color:var(--text2);font-weight:600;">QUOTATION AMOUNT</div><div style="font-weight:700;color:var(--primary);font-size:16px;">₹${fmt(l.quotationAmount)}</div></div><button class="btn btn-sm btn-primary" onclick="openQuotationBuilder('${l.id}')">📄 Create Quotation</button></div>`:''}
+        <div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          ${l.quotationAmount?`<div><div style="font-size:11px;color:var(--text2);font-weight:600;">LAST QUOTATION</div><div style="font-weight:700;color:var(--primary);font-size:16px;">₹${fmt(l.quotationAmount)}</div></div>`:''}
+          <button class="btn btn-sm btn-primary" onclick="closeModal('lead-detail-modal');openQuotationBuilder('${l.id}')">📄 New Quotation</button>
+        </div>
     </div>
     ${l.notes?`<div style="margin-bottom:14px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;">${esc(l.notes)}</div>`:''}
 
@@ -2459,13 +2470,10 @@ async function updateLeadStage(id, stage){
     return;
   }
   if(stage==='quotation'){
-    const amt=prompt('Quotation amount enter karo (With GST):');
-    if(amt===null) return;
-    const num=parseFloat(amt)||0;
     const hist=[...(l&&l.stageHistory||[]),histEntry];
-    await fsUpdate('leads',id,{stage,quotationAmount:num,stageHistory:hist,updatedAt:Date.now()});
-    toast('Quotation stage mein move ho gaya! ✅');
+    await fsUpdate('leads',id,{stage,stageHistory:hist,updatedAt:Date.now()});
     closeModal('lead-detail-modal');
+    openQuotationBuilder(id);
     return;
   }
   const hist=[...(l&&l.stageHistory||[]),histEntry];
