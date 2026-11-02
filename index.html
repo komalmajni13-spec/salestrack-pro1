@@ -1609,9 +1609,86 @@ function openLeadDetail(id){
 }
 
 async function updateLeadStage(id, stage){
+  if(stage==='converted'){
+    closeModal('lead-detail-modal');
+    openConvertToOrder(id);
+    return;
+  }
   await fsUpdate('leads',id,{stage,updatedAt:Date.now()});
   toast('Stage updated! ✅');
   closeModal('lead-detail-modal');
+}
+
+function openConvertToOrder(leadId){
+  const l=leads.find(x=>x.id===leadId);
+  if(!l) return;
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  overlay.style.display='flex';
+  overlay.id='convert-order-modal';
+  overlay.innerHTML=`
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header"><h3>✅ Convert to Order</h3><button class="modal-close" onclick="document.getElementById('convert-order-modal').remove()">✕</button></div>
+      <div class="modal-body">
+        <p style="margin-bottom:14px;color:var(--text2);font-size:13px;">Lead <strong>${esc(l.name)}</strong> ko order mein convert karo:</p>
+        <div class="form-group"><label>Amount (With GST) *</label><input class="form-control" type="number" id="conv-amount" placeholder="Order amount" oninput="calcConvGST()"></div>
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:500;">
+            <input type="checkbox" id="conv-gst-check" checked onchange="calcConvGST()" style="width:16px;height:16px;accent-color:var(--primary);">
+            GST Included (18%)
+          </label>
+          <input class="form-control" id="conv-gst-display" readonly style="flex:1;background:var(--surface2);font-size:12px;" placeholder="Base amt">
+        </div>
+        <div class="form-group"><label>Date *</label><input class="form-control" type="date" id="conv-date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="form-group"><label>Payment</label>
+          <select class="form-control" id="conv-payment"><option value="Pending">⏳ Pending</option><option value="Received">✅ Received</option></select>
+        </div>
+        <div class="form-group"><label>Dispatch</label>
+          <select class="form-control" id="conv-dispatch"><option value="Pending">⏳ Pending</option><option value="Done">🚚 Done</option></select>
+        </div>
+        <div class="form-group"><label>Notes</label><input class="form-control" id="conv-notes" placeholder="Optional notes"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('convert-order-modal').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmConvertOrder('${leadId}')">Convert & Save Order</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  calcConvGST();
+}
+
+function calcConvGST(){
+  const a=parseFloat(document.getElementById('conv-amount').value)||0;
+  const gstOn=document.getElementById('conv-gst-check').checked;
+  const base=gstOn&&a>0?Math.round(a/1.18*100)/100:a;
+  document.getElementById('conv-gst-display').value=gstOn&&a>0?'Base: ₹'+fmt(base):'No GST';
+}
+
+async function confirmConvertOrder(leadId){
+  const l=leads.find(x=>x.id===leadId);
+  if(!l) return;
+  const amount=parseFloat(document.getElementById('conv-amount').value);
+  if(!amount||amount<=0){toast('Amount bharo','error');return;}
+  const gstOn=document.getElementById('conv-gst-check').checked;
+  const gstPct=gstOn?18:0;
+  const amountWithGST=amount;
+  const amountBase=gstOn?Math.round(amount/1.18*100)/100:amount;
+  const date=document.getElementById('conv-date').value;
+  const payment=document.getElementById('conv-payment').value;
+  const dispatch=document.getElementById('conv-dispatch').value;
+  const notes=document.getElementById('conv-notes').value.trim();
+  // Find or create customer
+  let custId=null;
+  const existing=customers.find(c=>c.phone===l.phone);
+  if(existing){custId=existing.id;}
+  else{const nc={id:uid(),name:l.name,phone:l.phone,address:l.address||'',createdAt:Date.now()};await fsSet('customers',nc.id,nc);customers.push(nc);custId=nc.id;}
+  // Create order
+  const order={id:uid(),customerId:custId,customerName:l.name,customerPhone:l.phone,amount:amountBase,gstPct,amountWithGST,source:l.source||'Other',payment,dispatch,employeeId:l.employeeId,employeeName:l.employeeName,employeeDept:l.employeeDept||'',notes:notes||(l.product?'Product: '+l.product:''),date,createdAt:Date.now(),convertedFromLead:leadId};
+  await fsSet('orders',order.id,order);
+  // Mark lead converted
+  await fsUpdate('leads',leadId,{stage:'converted',convertedOrderId:order.id,updatedAt:Date.now()});
+  document.getElementById('convert-order-modal').remove();
+  toast('Order ban gaya aur lead converted! ✅');
 }
 
 async function updateLeadFollowup(id){
