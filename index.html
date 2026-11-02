@@ -251,8 +251,8 @@ tr:hover td{background:var(--surface2);}
         <div class="nav-item" onclick="showPage('customers')" id="nav-customers"><span class="nav-icon">👥</span> Customers</div>
       </div>
       <div class="nav-section">
-        <div class="nav-label">CRM</div>
-        <div class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon">🎯</span> Leads / CRM</div>
+        <div class="nav-label">CRM Pipeline</div>
+        <div class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon">🎯</span> Leads</div>
         <div class="nav-item" onclick="showPage('quotations')" id="nav-quotations"><span class="nav-icon">📄</span> Quotations</div>
       </div>
       <div class="nav-section">
@@ -486,7 +486,7 @@ tr:hover td{background:var(--surface2);}
               <input type="month" id="quot-month-filter" onchange="renderQuotations()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;">
               <input type="text" id="quot-search" placeholder="🔍 Search customer..." oninput="renderQuotations()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;min-width:180px;">
             </div>
-            <button class="btn btn-primary btn-sm" onclick="openDirectQuotation()">+ New Quotation</button>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('crm')">← CRM se banao</button>
           </div>
           <div id="quotations-content"></div>
         </div>
