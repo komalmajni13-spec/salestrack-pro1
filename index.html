@@ -541,6 +541,11 @@ tr:hover td{background:var(--surface2);}
                   <div class="form-group"><label>Valid For (Days)</label><input class="form-control" type="number" id="cfg-valid-days" placeholder="365"></div>
                 </div>
               </div>
+              <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+                <div style="font-weight:600;margin-bottom:4px;">GST Lookup API Key</div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Free key lo: <a href="https://gstincheck.co.in" target="_blank" style="color:var(--primary);">gstincheck.co.in</a> → Sign up → API Key copy karo</div>
+                <div class="form-group"><label>GSTINCheck API Key</label><input class="form-control" id="cfg-gst-api-key" placeholder="Paste API key here"></div>
+              </div>
               <button class="btn btn-primary" onclick="saveCompanySettings()">Save Settings</button>
             </div>
           </div>
@@ -654,7 +659,7 @@ tr:hover td{background:var(--surface2);}
           <div class="form-group"><label>Company Name</label><input class="form-control" id="qb-cust-company"></div>
           <div class="form-group" style="grid-column:1/-1;"><label>Address</label><input class="form-control" id="qb-cust-addr"></div>
           <div class="form-group"><label>City, State - PIN</label><input class="form-control" id="qb-cust-city"></div>
-          <div class="form-group"><label>GSTIN</label><input class="form-control" id="qb-cust-gstin" placeholder="Optional"></div>
+          <div class="form-group"><label>GSTIN</label><div style="display:flex;gap:6px;"><input class="form-control" id="qb-cust-gstin" placeholder="Enter GSTIN to auto-fetch" oninput="if(this.value.length===15)fetchGSTDetails()"><button class="btn btn-sm btn-ghost" type="button" onclick="fetchGSTDetails()" style="white-space:nowrap;">🔍 Fetch</button></div></div>
           <div class="form-group"><label>Phone</label><input class="form-control" id="qb-cust-phone"></div>
         </div>
       </div>
@@ -1562,7 +1567,7 @@ async function loadCompanyConfig(){
 }
 function loadCompanySettingsForm(){
   const c=companyConfig;
-  ['company-name','addr1','addr2','gstin','phone','email','website','bank-name','bank-branch','bank-acc','bank-ifsc','quot-no','valid-days'].forEach(k=>{
+  ['company-name','addr1','addr2','gstin','phone','email','website','bank-name','bank-branch','bank-acc','bank-ifsc','quot-no','valid-days','gst-api-key'].forEach(k=>{
     const el=document.getElementById('cfg-'+k);
     if(el) el.value=c[k.replace(/-/g,'_')]||'';
   });
@@ -1582,6 +1587,7 @@ async function saveCompanySettings(){
     bank_ifsc:document.getElementById('cfg-bank-ifsc').value.trim(),
     quot_no:parseInt(document.getElementById('cfg-quot-no').value)||1,
     valid_days:parseInt(document.getElementById('cfg-valid-days').value)||365,
+    gst_api_key:document.getElementById('cfg-gst-api-key').value.trim(),
   };
   await db.collection('config').doc('company').set(c);
   companyConfig=c;
@@ -1781,7 +1787,31 @@ async function generateQuotationPrint(){
   closeModal('quot-builder-modal');
 }
 
-// ── QUOTATIONS LIST ────────────────────────────────────
+// ── GST LOOKUP ─────────────────────────────────────────
+async function fetchGSTDetails(){
+  const gstin=document.getElementById('qb-cust-gstin').value.trim().toUpperCase();
+  if(gstin.length!==15){toast('15 digit GSTIN daalo','error');return;}
+  const apiKey=companyConfig.gst_api_key||'';
+  if(!apiKey){toast('Company Settings mein GST API Key save karo pehle','error');showPage('settings');return;}
+  toast('GST details fetch ho rahi hai...');
+  try{
+    const res=await fetch(`https://sheet.gstincheck.co.in/check/${apiKey}/${gstin}`);
+    const data=await res.json();
+    if(!data.flag){toast('GSTIN nahi mila ya invalid hai','error');return;}
+    const d=data.data;
+    const name=d.lgnm||d.tradeNam||'';
+    const addr=d.pradr?.addr||{};
+    const street=[addr.bno,addr.flno,addr.bnm,addr.st,addr.loc].filter(Boolean).join(', ');
+    const cityState=[addr.dst,addr.stcd].filter(Boolean).join(', ');
+    const pin=addr.pncd||'';
+    document.getElementById('qb-cust-company').value=name;
+    document.getElementById('qb-cust-addr').value=street;
+    document.getElementById('qb-cust-city').value=cityState+(pin?' - '+pin:'');
+    toast('GST details fetch ho gayi! ✅');
+  }catch(e){toast('Fetch error: '+e.message,'error');}
+}
+
+// ── QUOTATIONS LIST ─────────────────────────────────────
 function getMyQuotations(){
   if(currentUser.role==='admin') return quotations;
   return quotations.filter(q=>q.employeeId===currentUser.id);
