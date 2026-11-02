@@ -1139,7 +1139,7 @@ function renderReport(){
       </tbody></table></div></div>`;
   } else {
     const emps={};
-    vis.forEach(o=>{if(!emps[o.employeeId])emps[o.employeeId]={name:o.employeeName,dept:o.employeeDept||'',orders:[],total:0};emps[o.employeeId].orders.push(o);emps[o.employeeId].total+=Number(o.amount);});
+    vis.forEach(o=>{if(!emps[o.employeeId])emps[o.employeeId]={name:o.employeeName,dept:o.employeeDept||'',orders:[],total:0,totalBase:0};emps[o.employeeId].orders.push(o);emps[o.employeeId].total+=Number(o.amountWithGST||o.amount);emps[o.employeeId].totalBase+=Number(o.amount);});
     const sorted=Object.values(emps).sort((a,b)=>b.total-a.total);
     const grandTotal=vis.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
     const grandTotalBase=vis.reduce((s,o)=>s+Number(o.amount),0);
@@ -1149,7 +1149,7 @@ function renderReport(){
         <div class="stat-card"><div class="stat-label">Month Base (Excl. GST)</div><div class="stat-value">₹${fmt(grandTotalBase)}</div><div class="stat-sub">GST: ₹${fmt(grandTotal-grandTotalBase)}</div></div>
         <div class="stat-card blue"><div class="stat-label">Active Executives</div><div class="stat-value">${sorted.length}</div></div>
       </div>
-      <div class="card"><div class="card-header"><div class="card-title">Executive-wise Monthly Breakdown</div></div><div class="table-wrap"><table><thead><tr><th>Executive</th><th>Department</th><th>Orders</th><th>Total Sales</th><th>Avg Order</th></tr></thead><tbody>${sorted.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td><span class="badge ${e.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(e.dept)}</span></td><td>${e.orders.length}</td><td class="amount">₹${fmt(e.total)}</td><td class="amount">₹${fmt(e.total/e.orders.length)}</td></tr>`).join('')}</tbody></table></div></div>`;
+      <div class="card"><div class="card-header"><div class="card-title">Executive-wise Monthly Breakdown</div></div><div class="table-wrap"><table><thead><tr><th>Executive</th><th>Department</th><th>Orders</th><th>Base Amt</th><th>GST Amt</th><th>Total (With GST)</th></tr></thead><tbody>${sorted.map(e=>`<tr><td><strong>${esc(e.name)}</strong></td><td><span class="badge ${e.dept==='MDPE/HDPE'?'badge-purple':'badge-cyan'}">${esc(e.dept)}</span></td><td>${e.orders.length}</td><td class="amount" style="color:var(--text2);">₹${fmt(e.totalBase)}</td><td class="amount" style="color:var(--text2);">₹${fmt(e.total-e.totalBase)}</td><td class="amount" style="font-weight:700;color:var(--success);">₹${fmt(e.total)}</td></tr>`).join('')}</tbody></table></div></div>`;
   }
 }
 
