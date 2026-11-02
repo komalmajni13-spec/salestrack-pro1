@@ -546,6 +546,31 @@ tr:hover td{background:var(--surface2);}
                 <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Free key lo: <a href="https://gstincheck.co.in" target="_blank" style="color:var(--primary);">gstincheck.co.in</a> → Sign up → API Key copy karo</div>
                 <div class="form-group"><label>GSTINCheck API Key</label><input class="form-control" id="cfg-gst-api-key" placeholder="Paste API key here"></div>
               </div>
+              <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+                <div style="font-weight:600;margin-bottom:4px;">Quotation Header &amp; Footer Image</div>
+                <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Apni company ka letterhead header aur footer image yahan upload karo. Quotation mein automatically use hoga.</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                  <div>
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Header Image</label>
+                    <div id="cfg-header-preview" style="border:2px dashed var(--border);border-radius:8px;padding:10px;min-height:80px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;background:var(--surface2);">
+                      ${''/* filled by loadCompanyConfig */}
+                      <span style="color:var(--text3);font-size:12px;">No image</span>
+                    </div>
+                    <input type="file" id="cfg-header-file" accept="image/*" style="display:none;" onchange="previewCfgImage('header')">
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cfg-header-file').click()">📷 Upload Header</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="clearCfgImage('header')">✕ Remove</button>
+                  </div>
+                  <div>
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Footer Image</label>
+                    <div id="cfg-footer-preview" style="border:2px dashed var(--border);border-radius:8px;padding:10px;min-height:80px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;background:var(--surface2);">
+                      <span style="color:var(--text3);font-size:12px;">No image</span>
+                    </div>
+                    <input type="file" id="cfg-footer-file" accept="image/*" style="display:none;" onchange="previewCfgImage('footer')">
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cfg-footer-file').click()">📷 Upload Footer</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="clearCfgImage('footer')">✕ Remove</button>
+                  </div>
+                </div>
+              </div>
               <button class="btn btn-primary" onclick="saveCompanySettings()">Save Settings</button>
             </div>
           </div>
@@ -1572,6 +1597,7 @@ function loadCompanySettingsForm(){
     const el=document.getElementById('cfg-'+k);
     if(el) el.value=c[k.replace(/-/g,'_')]||'';
   });
+  refreshCfgImagePreviews();
 }
 async function saveCompanySettings(){
   const c={
@@ -1589,10 +1615,39 @@ async function saveCompanySettings(){
     quot_no:parseInt(document.getElementById('cfg-quot-no').value)||1,
     valid_days:parseInt(document.getElementById('cfg-valid-days').value)||365,
     gst_api_key:document.getElementById('cfg-gst-api-key').value.trim(),
+    quot_header:companyConfig.quot_header||'',
+    quot_footer:companyConfig.quot_footer||'',
   };
   await db.collection('config').doc('company').set(c);
   companyConfig=c;
   toast('Settings save ho gayi! ✅');
+}
+
+function previewCfgImage(type){
+  const file=document.getElementById('cfg-'+type+'-file').files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    companyConfig['quot_'+type]=e.target.result;
+    const prev=document.getElementById('cfg-'+type+'-preview');
+    prev.innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:120px;object-fit:contain;" />`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearCfgImage(type){
+  companyConfig['quot_'+type]='';
+  const prev=document.getElementById('cfg-'+type+'-preview');
+  prev.innerHTML=`<span style="color:var(--text3);font-size:12px;">No image</span>`;
+}
+
+function refreshCfgImagePreviews(){
+  ['header','footer'].forEach(type=>{
+    const prev=document.getElementById('cfg-'+type+'-preview');
+    if(!prev)return;
+    const img=companyConfig['quot_'+type];
+    prev.innerHTML=img?`<img src="${img}" style="max-width:100%;max-height:120px;object-fit:contain;" />`:`<span style="color:var(--text3);font-size:12px;">No image</span>`;
+  });
 }
 
 // ── QUOTATION BUILDER ──────────────────────────────────
@@ -1786,12 +1841,13 @@ async function generateQuotationPrint(){
     <button onclick="document.getElementById('quot-preview-overlay').remove();document.getElementById('quot-print-style').remove();" style="padding:9px 18px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">✕ Close</button>
   </div>
   <div class="qpage">
-    <div class="qh">
-      <div>
+    ${c.quot_header?`<div style="width:100%;margin-bottom:0;"><img src="${c.quot_header}" style="width:100%;max-height:160px;object-fit:contain;display:block;" /></div>`:''}
+    <div class="qh" style="${c.quot_header?'border-top:none;margin-top:0;':''}">
+      ${c.quot_header?'':`<div>
         <div class="qcn">${esc(c.company_name||'Company Name')}</div>
         <div class="qci">${c.addr1?esc(c.addr1)+'<br>':''}${c.addr2?esc(c.addr2)+'<br>':''}${c.gstin?'<strong>GSTIN : '+esc(c.gstin)+'</strong><br>':''}${c.phone?'Phone : '+esc(c.phone)+(c.email?' &nbsp;|&nbsp; Email : '+esc(c.email):'')+'<br>':''}${c.website?'<span style="color:#2563eb;">'+esc(c.website)+'</span>':''}</div>
-      </div>
-      <div class="qm">
+      </div>`}
+      <div class="qm" style="${c.quot_header?'margin-left:auto;':''}">
         <div class="qtitle">Quotation</div>
         <div><span class="qno">#${qNo}</span></div>
         <table><tr><td style="color:#888;padding-right:8px;">Date</td><td><strong>${qDate}</strong></td></tr>
@@ -1978,7 +2034,12 @@ async function reprintQuotation(id){
       <div class="tr tg"><span>Grand Total (₹)</span><span>${rounded}</span></div>
     </div>
   </div>
-  <div class="sa"><div>Customer Signature : ___________________</div><div>For ${esc(c.company_name||'')} : ___________________</div></div>`;
+  <div class="sa">
+    <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">Customer Signature</div></div>
+    <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">For ${esc(c.company_name||'')}</div></div>
+  </div>
+  ${c.quot_footer?`<div style="width:100%;margin-top:16px;"><img src="${c.quot_footer}" style="width:100%;max-height:120px;object-fit:contain;display:block;" /></div>`:''}
+  </div>`;
 }
 
 async function deleteQuotation(id){
