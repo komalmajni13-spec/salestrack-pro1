@@ -283,6 +283,8 @@ tr:hover td{background:var(--surface2);}
 
         <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
+          <!-- ADMIN FUNNEL (admin only) -->
+          <div id="dash-funnel-row" style="display:none;margin-bottom:16px;"></div>
           <div class="stat-grid" id="dash-stats"></div>
           <!-- DEPT CARDS (admin only) -->
           <div id="dash-dept-row" style="display:none;margin-bottom:16px;">
@@ -1033,6 +1035,71 @@ function renderDashboard(){
   const todaySalesBase=todayOrd.reduce((s,o)=>s+Number(o.amount),0);
   const monthSales=monthOrd.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
   const monthSalesBase=monthOrd.reduce((s,o)=>s+Number(o.amount),0);
+
+  // Admin CRM Funnel
+  const funnelRow=document.getElementById('dash-funnel-row');
+  if(currentUser.role==='admin' && funnelRow){
+    funnelRow.style.display='block';
+    const myL=leads;
+    const todayStr=today;
+    const stageData=[
+      {key:'new',label:'New',color:'#3b82f6',icon:'🆕'},
+      {key:'discussion',label:'Discussion',color:'#f59e0b',icon:'💬'},
+      {key:'quotation',label:'Quotation',color:'#8b5cf6',icon:'📄'},
+      {key:'converted',label:'Converted',color:'#16a34a',icon:'✅'},
+      {key:'rejected',label:'Rejected',color:'#dc2626',icon:'❌'},
+    ];
+    const overdueCount=myL.filter(l=>l.followUpDate&&l.followUpDate<todayStr&&l.stage!=='converted'&&l.stage!=='rejected').length;
+    const todayFUCount=myL.filter(l=>l.followUpDate===todayStr&&l.stage!=='converted'&&l.stage!=='rejected').length;
+    const execLeadCount={};
+    myL.forEach(l=>{if(l.employeeName)execLeadCount[l.employeeName]=(execLeadCount[l.employeeName]||0)+1;});
+
+    funnelRow.innerHTML=`
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:0;">
+        <div style="font-weight:700;font-size:15px;margin-bottom:14px;">📊 CRM Pipeline Overview</div>
+        <!-- Funnel stages -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          ${stageData.map(s=>{
+            const cnt=myL.filter(l=>l.stage===s.key).length;
+            const pct=myL.length?Math.round(cnt/myL.length*100):0;
+            return`<div onclick="showPage('crm');setTimeout(()=>{document.querySelector('[data-stage=\\'${s.key}\\']').click()},300)" style="flex:1;min-width:100px;background:var(--surface2);border-radius:10px;padding:12px;cursor:pointer;border-top:3px solid ${s.color};text-align:center;">
+              <div style="font-size:20px;margin-bottom:4px;">${s.icon}</div>
+              <div style="font-size:22px;font-weight:800;color:${s.color};">${cnt}</div>
+              <div style="font-size:11px;font-weight:600;color:var(--text2);">${s.label}</div>
+              <div style="font-size:10px;color:var(--text3);">${pct}%</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <!-- Alert row -->
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <div onclick="showPage('crm-analytics')" style="flex:1;min-width:140px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;">⚠️</span>
+            <div><div style="font-weight:700;color:#92400e;font-size:16px;">${overdueCount}</div><div style="font-size:11px;color:#92400e;">Overdue Follow-ups</div></div>
+          </div>
+          <div onclick="showPage('crm')" style="flex:1;min-width:140px;background:#e0f2fe;border:1px solid #38bdf8;border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;">📅</span>
+            <div><div style="font-weight:700;color:#0369a1;font-size:16px;">${todayFUCount}</div><div style="font-size:11px;color:#0369a1;">Today's Follow-ups</div></div>
+          </div>
+          <div onclick="showPage('crm-analytics')" style="flex:1;min-width:140px;background:#f3e8ff;border:1px solid #a855f7;border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;">📄</span>
+            <div><div style="font-weight:700;color:#6d28d9;font-size:16px;">${myL.filter(l=>l.stage==='quotation').length}</div><div style="font-size:11px;color:#6d28d9;">Quotation Pending</div></div>
+          </div>
+          <div style="flex:1;min-width:140px;background:#f0fdf4;border:1px solid #4ade80;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;">👥</span>
+            <div><div style="font-weight:700;color:#15803d;font-size:16px;">${myL.length}</div><div style="font-size:11px;color:#15803d;">Total Leads</div></div>
+          </div>
+        </div>
+        <!-- Executive lead count -->
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;">EXECUTIVE-WISE LEADS</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${Object.entries(execLeadCount).sort((a,b)=>b[1]-a[1]).map(([name,cnt])=>`
+            <div style="background:var(--surface2);border-radius:6px;padding:6px 12px;font-size:12px;">
+              <span style="font-weight:600;">${esc(name)}</span>
+              <span style="color:var(--primary);font-weight:700;margin-left:6px;">${cnt}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  } else if(funnelRow){ funnelRow.style.display='none'; }
 
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card green"><div class="stat-label">Today's Sales</div><div class="stat-value">₹${fmt(todaySales)}</div><div class="stat-sub">Base: ₹${fmt(todaySalesBase)} · ${todayOrd.length} orders</div></div>
