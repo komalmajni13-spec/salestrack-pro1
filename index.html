@@ -253,7 +253,7 @@ tr:hover td{background:var(--surface2);}
       <div class="nav-section">
         <div class="nav-label">CRM Pipeline</div>
         <div class="nav-item" onclick="showPage('crm-dashboard')" id="nav-crm-dashboard"><span class="nav-icon">📊</span> CRM Dashboard</div>
-        <div class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon">🎯</span> Leads</div>
+        <div class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon">🎯</span> Leads <span id="nav-overdue-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px;">0</span></div>
         <div class="nav-item" onclick="showPage('quotations')" id="nav-quotations"><span class="nav-icon">📄</span> Quotations</div>
       </div>
       <div class="nav-section">
@@ -981,6 +981,7 @@ function startApp(){
   const rm=document.getElementById('rep-month');if(rm)rm.value=ym;
   const sm=document.getElementById('src-month');if(sm)sm.value=ym;
   populateEmpFilters();
+  requestNotifPermission();
   startRealtime();
   if(currentUser.role==='employee') showPage('crm-dashboard');
   else showPage('dashboard');
@@ -1992,20 +1993,21 @@ function renderQuotations(){
       <div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-value">₹${fmt(totalAmt)}</div></div>
     </div>
     <div class="card"><div class="table-wrap"><table><thead><tr>
-      <th>Quot. No.</th><th>Date</th><th>Customer</th><th>Items</th><th>Amount</th><th>Valid Till</th><th>Action</th>
+      <th>Quot. No.</th><th>Date</th><th>Customer</th><th>Items</th><th>Amount</th><th>Pending</th><th>Valid Till</th><th>Action</th>
     </tr></thead><tbody>
-    ${vis.map(q=>`<tr>
+    ${vis.map(q=>{const pendDays=q.createdAt?Math.floor((Date.now()-q.createdAt)/86400000):null;const today=new Date().toISOString().slice(0,10);const expired=q.validTill&&q.validTill<today;return`<tr>
       <td><strong>#${esc(q.quotNo)}</strong></td>
       <td class="date-chip">${q.date||''}</td>
       <td><strong>${esc(q.custName)}</strong>${q.custCompany?'<br><span style="font-size:11px;color:var(--text2);">'+esc(q.custCompany)+'</span>':''}</td>
       <td style="font-size:12px;">${(q.items||[]).length} items</td>
       <td class="amount" style="font-weight:700;color:var(--success);">₹${fmt(q.rounded||0)}</td>
-      <td class="date-chip">${q.validTill||''}</td>
+      <td style="font-size:12px;">${pendDays!==null?`<span style="font-weight:600;color:${pendDays>7?'#dc2626':pendDays>3?'#f59e0b':'#16a34a'};">${pendDays}d</span>`:'—'}</td>
+      <td class="date-chip" style="${expired?'color:#dc2626;font-weight:700;':''}">${q.validTill||''}${expired?' ⚠️':''}</td>
       <td style="white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="reprintQuotation('${q.id}')">🖨️ Print</button>
+        <button class="btn btn-ghost btn-sm" onclick="reprintQuotation('${q.id}')">🖨️ Print/PDF</button>
         <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteQuotation('${q.id}')">🗑️</button>
       </td>
-    </tr>`).join('')}
+    </tr>`;}).join('')}
     </tbody></table></div></div>`;
 }
 
@@ -2260,6 +2262,7 @@ function openLeadDetail(id){
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PRODUCT</div><div>${esc(l.product||'-')}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">FOLLOW-UP</div><div style="${overdue?'color:var(--danger);font-weight:700;':''}">${l.followUpDate||'-'}${overdue?' ⚠️ Overdue':''}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">EXECUTIVE</div><div>${esc(l.employeeName||'')}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">LEAD AGE</div><div style="font-weight:600;">${l.createdAt?Math.floor((Date.now()-l.createdAt)/86400000)+' days ago':'-'}</div></div>
         ${l.quotationAmount?`<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;"><div><div style="font-size:11px;color:var(--text2);font-weight:600;">QUOTATION AMOUNT</div><div style="font-weight:700;color:var(--primary);font-size:16px;">₹${fmt(l.quotationAmount)}</div></div><button class="btn btn-sm btn-primary" onclick="openQuotationBuilder('${l.id}')">📄 Create Quotation</button></div>`:''}
     </div>
     ${l.notes?`<div style="margin-bottom:14px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;">${esc(l.notes)}</div>`:''}
@@ -2298,6 +2301,20 @@ function openLeadDetail(id){
       ${(l.discussions||[]).length===0?'<div style="color:var(--text3);font-size:13px;">Abhi koi discussion nahi</div>':
         [...(l.discussions||[])].reverse().map(d=>`<div class="discussion-item"><div style="font-size:12px;color:var(--text2);">${d.date} — ${esc(d.by||'')}</div><div style="margin-top:4px;">${esc(d.note)}</div></div>`).join('')}
     </div>
+    ${(l.stageHistory||[]).length>0?`
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-weight:600;margin-bottom:8px;font-size:13px;">🕐 Stage History:</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${[...(l.stageHistory||[])].reverse().map(h=>`<div style="font-size:12px;display:flex;gap:8px;align-items:center;">
+          <span style="color:var(--text3);">${h.at||''}</span>
+          <span style="background:var(--surface2);border-radius:4px;padding:1px 6px;">${STAGE_LABEL[h.from]||h.from}</span>
+          <span style="color:var(--text3);">→</span>
+          <span style="background:var(--surface2);border-radius:4px;padding:1px 6px;">${STAGE_LABEL[h.to]||h.to}</span>
+          <span style="color:var(--text3);">by ${esc(h.by||'')}</span>
+        </div>`).join('')}
+      </div>
+    </div>`:''}
+
     ${currentUser.role==='admin'?`
     <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
       <div style="font-weight:600;margin-bottom:8px;">Assign to Executive:</div>
@@ -2331,21 +2348,27 @@ async function assignLead(id){
 }
 
 async function updateLeadStage(id, stage){
+  const l=leads.find(x=>x.id===id);
+  const prevStage=l?l.stage:'';
+  const histEntry={from:prevStage,to:stage,by:currentUser.name,at:new Date().toISOString().slice(0,16)};
   if(stage==='converted'){
     closeModal('lead-detail-modal');
     openConvertToOrder(id);
+    // stage history saved in convertToOrder
     return;
   }
   if(stage==='quotation'){
     const amt=prompt('Quotation amount enter karo (With GST):');
     if(amt===null) return;
     const num=parseFloat(amt)||0;
-    await fsUpdate('leads',id,{stage,quotationAmount:num,updatedAt:Date.now()});
+    const hist=[...(l&&l.stageHistory||[]),histEntry];
+    await fsUpdate('leads',id,{stage,quotationAmount:num,stageHistory:hist,updatedAt:Date.now()});
     toast('Quotation stage mein move ho gaya! ✅');
     closeModal('lead-detail-modal');
     return;
   }
-  await fsUpdate('leads',id,{stage,updatedAt:Date.now()});
+  const hist=[...(l&&l.stageHistory||[]),histEntry];
+  await fsUpdate('leads',id,{stage,stageHistory:hist,updatedAt:Date.now()});
   toast('Stage updated! ✅');
   closeModal('lead-detail-modal');
 }
@@ -2586,9 +2609,9 @@ function renderCrmDashboard(){
     ${currentUser.role==='admin'?`<div class="card">
       <div style="font-weight:700;font-size:14px;margin-bottom:12px;">👤 Executive-wise Performance</div>
       <div class="table-wrap"><table style="font-size:13px;"><thead><tr>
-        <th>Executive</th><th>Total</th><th>🆕 New</th><th>💬 Discussion</th><th>📄 Quotation</th><th>✅ Converted</th><th>❌ Rejected</th><th>⚠️ Overdue</th><th>📅 Today</th>
+        <th>Executive</th><th>Total</th><th>🆕 New</th><th>💬 Discussion</th><th>📄 Quotation</th><th>✅ Converted</th><th>❌ Rejected</th><th>📈 Conv%</th><th>⚠️ Overdue</th><th>📅 Today</th>
       </tr></thead><tbody>
-        ${execList.map(e=>`<tr>
+        ${execList.map(e=>{const convPct=e.total>0?Math.round((e.converted||0)/e.total*100):0;return`<tr>
           <td><strong>${esc(e.name)}</strong></td>
           <td><strong>${e.total}</strong></td>
           <td style="color:#3b82f6;">${e.new||0}</td>
@@ -2596,9 +2619,10 @@ function renderCrmDashboard(){
           <td style="color:#8b5cf6;">${e.quotation||0}</td>
           <td style="color:#16a34a;">${e.converted||0}</td>
           <td style="color:#dc2626;">${e.rejected||0}</td>
+          <td style="color:${convPct>=30?'#16a34a':convPct>=10?'#f59e0b':'#dc2626'};font-weight:700;">${convPct}%</td>
           <td style="color:#b45309;font-weight:${e.overdue>0?'700':'400'};">${e.overdue}</td>
           <td style="color:#0369a1;font-weight:${e.todayFU>0?'700':'400'};">${e.todayFU}</td>
-        </tr>`).join('')}
+        </tr>`;}).join('')}
       </tbody></table></div>
     </div>`:''}`;
 }
@@ -2710,9 +2734,29 @@ function renderCrmAnalytics(){
     </div>`;
 }
 
+let _notifSentToday='';
 function checkOverdueLeads(){
   const today=new Date().toISOString().slice(0,10);
-  const overdue=getMyLeads().filter(l=>l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const myL=getMyLeads();
+  const overdue=myL.filter(l=>l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const todayFU=myL.filter(l=>l.followUpDate===today&&l.stage!=='converted'&&l.stage!=='rejected');
+
+  // Nav badge
+  const badge=document.getElementById('nav-overdue-badge');
+  if(badge){
+    if(overdue.length>0){badge.textContent=overdue.length;badge.style.display='inline';}
+    else badge.style.display='none';
+  }
+
+  // Browser notification (once per day)
+  if((overdue.length>0||todayFU.length>0)&&_notifSentToday!==today&&'Notification' in window&&Notification.permission==='granted'){
+    _notifSentToday=today;
+    const msg=[];
+    if(todayFU.length>0) msg.push(`📅 ${todayFU.length} follow-up(s) aaj`);
+    if(overdue.length>0) msg.push(`⚠️ ${overdue.length} overdue`);
+    new Notification('SalesTrack Pro — Follow-up Alert',{body:msg.join(' · '),icon:'/favicon.ico'});
+  }
+
   const popup=document.getElementById('overdue-popup');
   if(!popup) return;
   if(overdue.length>0){
@@ -2720,6 +2764,11 @@ function checkOverdueLeads(){
     popup.style.display='block';
     setTimeout(()=>{popup.style.display='none';},8000);
   }
+}
+
+function requestNotifPermission(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default') Notification.requestPermission();
 }
 
 init();
