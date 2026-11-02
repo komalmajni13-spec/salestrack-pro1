@@ -2095,10 +2095,27 @@ function populateCRMEmpFilter(){
   }
 }
 
+const STAGE_COLORS={
+  all:   {bg:'var(--primary)',color:'#fff',border:'var(--primary)'},
+  new:   {bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
+  discussion:{bg:'#fffbeb',color:'#92400e',border:'#fde68a'},
+  quotation:{bg:'#f5f3ff',color:'#6d28d9',border:'#ddd6fe'},
+  converted:{bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+  rejected:{bg:'#fef2f2',color:'#b91c1c',border:'#fecaca'}
+};
 function setCRMStage(stage, btn){
   crmStageFilter=stage;
-  document.querySelectorAll('.crm-stage-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  document.querySelectorAll('.crm-stage-btn').forEach(b=>{
+    const s=b.dataset.stage;
+    const c=STAGE_COLORS[s]||STAGE_COLORS.all;
+    if(b===btn){
+      b.style.background=c.color; b.style.color='#fff'; b.style.border='2px solid '+c.color;
+      b.style.boxShadow='0 2px 8px '+c.color+'55'; b.style.transform='scale(1.05)';
+    } else {
+      b.style.background=c.bg; b.style.color=c.color; b.style.border='1.5px solid '+c.border;
+      b.style.boxShadow=''; b.style.transform='';
+    }
+  });
   renderCRM();
 }
 
