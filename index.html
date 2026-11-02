@@ -1637,7 +1637,8 @@ function loadCompanySettingsForm(){
     const el=document.getElementById('cfg-'+k);
     if(el) el.value=c[k.replace(/-/g,'_')]||'';
   });
-  const te=document.getElementById('cfg-terms');if(te)te.value=c.terms||'';
+  const DEFAULT_TERMS=`Above rate are Ex-Factory\n30% payment with PO & 70% payment before dispatch\nGoods once sold will not be accepted return\nIn case of late payment interest 18% P.A. will be levied\nSubject to Rajkot Jurisdiction. E & O.E`;
+  const te=document.getElementById('cfg-terms');if(te)te.value=c.terms||DEFAULT_TERMS;
   const ne=document.getElementById('cfg-quot-notes');if(ne)ne.value=c.quot_notes||'';
   refreshCfgImagePreviews();
 }
@@ -1880,6 +1881,8 @@ async function generateQuotationPrint(){
   `;
   document.head.appendChild(style);
   const execName=esc((leads.find(l=>l.id===currentQuotLeadId)||{}).employeeName||currentUser.name);
+  const DEFAULT_TERMS=`Above rate are Ex-Factory\n30% payment with PO & 70% payment before dispatch\nGoods once sold will not be accepted return\nIn case of late payment interest 18% P.A. will be levied\nSubject to Rajkot Jurisdiction. E & O.E`;
+  const termsText=c.terms||DEFAULT_TERMS;
   const quotHTML=`
   <div class="no-print" style="max-width:800px;margin:0 auto 14px;display:flex;gap:8px;justify-content:flex-end;">
     <button onclick="window.print()" style="padding:9px 22px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">🖨️ Print / Save PDF</button>
@@ -1970,10 +1973,10 @@ async function generateQuotationPrint(){
         <div class="trow tg"><span>Grand Total (&#8377;)</span><span>${rounded}</span></div>
       </div>
     </div>
-    ${(c.terms||c.quot_notes)?`<div class="tc-section">
-      ${c.terms?`<div style="margin-bottom:6px;"><strong>Terms &amp; Conditions :</strong><br>${c.terms.split('\n').map((l,i)=>l.trim()?`<span style="display:block;">(${i+1}) ${esc(l.trim())}</span>`:'').join('')}</div>`:''}
+    <div class="tc-section">
+      <div style="margin-bottom:6px;"><strong>Terms &amp; Conditions :</strong><br>${termsText.split('\n').map((l,i)=>l.trim()?`<span style="display:block;">(${i+1}) ${esc(l.trim())}</span>`:'').join('')}</div>
       ${c.quot_notes?`<div><strong>Notes :</strong> ${esc(c.quot_notes)}</div>`:''}
-    </div>`:''}
+    </div>
     <div class="sa">
       <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">Customer Signature</div></div>
       <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">For ${esc(c.company_name||'')}</div></div>
@@ -2159,10 +2162,10 @@ async function reprintQuotation(id){
         <div class="trow tg"><span>Grand Total (&#8377;)</span><span>${rounded}</span></div>
       </div>
     </div>
-    ${(c.terms||c.quot_notes)?`<div class="tc-section">
-      ${c.terms?`<div style="margin-bottom:6px;"><strong>Terms &amp; Conditions :</strong><br>${c.terms.split('\n').map((l,i)=>l.trim()?`<span style="display:block;">(${i+1}) ${esc(l.trim())}</span>`:'').join('')}</div>`:''}
+    <div class="tc-section">
+      <div style="margin-bottom:6px;"><strong>Terms &amp; Conditions :</strong><br>${(c.terms||`Above rate are Ex-Factory\n30% payment with PO & 70% payment before dispatch\nGoods once sold will not be accepted return\nIn case of late payment interest 18% P.A. will be levied\nSubject to Rajkot Jurisdiction. E & O.E`).split('\n').map((l,i)=>l.trim()?`<span style="display:block;">(${i+1}) ${esc(l.trim())}</span>`:'').join('')}</div>
       ${c.quot_notes?`<div><strong>Notes :</strong> ${esc(c.quot_notes)}</div>`:''}
-    </div>`:''}
+    </div>
     <div class="sa">
       <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">Customer Signature</div></div>
       <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">For ${esc(c.company_name||'')}</div></div>
