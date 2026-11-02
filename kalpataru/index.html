@@ -601,7 +601,23 @@ function showLoading(show){
 async function loadAppData(){
   try{
     [customers,orders]=await Promise.all([fsGetAll(COL.customers),fsGetAll(COL.orders)]);
+    await migrateOrdersGST();
   }catch(e){customers=[];orders=[];}
+}
+
+// One-time migration: reverse-calculate GST for orders saved before the
+// GST feature existed (their old "amount" was the full GST-inclusive sale value).
+async function migrateOrdersGST(){
+  const metaDoc=await db.collection(COL.meta).doc('ordersGst').get();
+  if(metaDoc.exists) return;
+  const toFix=orders.filter(o=>o.gstPct===undefined);
+  for(const o of toFix){
+    const amountWithGST=Number(o.amount);
+    const amountBase=Math.round(amountWithGST/1.18*100)/100;
+    await fsUpdate(COL.orders,o.id,{amount:amountBase,gstPct:18,amountWithGST});
+    o.amount=amountBase;o.gstPct=18;o.amountWithGST=amountWithGST;
+  }
+  await db.collection(COL.meta).doc('ordersGst').set({migrated:true,count:toFix.length,at:Date.now()});
 }
 
 function startRealtime(){
