@@ -2084,9 +2084,8 @@ function populateCRMEmpFilter(){
   if(!el) return;
   if(currentUser.role==='admin'){
     el.style.display='';
-    const empIds=[...new Set(leads.map(l=>l.employeeId))];
-    const empList=empIds.map(id=>leads.find(l=>l.employeeId===id)).filter(Boolean);
-    el.innerHTML='<option value="">All Executives</option>'+empList.map(l=>`<option value="${l.employeeId}">${esc(l.employeeName)}</option>`).join('');
+    const empList=users.filter(u=>u.role==='employee');
+    el.innerHTML='<option value="">All Executives</option>'+empList.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');
   } else {
     el.style.display='none';
   }
@@ -2421,9 +2420,9 @@ function renderCrmDashboard(){
   const filterSel=document.getElementById('crm-dash-exec-filter');
   if(currentUser.role==='admin'){
     filterBar.style.display='block';
-    const execNames=[...new Set(leads.map(l=>l.employeeName).filter(Boolean))].sort();
+    const empList=users.filter(u=>u.role==='employee');
     const curVal=filterSel.value;
-    filterSel.innerHTML='<option value="">All Executives</option>'+execNames.map(n=>`<option value="${n}" ${n===curVal?'selected':''}>${esc(n)}</option>`).join('');
+    filterSel.innerHTML='<option value="">All Executives</option>'+empList.map(u=>`<option value="${u.name}" ${u.name===curVal?'selected':''}>${esc(u.name)}</option>`).join('');
   } else { filterBar.style.display='none'; }
 
   const execFilter=currentUser.role==='admin'?(filterSel?filterSel.value:''):'';
