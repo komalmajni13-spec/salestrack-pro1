@@ -483,6 +483,11 @@ tr:hover td{background:var(--surface2);}
 
         <!-- CRM DASHBOARD -->
         <div class="page" id="page-crm-dashboard">
+          <div id="crm-dash-filter-bar" style="display:none;margin-bottom:12px;">
+            <select id="crm-dash-exec-filter" onchange="renderCrmDashboard()" style="padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;min-width:200px;">
+              <option value="">All Executives</option>
+            </select>
+          </div>
           <div id="crm-dash-content"></div>
         </div>
 
@@ -2410,7 +2415,21 @@ async function saveRejectReason(id){
 function renderCrmDashboard(){
   const el=document.getElementById('crm-dash-content');
   if(!el) return;
-  const myL=getMyLeads();
+
+  // Populate + show exec filter for admin
+  const filterBar=document.getElementById('crm-dash-filter-bar');
+  const filterSel=document.getElementById('crm-dash-exec-filter');
+  if(currentUser.role==='admin'){
+    filterBar.style.display='block';
+    const execNames=[...new Set(leads.map(l=>l.employeeName).filter(Boolean))].sort();
+    const curVal=filterSel.value;
+    filterSel.innerHTML='<option value="">All Executives</option>'+execNames.map(n=>`<option value="${n}" ${n===curVal?'selected':''}>${esc(n)}</option>`).join('');
+  } else { filterBar.style.display='none'; }
+
+  const execFilter=currentUser.role==='admin'?(filterSel?filterSel.value:''):'';
+  let myL=getMyLeads();
+  if(execFilter) myL=myL.filter(l=>l.employeeName===execFilter);
+  const viewingName=execFilter||( currentUser.role==='admin'?'All Executives':currentUser.name);
   const today=new Date().toISOString().slice(0,10);
   const stageData=[
     {key:'new',label:'New',color:'#3b82f6',bg:'#eff6ff',icon:'🆕'},
@@ -2447,7 +2466,7 @@ function renderCrmDashboard(){
     <!-- Greeting -->
     <div style="background:linear-gradient(135deg,var(--primary),#6d28d9);border-radius:12px;padding:16px 20px;margin-bottom:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div>
-        <div style="font-size:18px;font-weight:700;">${greet}, ${esc(currentUser.name)}! 👋</div>
+        <div style="font-size:18px;font-weight:700;">${execFilter?'📊 '+esc(execFilter)+' ka Dashboard':greet+', '+esc(currentUser.name)+'! 👋'}</div>
         <div style="font-size:13px;opacity:0.85;margin-top:2px;">${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
       </div>
       <div style="text-align:right;">
