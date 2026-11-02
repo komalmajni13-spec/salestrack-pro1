@@ -262,6 +262,7 @@ tr:hover td{background:var(--surface2);}
       <div class="nav-section" id="admin-nav" style="display:none;">
         <div class="nav-label">Admin Panel</div>
         <div class="nav-item" onclick="showPage('users')" id="nav-users"><span class="nav-icon">🔑</span> Manage Users</div>
+        <div class="nav-item" onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span> Company Settings</div>
       </div>
       <div class="sidebar-footer">
         <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
@@ -497,6 +498,41 @@ tr:hover td{background:var(--surface2);}
           <div id="crm-content"></div>
         </div>
 
+        <!-- COMPANY SETTINGS -->
+        <div class="page" id="page-settings">
+          <div class="card" style="max-width:640px;">
+            <div class="card-header"><div class="card-title">⚙️ Company Settings (Quotation ke liye)</div></div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group" style="grid-column:1/-1;"><label>Company Name *</label><input class="form-control" id="cfg-company-name" placeholder="e.g. Flowrain Enterprise"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Address Line 1</label><input class="form-control" id="cfg-addr1" placeholder="Plot No, Street"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Address Line 2</label><input class="form-control" id="cfg-addr2" placeholder="Area, City, State - Pincode"></div>
+                <div class="form-group"><label>GSTIN</label><input class="form-control" id="cfg-gstin" placeholder="e.g. 24AAJFF7102K1ZI"></div>
+                <div class="form-group"><label>Phone</label><input class="form-control" id="cfg-phone" placeholder="Company phone"></div>
+                <div class="form-group"><label>Email</label><input class="form-control" id="cfg-email" placeholder="Company email"></div>
+                <div class="form-group"><label>Website</label><input class="form-control" id="cfg-website" placeholder="www.example.com"></div>
+              </div>
+              <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+                <div style="font-weight:600;margin-bottom:12px;">Bank Details</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div class="form-group"><label>Bank Name</label><input class="form-control" id="cfg-bank-name" placeholder="e.g. Federal Bank Ltd"></div>
+                  <div class="form-group"><label>Branch</label><input class="form-control" id="cfg-bank-branch" placeholder="Branch name"></div>
+                  <div class="form-group"><label>Account No.</label><input class="form-control" id="cfg-bank-acc" placeholder="Account number"></div>
+                  <div class="form-group"><label>IFSC Code</label><input class="form-control" id="cfg-bank-ifsc" placeholder="e.g. FDRL0001778"></div>
+                </div>
+              </div>
+              <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+                <div style="font-weight:600;margin-bottom:12px;">Quotation Settings</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div class="form-group"><label>Next Quotation No.</label><input class="form-control" type="number" id="cfg-quot-no" placeholder="e.g. 3702"></div>
+                  <div class="form-group"><label>Valid For (Days)</label><input class="form-control" type="number" id="cfg-valid-days" placeholder="365"></div>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="saveCompanySettings()">Save Settings</button>
+            </div>
+          </div>
+        </div>
+
         <!-- USERS (Admin) -->
         <div class="page" id="page-users">
           <div style="margin-bottom:12px;padding:12px;background:var(--bg2);border-radius:10px;display:flex;align-items:center;gap:12px;">
@@ -585,6 +621,58 @@ tr:hover td{background:var(--surface2);}
   <div class="modal" style="max-width:580px;">
     <div class="modal-header"><h3 id="ld-title">Lead Detail</h3><button class="modal-close" onclick="closeModal('lead-detail-modal')">✕</button></div>
     <div class="modal-body" id="lead-detail-body"></div>
+  </div>
+</div>
+
+<!-- QUOTATION BUILDER MODAL -->
+<div class="modal-overlay" id="quot-builder-modal" onclick="if(event.target===this)closeModal('quot-builder-modal')" style="align-items:flex-start;padding:20px 0;overflow-y:auto;">
+  <div class="modal" style="max-width:700px;margin:auto;">
+    <div class="modal-header"><h3>📄 Create Quotation</h3><button class="modal-close" onclick="closeModal('quot-builder-modal')">✕</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="form-group"><label>Quotation No.</label><input class="form-control" id="qb-no" placeholder="Auto"></div>
+        <div class="form-group"><label>Date</label><input class="form-control" type="date" id="qb-date"></div>
+        <div class="form-group"><label>Valid Till</label><input class="form-control" type="date" id="qb-valid"></div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+        <div style="font-weight:600;margin-bottom:8px;">Customer / Billing Address</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Customer Name *</label><input class="form-control" id="qb-cust-name"></div>
+          <div class="form-group"><label>Company Name</label><input class="form-control" id="qb-cust-company"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label>Address</label><input class="form-control" id="qb-cust-addr"></div>
+          <div class="form-group"><label>City, State - PIN</label><input class="form-control" id="qb-cust-city"></div>
+          <div class="form-group"><label>GSTIN</label><input class="form-control" id="qb-cust-gstin" placeholder="Optional"></div>
+          <div class="form-group"><label>Phone</label><input class="form-control" id="qb-cust-phone"></div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-weight:600;">Items</div>
+          <button class="btn btn-sm btn-ghost" onclick="addQuotItem()">+ Add Item</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;" id="qb-items-table">
+            <thead><tr style="background:var(--surface2);">
+              <th style="padding:6px;border:1px solid var(--border);text-align:left;">Description</th>
+              <th style="padding:6px;border:1px solid var(--border);">HSN</th>
+              <th style="padding:6px;border:1px solid var(--border);">Qty</th>
+              <th style="padding:6px;border:1px solid var(--border);">Unit</th>
+              <th style="padding:6px;border:1px solid var(--border);">Rate</th>
+              <th style="padding:6px;border:1px solid var(--border);">Disc%</th>
+              <th style="padding:6px;border:1px solid var(--border);">GST%</th>
+              <th style="padding:6px;border:1px solid var(--border);">Amount</th>
+              <th style="padding:6px;border:1px solid var(--border);"></th>
+            </tr></thead>
+            <tbody id="qb-items-body"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;text-align:right;font-size:13px;" id="qb-totals"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('quot-builder-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="generateQuotationPrint()">📄 Generate & Print</button>
+    </div>
   </div>
 </div>
 
@@ -734,6 +822,7 @@ function showLoading(show){
 async function loadAppData(){
   try{
     [customers,orders,leads]=await Promise.all([fsGetAll('customers'),fsGetAll('orders'),fsGetAll('leads')]);
+    await loadCompanyConfig();
   }catch(e){customers=[];orders=[];leads=[];}
 }
 
@@ -867,6 +956,7 @@ function showPage(id){
     populateCRMEmpFilter();
     renderCRM();
   }
+  if(id==='settings') loadCompanySettingsForm();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────
@@ -1441,6 +1531,237 @@ function uploadFile(orderId, type){
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.querySelectorAll('.autocomplete-dropdown').forEach(d=>d.classList.remove('open'));});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
 
+// ── COMPANY SETTINGS ──────────────────────────────────
+let companyConfig={};
+async function loadCompanyConfig(){
+  try{const d=await db.collection('config').doc('company').get();if(d.exists)companyConfig=d.data();}catch(e){}
+}
+function loadCompanySettingsForm(){
+  const c=companyConfig;
+  ['company-name','addr1','addr2','gstin','phone','email','website','bank-name','bank-branch','bank-acc','bank-ifsc','quot-no','valid-days'].forEach(k=>{
+    const el=document.getElementById('cfg-'+k);
+    if(el) el.value=c[k.replace(/-/g,'_')]||'';
+  });
+}
+async function saveCompanySettings(){
+  const c={
+    company_name:document.getElementById('cfg-company-name').value.trim(),
+    addr1:document.getElementById('cfg-addr1').value.trim(),
+    addr2:document.getElementById('cfg-addr2').value.trim(),
+    gstin:document.getElementById('cfg-gstin').value.trim(),
+    phone:document.getElementById('cfg-phone').value.trim(),
+    email:document.getElementById('cfg-email').value.trim(),
+    website:document.getElementById('cfg-website').value.trim(),
+    bank_name:document.getElementById('cfg-bank-name').value.trim(),
+    bank_branch:document.getElementById('cfg-bank-branch').value.trim(),
+    bank_acc:document.getElementById('cfg-bank-acc').value.trim(),
+    bank_ifsc:document.getElementById('cfg-bank-ifsc').value.trim(),
+    quot_no:parseInt(document.getElementById('cfg-quot-no').value)||1,
+    valid_days:parseInt(document.getElementById('cfg-valid-days').value)||365,
+  };
+  await db.collection('config').doc('company').set(c);
+  companyConfig=c;
+  toast('Settings save ho gayi! ✅');
+}
+
+// ── QUOTATION BUILDER ──────────────────────────────────
+let quotItems=[], currentQuotLeadId=null;
+
+function openQuotationBuilder(leadId){
+  const l=leads.find(x=>x.id===leadId);
+  if(!l) return;
+  currentQuotLeadId=leadId;
+  quotItems=[{desc:l.product||'',hsn:'',qty:1,unit:'pcs',rate:0,disc:0,gst:18}];
+  const today=new Date().toISOString().slice(0,10);
+  const validTill=new Date(Date.now()+(companyConfig.valid_days||365)*86400000).toISOString().slice(0,10);
+  document.getElementById('qb-no').value=companyConfig.quot_no||'';
+  document.getElementById('qb-date').value=today;
+  document.getElementById('qb-valid').value=validTill;
+  document.getElementById('qb-cust-name').value=l.name||'';
+  document.getElementById('qb-cust-company').value='';
+  document.getElementById('qb-cust-addr').value=l.address||'';
+  document.getElementById('qb-cust-city').value=(l.city?l.city+', ':'')+( l.state||'');
+  document.getElementById('qb-cust-gstin').value='';
+  document.getElementById('qb-cust-phone').value=l.phone||'';
+  closeModal('lead-detail-modal');
+  renderQuotItems();
+  document.getElementById('quot-builder-modal').style.display='flex';
+}
+
+function renderQuotItems(){
+  const tbody=document.getElementById('qb-items-body');
+  tbody.innerHTML=quotItems.map((it,i)=>`<tr>
+    <td style="padding:4px;border:1px solid var(--border);"><input style="width:100%;border:none;background:transparent;color:var(--text);font-size:12px;padding:2px;" value="${esc(it.desc)}" oninput="quotItems[${i}].desc=this.value"></td>
+    <td style="padding:4px;border:1px solid var(--border);"><input style="width:70px;border:none;background:transparent;color:var(--text);font-size:12px;text-align:center;" value="${it.hsn}" oninput="quotItems[${i}].hsn=this.value"></td>
+    <td style="padding:4px;border:1px solid var(--border);"><input type="number" style="width:55px;border:none;background:transparent;color:var(--text);font-size:12px;text-align:center;" value="${it.qty}" oninput="quotItems[${i}].qty=parseFloat(this.value)||0;updateQuotTotals()"></td>
+    <td style="padding:4px;border:1px solid var(--border);"><input style="width:50px;border:none;background:transparent;color:var(--text);font-size:12px;text-align:center;" value="${it.unit}" oninput="quotItems[${i}].unit=this.value"></td>
+    <td style="padding:4px;border:1px solid var(--border);"><input type="number" style="width:70px;border:none;background:transparent;color:var(--text);font-size:12px;text-align:right;" value="${it.rate}" oninput="quotItems[${i}].rate=parseFloat(this.value)||0;updateQuotTotals()"></td>
+    <td style="padding:4px;border:1px solid var(--border);"><input type="number" style="width:45px;border:none;background:transparent;color:var(--text);font-size:12px;text-align:center;" value="${it.disc}" oninput="quotItems[${i}].disc=parseFloat(this.value)||0;updateQuotTotals()"></td>
+    <td style="padding:4px;border:1px solid var(--border);"><select style="border:none;background:transparent;color:var(--text);font-size:12px;" onchange="quotItems[${i}].gst=parseInt(this.value);updateQuotTotals()">
+      <option value="0" ${it.gst===0?'selected':''}>0%</option>
+      <option value="5" ${it.gst===5?'selected':''}>5%</option>
+      <option value="12" ${it.gst===12?'selected':''}>12%</option>
+      <option value="18" ${it.gst===18?'selected':''}>18%</option>
+      <option value="28" ${it.gst===28?'selected':''}>28%</option>
+    </select></td>
+    <td style="padding:4px;border:1px solid var(--border);text-align:right;font-size:12px;" id="qb-row-amt-${i}">${calcRowAmt(it).toFixed(2)}</td>
+    <td style="padding:4px;border:1px solid var(--border);text-align:center;"><button style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:14px;" onclick="quotItems.splice(${i},1);renderQuotItems()">✕</button></td>
+  </tr>`).join('');
+  updateQuotTotals();
+}
+
+function calcRowAmt(it){
+  const taxable=it.qty*it.rate*(1-it.disc/100);
+  return taxable*(1+it.gst/100);
+}
+function calcRowTaxable(it){return it.qty*it.rate*(1-it.disc/100);}
+
+function updateQuotTotals(){
+  quotItems.forEach((it,i)=>{const el=document.getElementById('qb-row-amt-'+i);if(el)el.textContent=calcRowAmt(it).toFixed(2);});
+  const taxable=quotItems.reduce((s,it)=>s+calcRowTaxable(it),0);
+  const gstAmt=quotItems.reduce((s,it)=>s+calcRowTaxable(it)*it.gst/100,0);
+  const total=taxable+gstAmt;
+  const rounded=Math.round(total);
+  document.getElementById('qb-totals').innerHTML=`
+    <div style="display:inline-block;text-align:right;min-width:200px;">
+      <div style="display:flex;justify-content:space-between;gap:20px;"><span style="color:var(--text2);">Taxable Amount:</span><span>₹${taxable.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;gap:20px;"><span style="color:var(--text2);">GST:</span><span>₹${gstAmt.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-weight:700;"><span>Grand Total:</span><span>₹${rounded}</span></div>
+    </div>`;
+}
+
+function addQuotItem(){
+  quotItems.push({desc:'',hsn:'',qty:1,unit:'pcs',rate:0,disc:0,gst:18});
+  renderQuotItems();
+}
+
+function numToWords(n){
+  const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function tw(n){return n<20?a[n]:b[Math.floor(n/10)]+(n%10?' '+a[n%10]:'')}
+  function th(n){return n>99?a[Math.floor(n/100)]+' Hundred'+(n%100?' '+tw(n%100):''):tw(n)}
+  if(n===0)return'Zero';
+  let w='',x=n;
+  if(x>=10000000){w+=th(Math.floor(x/10000000))+' Crore ';x%=10000000;}
+  if(x>=100000){w+=th(Math.floor(x/100000))+' Lakh ';x%=100000;}
+  if(x>=1000){w+=th(Math.floor(x/1000))+' Thousand ';x%=1000;}
+  if(x>0)w+=th(x);
+  return w.trim();
+}
+
+async function generateQuotationPrint(){
+  const c=companyConfig;
+  const qNo=document.getElementById('qb-no').value;
+  const qDate=document.getElementById('qb-date').value;
+  const qValid=document.getElementById('qb-valid').value;
+  const custName=document.getElementById('qb-cust-name').value.trim();
+  const custCompany=document.getElementById('qb-cust-company').value.trim();
+  const custAddr=document.getElementById('qb-cust-addr').value.trim();
+  const custCity=document.getElementById('qb-cust-city').value.trim();
+  const custGstin=document.getElementById('qb-cust-gstin').value.trim();
+  const custPhone=document.getElementById('qb-cust-phone').value.trim();
+  if(!custName){toast('Customer name bharo','error');return;}
+  if(quotItems.length===0){toast('Kam se kam ek item daalo','error');return;}
+  const taxable=quotItems.reduce((s,it)=>s+calcRowTaxable(it),0);
+  const gstAmt=quotItems.reduce((s,it)=>s+calcRowTaxable(it)*it.gst/100,0);
+  const total=taxable+gstAmt;
+  const rounded=Math.round(total);
+  const roundOff=rounded-total;
+  // Update quotation number in config
+  if(qNo&&c.quot_no){
+    const nextNo=parseInt(qNo)+1;
+    await db.collection('config').doc('company').update({quot_no:nextNo});
+    companyConfig.quot_no=nextNo;
+  }
+  // Save quotation to Firestore
+  const quot={id:uid(),quotNo:qNo,date:qDate,validTill:qValid,custName,custCompany,custAddr,custCity,custGstin,custPhone,items:quotItems,taxable,gstAmt,total,rounded,leadId:currentQuotLeadId,employeeId:(leads.find(l=>l.id===currentQuotLeadId)||{}).employeeId||currentUser.id,createdAt:Date.now()};
+  await fsSet('quotations',quot.id,quot);
+  // Generate print window
+  const addrBlock=`${custCompany?'<br><strong>'+esc(custCompany)+'</strong>':''}${custAddr?'<br>'+esc(custAddr):''}${custCity?'<br>'+esc(custCity):''}${custGstin?'<br>GSTIN : '+esc(custGstin):''}${custPhone?'<br>Phone : '+esc(custPhone):''}`;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Quotation #${qNo}</title><style>
+    *{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:13px;color:#000;padding:20px;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1e3a5f;}
+    .company-name{font-size:22px;font-weight:800;color:#1e3a5f;letter-spacing:1px;}
+    .company-info{font-size:11px;color:#444;margin-top:4px;line-height:1.6;}
+    .quot-meta{text-align:right;font-size:12px;}
+    .quot-meta .qno{font-size:26px;font-weight:900;color:#1e3a5f;}
+    .quot-meta div{margin-top:3px;}
+    .addr-box{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:14px;border:1px solid #ccc;}
+    .addr-cell{padding:10px 14px;font-size:12px;line-height:1.7;}
+    .addr-cell:first-child{border-right:1px solid #ccc;}
+    .addr-cell .lbl{font-weight:700;font-size:13px;border-bottom:1px solid #eee;margin-bottom:6px;padding-bottom:4px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px;}
+    th{background:#1e3a5f;color:#fff;padding:7px 8px;text-align:left;font-size:11px;}
+    td{padding:6px 8px;border:1px solid #ddd;vertical-align:top;}
+    tr:nth-child(even) td{background:#f8f9fa;}
+    .num{text-align:right;}
+    .center{text-align:center;}
+    .footer-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid #ccc;font-size:12px;}
+    .bank-box{padding:10px 14px;border-right:1px solid #ccc;}
+    .words-box{padding:10px 14px;border-right:1px solid #ccc;font-weight:600;}
+    .total-box{padding:6px 14px;}
+    .total-row{display:flex;justify-content:space-between;padding:3px 0;}
+    .total-row.grand{font-weight:800;font-size:14px;border-top:2px solid #333;margin-top:4px;padding-top:6px;}
+    .sign-area{margin-top:40px;display:flex;justify-content:space-between;font-size:12px;}
+    @media print{body{padding:10px;}button{display:none;}}
+  </style></head><body>
+  <div style="text-align:right;margin-bottom:10px;"><button onclick="window.print()" style="padding:8px 20px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">🖨️ Print / Save PDF</button></div>
+  <div class="header">
+    <div>
+      <div class="company-name">${esc(c.company_name||'Company Name')}</div>
+      <div class="company-info">
+        ${c.addr1?esc(c.addr1)+'<br>':''}${c.addr2?esc(c.addr2)+'<br>':''}
+        ${c.gstin?'<strong>GSTIN : '+esc(c.gstin)+'</strong><br>':''}
+        ${c.phone?'Phone : '+esc(c.phone)+(c.email?' | Email : '+esc(c.email):'')+'<br>':''}
+        ${c.website?esc(c.website):''}
+      </div>
+    </div>
+    <div class="quot-meta">
+      <div style="font-size:13px;font-weight:700;letter-spacing:1px;">QUOTATION</div>
+      <div>No. : <span class="qno">${qNo}</span></div>
+      <div>Date : ${qDate}</div>
+      <div>Valid till : ${qValid}</div>
+      <div>Ref. : ${esc((leads.find(l=>l.id===currentQuotLeadId)||{}).employeeName||currentUser.name)}</div>
+    </div>
+  </div>
+  <div class="addr-box">
+    <div class="addr-cell"><div class="lbl">Billing Address</div>${esc(custName)}${addrBlock}</div>
+    <div class="addr-cell"><div class="lbl">Shipping Address</div>${esc(custName)}${addrBlock}</div>
+  </div>
+  <table>
+    <thead><tr><th>No.</th><th>Item &amp; Description</th><th>HSN / SAC</th><th class="center">Qty</th><th class="center">Unit</th><th class="num">Rate (₹)</th><th class="num">Discount</th><th class="num">Taxable (₹)</th><th class="num">IGST</th><th class="num">Amount (₹)</th></tr></thead>
+    <tbody>${quotItems.map((it,i)=>{const tax=calcRowTaxable(it);const gst=tax*it.gst/100;return`<tr><td class="center">${i+1}</td><td>${esc(it.desc)}</td><td class="center">${esc(it.hsn)}</td><td class="center">${it.qty}</td><td class="center">${esc(it.unit)}</td><td class="num">${it.rate.toFixed(2)}</td><td class="num">${it.disc.toFixed(2)}%</td><td class="num">${tax.toFixed(2)}</td><td class="num">${it.gst}.00%</td><td class="num">${(tax+gst).toFixed(2)}</td></tr>`;}).join('')}</tbody>
+  </table>
+  <div class="footer-grid">
+    <div class="bank-box">
+      <strong>Bank Details :</strong><br>
+      Bank Name : ${esc(c.bank_name||'')}<br>
+      Branch : ${esc(c.bank_branch||'')}<br>
+      Account No. : ${esc(c.bank_acc||'')}<br>
+      IFSC : ${esc(c.bank_ifsc||'')}
+    </div>
+    <div class="words-box">
+      <strong>Total Quotation Amount in Words :</strong><br><br>
+      <em>Rupees ${numToWords(rounded)} only</em>
+    </div>
+    <div class="total-box">
+      <div class="total-row"><span>Total Amount before Tax (₹)</span><span>${taxable.toFixed(2)}</span></div>
+      <div class="total-row"><span>Add IGST (₹)</span><span>${gstAmt.toFixed(2)}</span></div>
+      <div class="total-row"><span>Total (₹)</span><span>${total.toFixed(2)}</span></div>
+      <div class="total-row"><span>Round Off (₹)</span><span>${roundOff>=0?'+':''} ${roundOff.toFixed(2)}</span></div>
+      <div class="total-row grand"><span>Grand Total (₹)</span><span>${rounded}</span></div>
+    </div>
+  </div>
+  <div class="sign-area">
+    <div>Customer Signature : ___________________</div>
+    <div>For ${esc(c.company_name||'')} : ___________________</div>
+  </div>
+  </body></html>`);
+  w.document.close();
+  closeModal('quot-builder-modal');
+}
+
 // ── CRM ───────────────────────────────────────────────
 function getMyLeads(){
   if(currentUser.role==='admin') return leads;
@@ -1568,7 +1889,7 @@ function openLeadDetail(id){
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PRODUCT</div><div>${esc(l.product||'-')}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">FOLLOW-UP</div><div style="${overdue?'color:var(--danger);font-weight:700;':''}">${l.followUpDate||'-'}${overdue?' ⚠️ Overdue':''}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">EXECUTIVE</div><div>${esc(l.employeeName||'')}</div></div>
-      ${l.quotationAmount?`<div style="grid-column:1/-1;"><div style="font-size:11px;color:var(--text2);font-weight:600;">QUOTATION AMOUNT</div><div style="font-weight:700;color:var(--primary);font-size:16px;">₹${fmt(l.quotationAmount)}</div></div>`:''}
+        ${l.quotationAmount?`<div style="grid-column:1/-1;display:flex;align-items:center;gap:12px;"><div><div style="font-size:11px;color:var(--text2);font-weight:600;">QUOTATION AMOUNT</div><div style="font-weight:700;color:var(--primary);font-size:16px;">₹${fmt(l.quotationAmount)}</div></div><button class="btn btn-sm btn-primary" onclick="openQuotationBuilder('${l.id}')">📄 Create Quotation</button></div>`:''}
     </div>
     ${l.notes?`<div style="margin-bottom:14px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;">${esc(l.notes)}</div>`:''}
 
