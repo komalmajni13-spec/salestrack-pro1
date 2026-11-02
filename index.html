@@ -590,7 +590,21 @@ tr:hover td{background:var(--surface2);}
                     <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cfg-footer-file').click()">📷 Upload Footer</button>
                     <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="clearCfgImage('footer')">✕ Remove</button>
                   </div>
+                  <div>
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Company Logo (top-right)</label>
+                    <div id="cfg-logo-preview" style="border:2px dashed var(--border);border-radius:8px;padding:10px;min-height:80px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;background:var(--surface2);">
+                      <span style="color:var(--text3);font-size:12px;">No image</span>
+                    </div>
+                    <input type="file" id="cfg-logo-file" accept="image/*" style="display:none;" onchange="previewCfgImage('logo')">
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cfg-logo-file').click()">📷 Upload Logo</button>
+                    <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="clearCfgImage('logo')">✕ Remove</button>
+                  </div>
                 </div>
+              </div>
+              <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px;">
+                <div style="font-weight:600;margin-bottom:12px;">Terms &amp; Conditions / Notes</div>
+                <div class="form-group"><label>Terms &amp; Conditions (ek line = ek point)</label><textarea class="form-control" id="cfg-terms" rows="4" placeholder="30% payment with PO&#10;70% payment before dispatch&#10;Goods once sold will not be accepted return"></textarea></div>
+                <div class="form-group" style="margin-top:8px;"><label>Notes (quotation ke neeche)</label><input class="form-control" id="cfg-quot-notes" placeholder="e.g. Full Payment received. Place of supply: Rajkot"></div>
               </div>
               <button class="btn btn-primary" onclick="saveCompanySettings()">Save Settings</button>
             </div>
@@ -1623,6 +1637,8 @@ function loadCompanySettingsForm(){
     const el=document.getElementById('cfg-'+k);
     if(el) el.value=c[k.replace(/-/g,'_')]||'';
   });
+  const te=document.getElementById('cfg-terms');if(te)te.value=c.terms||'';
+  const ne=document.getElementById('cfg-quot-notes');if(ne)ne.value=c.quot_notes||'';
   refreshCfgImagePreviews();
 }
 async function saveCompanySettings(){
@@ -1643,6 +1659,9 @@ async function saveCompanySettings(){
     gst_api_key:document.getElementById('cfg-gst-api-key').value.trim(),
     quot_header:companyConfig.quot_header||'',
     quot_footer:companyConfig.quot_footer||'',
+    quot_logo:companyConfig.quot_logo||'',
+    terms:document.getElementById('cfg-terms')?document.getElementById('cfg-terms').value.trim():(companyConfig.terms||''),
+    quot_notes:document.getElementById('cfg-quot-notes')?document.getElementById('cfg-quot-notes').value.trim():(companyConfig.quot_notes||''),
   };
   await db.collection('config').doc('company').set(c);
   companyConfig=c;
@@ -1668,7 +1687,7 @@ function clearCfgImage(type){
 }
 
 function refreshCfgImagePreviews(){
-  ['header','footer'].forEach(type=>{
+  ['header','footer','logo'].forEach(type=>{
     const prev=document.getElementById('cfg-'+type+'-preview');
     if(!prev)return;
     const img=companyConfig['quot_'+type];
@@ -1821,126 +1840,145 @@ async function generateQuotationPrint(){
   const style=document.createElement('style');
   style.id='quot-print-style';
   style.textContent=`
-    #quot-preview-overlay .qpage{background:#fff;max-width:297mm;width:100%;margin:0 auto;padding:6mm 10mm;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px;}
-    #quot-preview-overlay .qh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0;padding-bottom:16px;border-bottom:3px solid #1e3a5f;}
-    #quot-preview-overlay .qcn{font-size:24px;font-weight:900;color:#1e3a5f;letter-spacing:0.5px;}
-    #quot-preview-overlay .qci{font-size:11px;color:#555;margin-top:6px;line-height:1.8;}
-    #quot-preview-overlay .qm{text-align:right;font-size:12px;color:#333;}
-    #quot-preview-overlay .qno{font-size:28px;font-weight:900;color:#1e3a5f;}
-    #quot-preview-overlay .qtitle{font-size:11px;font-weight:700;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:4px;}
-    #quot-preview-overlay .qm div{margin-top:4px;}
-    #quot-preview-overlay .qm table{margin-left:auto;border:none;font-size:12px;}
-    #quot-preview-overlay .qm td{padding:2px 4px;border:none;background:transparent;}
-    #quot-preview-overlay .ab{display:grid;grid-template-columns:1fr 1fr;margin:14px 0;border:1.5px solid #1e3a5f;border-radius:4px;overflow:hidden;}
-    #quot-preview-overlay .ac{padding:12px 16px;font-size:12px;line-height:1.8;background:#fff;}
-    #quot-preview-overlay .ac:first-child{border-right:1.5px solid #1e3a5f;}
-    #quot-preview-overlay .al{font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#1e3a5f;border-bottom:1px solid #dde5f0;margin-bottom:7px;padding-bottom:5px;}
-    #quot-preview-overlay table.itbl{width:100%;border-collapse:collapse;margin-bottom:0;font-size:12px;border:1.5px solid #1e3a5f;border-radius:4px;overflow:hidden;}
-    #quot-preview-overlay table.itbl th{background:#1e3a5f;color:#fff;padding:9px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:0.3px;border-right:1px solid #2d5280;white-space:nowrap;}
-    #quot-preview-overlay table.itbl th:last-child{border-right:none;}
-    #quot-preview-overlay table.itbl td{padding:8px 10px;border-bottom:1px solid #e0e7f0;border-right:1px solid #e0e7f0;vertical-align:middle;}
-    #quot-preview-overlay table.itbl td:last-child{border-right:none;}
-    #quot-preview-overlay table.itbl tbody tr:last-child td{border-bottom:none;}
-    #quot-preview-overlay table.itbl tbody tr:nth-child(even) td{background:#f4f7fb;}
-    #quot-preview-overlay table.itbl tbody tr:hover td{background:#eaf0fa;}
+    #quot-preview-overlay .qpage{background:#fff;max-width:210mm;width:100%;margin:0 auto;padding:8mm 10mm;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px;font-family:Arial,sans-serif;font-size:12px;color:#000;}
+    #quot-preview-overlay .qhdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:2px solid #333;margin-bottom:6px;}
+    #quot-preview-overlay .qcn{font-size:22px;font-weight:900;color:#000;letter-spacing:0.3px;line-height:1.2;}
+    #quot-preview-overlay .qci{font-size:10.5px;color:#333;margin-top:5px;line-height:1.7;}
+    #quot-preview-overlay .qci-row{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:#333;margin-top:4px;}
+    #quot-preview-overlay .qtitle-block{text-align:center;margin:6px 0 4px;font-size:16px;font-weight:900;letter-spacing:2px;text-decoration:underline;}
+    #quot-preview-overlay .qmeta{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;font-size:11px;}
+    #quot-preview-overlay .qmeta-right{text-align:right;}
+    #quot-preview-overlay .qno{font-size:15px;font-weight:900;}
+    #quot-preview-overlay .ab{display:grid;grid-template-columns:1fr 1fr;margin:6px 0;border:1px solid #999;overflow:hidden;}
+    #quot-preview-overlay .ac{padding:8px 10px;font-size:11px;line-height:1.7;background:#fff;}
+    #quot-preview-overlay .ac:first-child{border-right:1px solid #999;}
+    #quot-preview-overlay .al{font-weight:800;font-size:11px;color:#000;border-bottom:1px solid #ccc;margin-bottom:5px;padding-bottom:3px;}
+    #quot-preview-overlay table.itbl{width:100%;border-collapse:collapse;font-size:10.5px;border:1px solid #999;}
+    #quot-preview-overlay table.itbl th{background:#d9d9d9;color:#000;padding:6px 6px;text-align:center;font-size:10px;font-weight:700;border:1px solid #999;white-space:nowrap;}
+    #quot-preview-overlay table.itbl th.tl{text-align:left;}
+    #quot-preview-overlay table.itbl td{padding:5px 6px;border:1px solid #ccc;vertical-align:middle;}
+    #quot-preview-overlay table.itbl tbody tr:nth-child(even) td{background:#f9f9f9;}
     #quot-preview-overlay .num{text-align:right;}
     #quot-preview-overlay .cen{text-align:center;}
-    #quot-preview-overlay .fg{display:grid;grid-template-columns:1fr 1fr 1fr;border:1.5px solid #1e3a5f;border-radius:4px;overflow:hidden;margin-top:14px;font-size:12px;}
-    #quot-preview-overlay .bb{padding:12px 14px;border-right:1px solid #c9d8ee;background:#f4f7fb;}
-    #quot-preview-overlay .wb{padding:12px 14px;border-right:1px solid #c9d8ee;font-style:italic;color:#333;background:#fff;}
-    #quot-preview-overlay .tb{padding:8px 14px;background:#f4f7fb;}
-    #quot-preview-overlay .tr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:12px;}
-    #quot-preview-overlay .tr:last-child{border-bottom:none;}
-    #quot-preview-overlay .tg{font-weight:900;font-size:14px;color:#1e3a5f;background:#dde8f7;margin:0 -14px -8px;padding:8px 14px;}
-    #quot-preview-overlay .sa{margin-top:48px;display:flex;justify-content:space-between;font-size:12px;border-top:1px solid #ddd;padding-top:12px;}
-    #quot-preview-overlay .divider{height:2px;background:linear-gradient(90deg,#1e3a5f,#4a90d9,#1e3a5f);margin:14px 0;border-radius:2px;}
-    @page{size:A4 landscape;margin:0;}
+    #quot-preview-overlay .fg{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid #999;margin-top:0;font-size:11px;}
+    #quot-preview-overlay .bb{padding:8px 10px;border-right:1px solid #999;background:#fff;}
+    #quot-preview-overlay .wb{padding:8px 10px;border-right:1px solid #999;background:#fff;}
+    #quot-preview-overlay .tb{padding:6px 10px;background:#fff;}
+    #quot-preview-overlay .trow{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #eee;font-size:11px;}
+    #quot-preview-overlay .trow:last-child{border-bottom:none;}
+    #quot-preview-overlay .tg{font-weight:900;font-size:12px;background:#d9d9d9;margin:0 -10px -6px;padding:5px 10px;}
+    #quot-preview-overlay .tc-section{border:1px solid #999;margin-top:6px;padding:8px 10px;font-size:10.5px;}
+    #quot-preview-overlay .sa{margin-top:20px;display:flex;justify-content:space-between;font-size:11px;}
+    @page{size:A4 portrait;margin:8mm;}
     @media print{
       #quot-preview-overlay .no-print{display:none!important;}
       #quot-preview-overlay{background:#fff!important;padding:0!important;position:static!important;overflow:visible!important;}
-      #quot-preview-overlay .qpage{box-shadow:none!important;padding:6mm 10mm!important;max-width:297mm!important;min-height:210mm;margin:0 auto;}
+      #quot-preview-overlay .qpage{box-shadow:none!important;padding:0!important;max-width:100%!important;margin:0;}
       #quot-preview-overlay img{max-width:100%!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
       body > *:not(#quot-preview-overlay){display:none!important;}
-      html,body{width:297mm;height:210mm;margin:0;padding:0;}
     }
   `;
   document.head.appendChild(style);
+  const execName=esc((leads.find(l=>l.id===currentQuotLeadId)||{}).employeeName||currentUser.name);
   const quotHTML=`
-  <div class="no-print" style="max-width:900px;margin:0 auto 14px;display:flex;gap:8px;justify-content:flex-end;">
-    <button onclick="window.print()" style="padding:9px 22px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">🖨️ Print / Save PDF</button>
+  <div class="no-print" style="max-width:800px;margin:0 auto 14px;display:flex;gap:8px;justify-content:flex-end;">
+    <button onclick="window.print()" style="padding:9px 22px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">🖨️ Print / Save PDF</button>
     <button onclick="document.getElementById('quot-preview-overlay').remove();document.getElementById('quot-print-style').remove();" style="padding:9px 18px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">✕ Close</button>
   </div>
   <div class="qpage">
-    ${c.quot_header?`<div style="width:100%;margin-bottom:0;page-break-inside:avoid;"><img src="${c.quot_header}" style="width:100%;height:auto;display:block;" /></div>`:''}
-    <div class="qh" style="${c.quot_header?'border-top:none;margin-top:0;':''}">
-      ${c.quot_header?'':`<div>
+    ${c.quot_header?`<img src="${c.quot_header}" style="width:100%;height:auto;display:block;margin-bottom:6px;" />`:`
+    <div class="qhdr">
+      <div style="flex:1;">
         <div class="qcn">${esc(c.company_name||'Company Name')}</div>
-        <div class="qci">${c.addr1?esc(c.addr1)+'<br>':''}${c.addr2?esc(c.addr2)+'<br>':''}${c.gstin?'<strong>GSTIN : '+esc(c.gstin)+'</strong><br>':''}${c.phone?'Phone : '+esc(c.phone)+(c.email?' &nbsp;|&nbsp; Email : '+esc(c.email):'')+'<br>':''}${c.website?'<span style="color:#2563eb;">'+esc(c.website)+'</span>':''}</div>
-      </div>`}
-      <div class="qm" style="${c.quot_header?'margin-left:auto;':''}">
-        <div class="qtitle">Quotation</div>
-        <div><span class="qno">#${qNo}</span></div>
-        <table><tr><td style="color:#888;padding-right:8px;">Date</td><td><strong>${qDate}</strong></td></tr>
-        <tr><td style="color:#888;padding-right:8px;">Valid Till</td><td><strong>${qValid}</strong></td></tr>
-        <tr><td style="color:#888;padding-right:8px;">Prepared By</td><td><strong>${esc((leads.find(l=>l.id===currentQuotLeadId)||{}).employeeName||currentUser.name)}</strong></td></tr>
-        </table>
+        <div class="qci">${c.addr1?esc(c.addr1):''}${c.addr2?', '+esc(c.addr2):''}</div>
+        <div class="qci-row">
+          ${c.phone?`<span>&#128222; ${esc(c.phone)}</span>`:''}
+          ${c.email?`<span>&#9993; ${esc(c.email)}</span>`:''}
+          ${c.website?`<span>&#127760; ${esc(c.website)}</span>`:''}
+        </div>
+      </div>
+      ${c.quot_logo?`<img src="${c.quot_logo}" style="height:60px;object-fit:contain;margin-left:16px;" />`:''}
+    </div>`}
+    <div class="qtitle-block">QUOTATION</div>
+    <div class="qmeta">
+      <div style="font-size:11px;">
+        ${c.gstin?`<div><strong>GSTIN : ${esc(c.gstin)}</strong></div>`:''}
+      </div>
+      <div class="qmeta-right">
+        <div>Quotation No. : <span class="qno">${qNo}</span></div>
+        <div>Date : <strong>${qDate}</strong></div>
+        <div>Valid till : <strong>${qValid}</strong></div>
+        <div>Ref. : <strong>${execName}</strong></div>
       </div>
     </div>
     <div class="ab">
-      <div class="ac"><div class="al">📍 Billing Address</div>${esc(custName)}${addrBlock}</div>
-      <div class="ac"><div class="al">🚚 Shipping Address</div>${esc(custName)}${addrBlock}</div>
+      <div class="ac"><div class="al">Billing Address</div>${esc(custName)}${addrBlock}</div>
+      <div class="ac"><div class="al">Shipping Address</div>${esc(custName)}${addrBlock}</div>
     </div>
     <table class="itbl">
       <thead><tr>
-        <th style="width:32px;">#</th>
-        <th style="width:90px;">Photo</th>
-        <th style="text-align:left;">Item &amp; Description</th>
-        <th>HSN/SAC</th>
+        <th style="width:26px;">No.</th>
+        <th style="width:70px;">Image</th>
+        <th class="tl">Item &amp; Description</th>
+        <th>HSN / SAC</th>
         <th>Qty</th>
         <th>Unit</th>
-        <th>Rate (₹)</th>
-        <th>Disc%</th>
-        <th>Taxable (₹)</th>
-        <th>IGST</th>
-        <th>Amount (₹)</th>
+        <th class="num">Rate (&#8377;)</th>
+        <th class="num">Less:<br>Discount (&#8377;)</th>
+        <th class="num">Discount</th>
+        <th class="num">Taxable (&#8377;)</th>
+        <th class="num">IGST</th>
+        <th class="num">Amount (&#8377;)</th>
       </tr></thead>
-      <tbody>${quotItems.map((it,i)=>{const tax=calcRowTaxable(it);const gst=tax*it.gst/100;return`<tr>
-        <td class="cen" style="font-weight:700;color:#1e3a5f;">${i+1}</td>
-        <td class="cen">${it.photo?`<img src="${it.photo}" style="width:72px;height:72px;object-fit:contain;border-radius:4px;border:1px solid #dde5f0;" />`:'<span style="color:#bbb;font-size:18px;">📷</span>'}</td>
-        <td style="font-weight:600;min-width:140px;">${esc(it.desc)}</td>
-        <td class="cen" style="color:#555;">${esc(it.hsn)}</td>
-        <td class="cen">${it.qty}</td>
-        <td class="cen" style="color:#555;">${esc(it.unit)}</td>
-        <td class="num">${it.rate.toFixed(2)}</td>
-        <td class="cen" style="color:#d97706;">${it.disc>0?it.disc.toFixed(1)+'%':'—'}</td>
-        <td class="num">${tax.toFixed(2)}</td>
-        <td class="cen" style="color:#7c3aed;">${it.gst}%</td>
-        <td class="num" style="font-weight:700;color:#1e3a5f;">${(tax+gst).toFixed(2)}</td>
-      </tr>`;}).join('')}</tbody>
+      <tbody>${quotItems.map((it,i)=>{
+        const tax=calcRowTaxable(it);
+        const gst=tax*it.gst/100;
+        const gross=it.qty*it.rate;
+        const discAmt=gross-tax;
+        return`<tr>
+          <td class="cen" style="font-weight:700;">${i+1}</td>
+          <td class="cen">${it.photo?`<img src="${it.photo}" style="width:60px;height:60px;object-fit:contain;" />`:'&nbsp;'}</td>
+          <td style="font-weight:600;">${esc(it.desc)}</td>
+          <td class="cen">${esc(it.hsn)}</td>
+          <td class="cen">${it.qty}</td>
+          <td class="cen">${esc(it.unit)}</td>
+          <td class="num">${it.rate.toFixed(2)}</td>
+          <td class="num">${discAmt>0?discAmt.toFixed(2):'—'}</td>
+          <td class="num">${it.disc>0?it.disc.toFixed(2)+'%':'—'}</td>
+          <td class="num">${tax.toFixed(2)}</td>
+          <td class="cen">${it.gst}.00%</td>
+          <td class="num" style="font-weight:700;">${(tax+gst).toFixed(2)}</td>
+        </tr>`;}).join('')}
+      </tbody>
     </table>
     <div class="fg">
       <div class="bb">
-        <div style="font-weight:800;color:#1e3a5f;margin-bottom:8px;font-size:12px;">🏦 Bank Details</div>
-        <table style="font-size:12px;border:none;"><tr><td style="color:#666;padding:2px 8px 2px 0;border:none;background:transparent;">Bank</td><td style="border:none;background:transparent;font-weight:600;">${esc(c.bank_name||'—')}</td></tr>
-        <tr><td style="color:#666;padding:2px 8px 2px 0;border:none;background:transparent;">Branch</td><td style="border:none;background:transparent;">${esc(c.bank_branch||'—')}</td></tr>
-        <tr><td style="color:#666;padding:2px 8px 2px 0;border:none;background:transparent;">Acc No.</td><td style="border:none;background:transparent;font-weight:700;letter-spacing:0.5px;">${esc(c.bank_acc||'—')}</td></tr>
-        <tr><td style="color:#666;padding:2px 8px 2px 0;border:none;background:transparent;">IFSC</td><td style="border:none;background:transparent;font-weight:700;">${esc(c.bank_ifsc||'—')}</td></tr></table>
+        <div style="font-weight:700;margin-bottom:6px;">Bank Details :</div>
+        <div>Bank Name : ${esc(c.bank_name||'')}</div>
+        <div>Branch : ${esc(c.bank_branch||'')}</div>
+        <div>Account No. : <strong>${esc(c.bank_acc||'')}</strong></div>
+        <div>IFSC : <strong>${esc(c.bank_ifsc||'')}</strong></div>
       </div>
       <div class="wb">
-        <div style="font-weight:800;color:#1e3a5f;margin-bottom:8px;font-size:12px;">💬 Amount in Words</div>
-        <div style="font-style:italic;color:#333;line-height:1.7;">Rupees <strong>${numToWords(rounded)}</strong> only</div>
+        <div style="font-weight:700;margin-bottom:6px;">Total Quotation Amount in Words :</div>
+        <div style="font-style:italic;line-height:1.7;">Rupees <strong>${numToWords(rounded)}</strong> only</div>
       </div>
       <div class="tb">
-        <div class="tr"><span style="color:#555;">Taxable Amount</span><span>₹ ${taxable.toFixed(2)}</span></div>
-        <div class="tr"><span style="color:#555;">IGST</span><span>₹ ${gstAmt.toFixed(2)}</span></div>
-        <div class="tr"><span style="color:#555;">Round Off</span><span>${roundOff>=0?'+':''} ${Math.abs(roundOff).toFixed(2)}</span></div>
-        <div class="tr tg"><span>Grand Total</span><span>₹ ${rounded}</span></div>
+        <div class="trow"><span>Total Amount before Tax (&#8377;)</span><span>${taxable.toFixed(2)}</span></div>
+        <div class="trow"><span>Add IGST (&#8377;)</span><span>${gstAmt.toFixed(2)}</span></div>
+        <div class="trow"><span>Total (&#8377;)</span><span>${(taxable+gstAmt).toFixed(2)}</span></div>
+        <div class="trow tg"><span>Grand Total (&#8377;)</span><span>${rounded}</span></div>
       </div>
     </div>
+    ${(c.terms||c.quot_notes)?`<div class="tc-section">
+      ${c.terms?`<div style="margin-bottom:6px;"><strong>Terms &amp; Conditions :</strong><br>${c.terms.split('\n').map((l,i)=>l.trim()?`<span style="display:block;">(${i+1}) ${esc(l.trim())}</span>`:'').join('')}</div>`:''}
+      ${c.quot_notes?`<div><strong>Notes :</strong> ${esc(c.quot_notes)}</div>`:''}
+    </div>`:''}
     <div class="sa">
-      <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">Customer Signature</div></div>
-      <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">For ${esc(c.company_name||'')}</div></div>
+      <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">Customer Signature</div></div>
+      <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">For ${esc(c.company_name||'')}</div></div>
     </div>
+    ${c.quot_footer?`<div style="width:100%;margin-top:12px;"><img src="${c.quot_footer}" style="width:100%;height:auto;display:block;" /></div>`:''}
   </div>`;
   qDiv.innerHTML+=quotHTML;
   closeModal('quot-builder-modal');
@@ -2028,48 +2066,108 @@ async function reprintQuotation(id){
   const q=quotations.find(x=>x.id===id);
   if(!q) return;
   const c=companyConfig;
-  const taxable=q.taxable||0, gstAmt=q.gstAmt||0, total=q.total||0, rounded=q.rounded||0;
-  const roundOff=rounded-total;
+  const taxable=q.taxable||0, gstAmt=q.gstAmt||0, rounded=q.rounded||0;
   const addrBlock=`${q.custCompany?'<br><strong>'+esc(q.custCompany)+'</strong>':''}${q.custAddr?'<br>'+esc(q.custAddr):''}${q.custCity?'<br>'+esc(q.custCity):''}${q.custGstin?'<br>GSTIN : '+esc(q.custGstin):''}${q.custPhone?'<br>Phone : '+esc(q.custPhone):''}`;
+  // Reuse same style from generateQuotation if already present, else inject
+  if(!document.getElementById('quot-print-style')){
+    const st=document.createElement('style');st.id='quot-print-style';
+    st.textContent=`#quot-preview-overlay .qpage{background:#fff;max-width:210mm;width:100%;margin:0 auto;padding:8mm 10mm;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px;font-family:Arial,sans-serif;font-size:12px;color:#000;}#quot-preview-overlay .qhdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:2px solid #333;margin-bottom:6px;}#quot-preview-overlay .qcn{font-size:22px;font-weight:900;color:#000;letter-spacing:0.3px;line-height:1.2;}#quot-preview-overlay .qci{font-size:10.5px;color:#333;margin-top:5px;line-height:1.7;}#quot-preview-overlay .qci-row{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:#333;margin-top:4px;}#quot-preview-overlay .qtitle-block{text-align:center;margin:6px 0 4px;font-size:16px;font-weight:900;letter-spacing:2px;text-decoration:underline;}#quot-preview-overlay .qmeta{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;font-size:11px;}#quot-preview-overlay .qmeta-right{text-align:right;}#quot-preview-overlay .qno{font-size:15px;font-weight:900;}#quot-preview-overlay .ab{display:grid;grid-template-columns:1fr 1fr;margin:6px 0;border:1px solid #999;overflow:hidden;}#quot-preview-overlay .ac{padding:8px 10px;font-size:11px;line-height:1.7;background:#fff;}#quot-preview-overlay .ac:first-child{border-right:1px solid #999;}#quot-preview-overlay .al{font-weight:800;font-size:11px;color:#000;border-bottom:1px solid #ccc;margin-bottom:5px;padding-bottom:3px;}#quot-preview-overlay table.itbl{width:100%;border-collapse:collapse;font-size:10.5px;border:1px solid #999;}#quot-preview-overlay table.itbl th{background:#d9d9d9;color:#000;padding:6px 6px;text-align:center;font-size:10px;font-weight:700;border:1px solid #999;white-space:nowrap;}#quot-preview-overlay table.itbl th.tl{text-align:left;}#quot-preview-overlay table.itbl td{padding:5px 6px;border:1px solid #ccc;vertical-align:middle;}#quot-preview-overlay table.itbl tbody tr:nth-child(even) td{background:#f9f9f9;}#quot-preview-overlay .num{text-align:right;}#quot-preview-overlay .cen{text-align:center;}#quot-preview-overlay .fg{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid #999;margin-top:0;font-size:11px;}#quot-preview-overlay .bb{padding:8px 10px;border-right:1px solid #999;background:#fff;}#quot-preview-overlay .wb{padding:8px 10px;border-right:1px solid #999;background:#fff;}#quot-preview-overlay .tb{padding:6px 10px;background:#fff;}#quot-preview-overlay .trow{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #eee;font-size:11px;}#quot-preview-overlay .trow:last-child{border-bottom:none;}#quot-preview-overlay .tg{font-weight:900;font-size:12px;background:#d9d9d9;margin:0 -10px -6px;padding:5px 10px;}#quot-preview-overlay .tc-section{border:1px solid #999;margin-top:6px;padding:8px 10px;font-size:10.5px;}#quot-preview-overlay .sa{margin-top:20px;display:flex;justify-content:space-between;font-size:11px;}@page{size:A4 portrait;margin:8mm;}@media print{#quot-preview-overlay .no-print{display:none!important;}#quot-preview-overlay{background:#fff!important;padding:0!important;position:static!important;overflow:visible!important;}#quot-preview-overlay .qpage{box-shadow:none!important;padding:0!important;max-width:100%!important;margin:0;}body > *:not(#quot-preview-overlay){display:none!important;}}`;
+    document.head.appendChild(st);
+  }
   let qDiv=document.getElementById('quot-preview-overlay');
   if(qDiv) qDiv.remove();
   qDiv=document.createElement('div');
   qDiv.id='quot-preview-overlay';
-  qDiv.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;padding:20px;font-family:Arial,sans-serif;font-size:13px;color:#000;';
+  qDiv.style.cssText='position:fixed;inset:0;z-index:99999;background:#f0f4f8;overflow-y:auto;padding:30px 10px;font-family:Arial,sans-serif;font-size:12px;color:#000;';
   document.body.appendChild(qDiv);
+  const execName=esc((leads.find(l=>l.id===q.leadId)||{}).employeeName||'');
   qDiv.innerHTML=`
-  <div class="no-print" style="text-align:right;margin-bottom:12px;display:flex;gap:8px;justify-content:flex-end;">
-    <button onclick="window.print()" style="padding:8px 20px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">🖨️ Print / Save PDF</button>
-    <button onclick="document.getElementById('quot-preview-overlay').remove();" style="padding:8px 16px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">✕ Close</button>
+  <div class="no-print" style="max-width:800px;margin:0 auto 14px;display:flex;gap:8px;justify-content:flex-end;">
+    <button onclick="window.print()" style="padding:9px 22px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">🖨️ Print / Save PDF</button>
+    <button onclick="document.getElementById('quot-preview-overlay').remove();document.getElementById('quot-print-style').remove();" style="padding:9px 18px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">✕ Close</button>
   </div>
-  <div class="qh">
-    <div><div class="qcn">${esc(c.company_name||'')}</div><div class="qci">${c.addr1?esc(c.addr1)+'<br>':''}${c.addr2?esc(c.addr2)+'<br>':''}${c.gstin?'<strong>GSTIN : '+esc(c.gstin)+'</strong><br>':''}${c.phone?'Phone : '+esc(c.phone)+'<br>':''}</div></div>
-    <div class="qm"><div style="font-size:13px;font-weight:700;letter-spacing:1px;">QUOTATION</div><div>No. : <span class="qno">${q.quotNo}</span></div><div>Date : ${q.date}</div><div>Valid till : ${q.validTill}</div></div>
-  </div>
-  <div class="ab">
-    <div class="ac"><div class="al">Billing Address</div>${esc(q.custName)}${addrBlock}</div>
-    <div class="ac"><div class="al">Shipping Address</div>${esc(q.custName)}${addrBlock}</div>
-  </div>
-  <table>
-    <thead><tr><th>No.</th><th>Item &amp; Description</th><th>HSN / SAC</th><th class="cen">Qty</th><th class="cen">Unit</th><th class="num">Rate (₹)</th><th class="num">Discount</th><th class="num">Taxable (₹)</th><th class="num">IGST</th><th class="num">Amount (₹)</th></tr></thead>
-    <tbody>${(q.items||[]).map((it,i)=>{const tax=calcRowTaxable(it);const g=tax*it.gst/100;return`<tr><td class="cen">${i+1}</td><td>${esc(it.desc)}</td><td class="cen">${esc(it.hsn)}</td><td class="cen">${it.qty}</td><td class="cen">${esc(it.unit)}</td><td class="num">${Number(it.rate).toFixed(2)}</td><td class="num">${Number(it.disc).toFixed(2)}%</td><td class="num">${tax.toFixed(2)}</td><td class="num">${it.gst}.00%</td><td class="num">${(tax+g).toFixed(2)}</td></tr>`;}).join('')}</tbody>
-  </table>
-  <div class="fg">
-    <div class="bb"><strong>Bank Details :</strong><br>Bank Name : ${esc(c.bank_name||'')}<br>Branch : ${esc(c.bank_branch||'')}<br>Account No. : ${esc(c.bank_acc||'')}<br>IFSC : ${esc(c.bank_ifsc||'')}</div>
-    <div class="wb"><strong>Total Quotation Amount in Words :</strong><br><br><em>Rupees ${numToWords(rounded)} only</em></div>
-    <div class="tb">
-      <div class="tr"><span>Total Amount before Tax (₹)</span><span>${taxable.toFixed(2)}</span></div>
-      <div class="tr"><span>Add IGST (₹)</span><span>${gstAmt.toFixed(2)}</span></div>
-      <div class="tr"><span>Total (₹)</span><span>${total.toFixed(2)}</span></div>
-      <div class="tr"><span>Round Off (₹)</span><span>${roundOff>=0?'+':''} ${roundOff.toFixed(2)}</span></div>
-      <div class="tr tg"><span>Grand Total (₹)</span><span>${rounded}</span></div>
+  <div class="qpage">
+    ${c.quot_header?`<img src="${c.quot_header}" style="width:100%;height:auto;display:block;margin-bottom:6px;" />`:`
+    <div class="qhdr">
+      <div style="flex:1;">
+        <div class="qcn">${esc(c.company_name||'')}</div>
+        <div class="qci">${c.addr1?esc(c.addr1):''}${c.addr2?', '+esc(c.addr2):''}</div>
+        <div class="qci-row">${c.phone?`<span>&#128222; ${esc(c.phone)}</span>`:''}${c.email?`<span>&#9993; ${esc(c.email)}</span>`:''}${c.website?`<span>&#127760; ${esc(c.website)}</span>`:''}</div>
+      </div>
+      ${c.quot_logo?`<img src="${c.quot_logo}" style="height:60px;object-fit:contain;margin-left:16px;" />`:''}
+    </div>`}
+    <div class="qtitle-block">QUOTATION</div>
+    <div class="qmeta">
+      <div style="font-size:11px;">${c.gstin?`<div><strong>GSTIN : ${esc(c.gstin)}</strong></div>`:''}</div>
+      <div class="qmeta-right">
+        <div>Quotation No. : <span class="qno">${q.quotNo}</span></div>
+        <div>Date : <strong>${q.date||''}</strong></div>
+        <div>Valid till : <strong>${q.validTill||''}</strong></div>
+        ${execName?`<div>Ref. : <strong>${execName}</strong></div>`:''}
+      </div>
     </div>
-  </div>
-  <div class="sa">
-    <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">Customer Signature</div></div>
-    <div style="text-align:center;"><div style="border-top:1.5px solid #333;width:180px;margin-top:36px;padding-top:6px;">For ${esc(c.company_name||'')}</div></div>
-  </div>
-  ${c.quot_footer?`<div style="width:100%;margin-top:16px;page-break-inside:avoid;"><img src="${c.quot_footer}" style="width:100%;height:auto;display:block;" /></div>`:''}
+    <div class="ab">
+      <div class="ac"><div class="al">Billing Address</div>${esc(q.custName)}${addrBlock}</div>
+      <div class="ac"><div class="al">Shipping Address</div>${esc(q.custName)}${addrBlock}</div>
+    </div>
+    <table class="itbl">
+      <thead><tr>
+        <th style="width:26px;">No.</th>
+        <th style="width:70px;">Image</th>
+        <th class="tl">Item &amp; Description</th>
+        <th>HSN / SAC</th><th>Qty</th><th>Unit</th>
+        <th class="num">Rate (&#8377;)</th>
+        <th class="num">Less:<br>Discount (&#8377;)</th>
+        <th class="num">Discount</th>
+        <th class="num">Taxable (&#8377;)</th>
+        <th class="num">IGST</th>
+        <th class="num">Amount (&#8377;)</th>
+      </tr></thead>
+      <tbody>${(q.items||[]).map((it,i)=>{
+        const tax=calcRowTaxable(it);const gst=tax*it.gst/100;
+        const gross=(it.qty||0)*(it.rate||0);const discAmt=gross-tax;
+        return`<tr>
+          <td class="cen" style="font-weight:700;">${i+1}</td>
+          <td class="cen">${it.photo?`<img src="${it.photo}" style="width:60px;height:60px;object-fit:contain;" />`:'&nbsp;'}</td>
+          <td style="font-weight:600;">${esc(it.desc)}</td>
+          <td class="cen">${esc(it.hsn)}</td><td class="cen">${it.qty}</td><td class="cen">${esc(it.unit)}</td>
+          <td class="num">${Number(it.rate).toFixed(2)}</td>
+          <td class="num">${discAmt>0?discAmt.toFixed(2):'—'}</td>
+          <td class="num">${it.disc>0?Number(it.disc).toFixed(2)+'%':'—'}</td>
+          <td class="num">${tax.toFixed(2)}</td>
+          <td class="cen">${it.gst}.00%</td>
+          <td class="num" style="font-weight:700;">${(tax+gst).toFixed(2)}</td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table>
+    <div class="fg">
+      <div class="bb">
+        <div style="font-weight:700;margin-bottom:6px;">Bank Details :</div>
+        <div>Bank Name : ${esc(c.bank_name||'')}</div>
+        <div>Branch : ${esc(c.bank_branch||'')}</div>
+        <div>Account No. : <strong>${esc(c.bank_acc||'')}</strong></div>
+        <div>IFSC : <strong>${esc(c.bank_ifsc||'')}</strong></div>
+      </div>
+      <div class="wb">
+        <div style="font-weight:700;margin-bottom:6px;">Total Quotation Amount in Words :</div>
+        <div style="font-style:italic;line-height:1.7;">Rupees <strong>${numToWords(rounded)}</strong> only</div>
+      </div>
+      <div class="tb">
+        <div class="trow"><span>Total Amount before Tax (&#8377;)</span><span>${taxable.toFixed(2)}</span></div>
+        <div class="trow"><span>Add IGST (&#8377;)</span><span>${gstAmt.toFixed(2)}</span></div>
+        <div class="trow"><span>Total (&#8377;)</span><span>${(taxable+gstAmt).toFixed(2)}</span></div>
+        <div class="trow tg"><span>Grand Total (&#8377;)</span><span>${rounded}</span></div>
+      </div>
+    </div>
+    ${(c.terms||c.quot_notes)?`<div class="tc-section">
+      ${c.terms?`<div style="margin-bottom:6px;"><strong>Terms &amp; Conditions :</strong><br>${c.terms.split('\n').map((l,i)=>l.trim()?`<span style="display:block;">(${i+1}) ${esc(l.trim())}</span>`:'').join('')}</div>`:''}
+      ${c.quot_notes?`<div><strong>Notes :</strong> ${esc(c.quot_notes)}</div>`:''}
+    </div>`:''}
+    <div class="sa">
+      <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">Customer Signature</div></div>
+      <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">For ${esc(c.company_name||'')}</div></div>
+    </div>
+    ${c.quot_footer?`<div style="width:100%;margin-top:12px;"><img src="${c.quot_footer}" style="width:100%;height:auto;display:block;" /></div>`:''}
   </div>`;
 }
 
