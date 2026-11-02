@@ -639,7 +639,8 @@ tr:hover td{background:var(--surface2);}
   <div class="modal" style="max-width:500px;">
     <div class="modal-header"><h3>Add New Lead</h3><button class="modal-close" onclick="closeModal('add-lead-modal')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group"><label>Name *</label><input class="form-control" id="lead-name" placeholder="Customer name"></div>
+      <div class="form-group"><label>Business Name *</label><input class="form-control" id="lead-name" placeholder="Company / Business name"></div>
+      <div class="form-group"><label>Contact Person</label><input class="form-control" id="lead-contact" placeholder="Person name"></div>
       <div class="form-group"><label>Phone *</label><input class="form-control" id="lead-phone" placeholder="Mobile number" type="tel"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group"><label>State *</label><input class="form-control" id="lead-state" placeholder="State"></div>
@@ -2111,29 +2112,34 @@ function renderCRM(){
     </div>`:'';
   if(vis.length===0){content.innerHTML=todayBanner+`<div class="empty-state"><div class="icon">🎯</div><p>Koi lead nahi</p></div>`;return;}
   content.innerHTML=todayBanner+`
-    <div class="stat-grid" style="margin-bottom:16px;">
-      <div class="stat-card"><div class="stat-label">Total Leads</div><div class="stat-value">${counts.all}</div></div>
-      <div class="stat-card" style="border-left:3px solid #3b82f6;"><div class="stat-label">New</div><div class="stat-value" style="color:#1d4ed8;">${counts.new}</div></div>
-      <div class="stat-card" style="border-left:3px solid #f59e0b;"><div class="stat-label">Discussion</div><div class="stat-value" style="color:#854d0e;">${counts.discussion}</div></div>
-      <div class="stat-card" style="border-left:3px solid #8b5cf6;"><div class="stat-label">Quotation</div><div class="stat-value" style="color:#6d28d9;">${counts.quotation}</div></div>
-      <div class="stat-card" style="border-left:3px solid #16a34a;"><div class="stat-label">Converted</div><div class="stat-value" style="color:#15803d;">${counts.converted}</div></div>
-      <div class="stat-card" style="border-left:3px solid #dc2626;"><div class="stat-label">Rejected</div><div class="stat-value" style="color:#b91c1c;">${counts.rejected}</div></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--text2);">Count: <strong>${vis.length}</strong></span>
+      <span style="font-size:12px;color:var(--text3);">|</span>
+      ${['all','new','discussion','quotation','converted','rejected'].map(s=>`<span style="font-size:12px;color:var(--text2);">${STAGE_LABEL[s]||'All'}: <strong>${s==='all'?counts.all:counts[s]||0}</strong></span>`).join('<span style="color:var(--text3);margin:0 2px;">·</span>')}
     </div>
-    <div class="card"><div class="table-wrap"><table><thead><tr>
-      <th>Name</th><th>Phone</th><th>City/State</th><th>Product</th><th>Source</th><th>Stage</th><th>Follow-up</th><th>Executive</th><th>Action</th>
+    <div class="card" style="padding:0;overflow:hidden;"><div class="table-wrap"><table style="font-size:12px;"><thead><tr>
+      <th>Business</th><th>Contact</th><th>Mobile</th><th>Source</th><th>Stage</th><th>Since</th><th>Assigned to</th><th>Last Talk</th><th>Next Follow-up</th><th>Requirements</th><th>Action</th>
     </tr></thead><tbody>
     ${vis.map(l=>{
       const overdue=l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected';
+      const lastDisc=l.discussions&&l.discussions.length?l.discussions[l.discussions.length-1].date:'-';
+      const sinceDate=l.createdAt?new Date(l.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}):'';
+      const phone=l.phone?l.phone.replace(/\D/g,''):'';
       return`<tr style="${overdue?'background:var(--danger-bg);':''}">
-        <td><strong>${esc(l.name)}</strong>${overdue?'<span class="overdue-badge" style="margin-left:6px;">Overdue</span>':''}</td>
+        <td><strong>${esc(l.name)}</strong>${overdue?'<br><span style="font-size:10px;color:var(--danger);font-weight:700;">⚠ Overdue</span>':''}</td>
+        <td style="color:var(--text2);">${esc(l.contact||'-')}</td>
         <td>${esc(l.phone)}</td>
-        <td>${esc(l.city||'')}${l.state?', '+esc(l.state):''}</td>
-        <td style="font-size:12px;">${esc(l.product||'-')}</td>
         <td><span class="badge ${srcBadge(l.source)}">${esc(l.source||'-')}</span></td>
         <td><span class="lead-stage-badge ${STAGE_CLASS[l.stage]||'stage-new'}">${STAGE_LABEL[l.stage]||l.stage}</span></td>
-        <td style="font-size:12px;${overdue?'color:var(--danger);font-weight:700;':''}">${l.followUpDate||'-'}</td>
-        <td style="font-size:12px;">${esc(l.employeeName||'')}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="openLeadDetail('${l.id}')">View</button></td>
+        <td style="color:var(--text2);">${sinceDate}</td>
+        <td>${esc(l.employeeName||'-')}</td>
+        <td style="color:var(--text2);">${lastDisc}</td>
+        <td style="${overdue?'color:var(--danger);font-weight:700;':''}">${l.followUpDate||'-'}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(l.product||'')}${l.notes?'\n'+esc(l.notes):''}">${esc(l.product||'-')}</td>
+        <td style="white-space:nowrap;">
+          ${phone?`<a href="https://wa.me/91${phone}" target="_blank" class="btn btn-sm" style="background:#25d366;color:#fff;padding:4px 8px;margin-right:4px;border:none;">💬</a>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="openLeadDetail('${l.id}')">✏️</button>
+        </td>
       </tr>`;
     }).join('')}
     </tbody></table></div></div>`;
@@ -2141,6 +2147,7 @@ function renderCRM(){
 
 function openAddLead(){
   document.getElementById('lead-name').value='';
+  document.getElementById('lead-contact').value='';
   document.getElementById('lead-phone').value='';
   document.getElementById('lead-state').value='';
   document.getElementById('lead-city').value='';
@@ -2161,7 +2168,7 @@ async function saveLead(){
   if(!state){toast('State bharo','error');return;}
   if(!city){toast('City bharo','error');return;}
   const lead={
-    id:uid(),name,phone,state,city,
+    id:uid(),name,contact:document.getElementById('lead-contact').value.trim(),phone,state,city,
     address:document.getElementById('lead-address').value.trim(),
     source:document.getElementById('lead-source').value,
     product:document.getElementById('lead-product').value.trim(),
@@ -2189,6 +2196,7 @@ function openLeadDetail(id){
   document.getElementById('lead-detail-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PHONE</div><div style="font-weight:600;">${esc(l.phone)}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">CONTACT PERSON</div><div>${esc(l.contact||'-')}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">LOCATION</div><div>${esc(l.city||'')}${l.state?', '+esc(l.state):''}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">SOURCE</div><div>${esc(l.source||'-')}</div></div>
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PRODUCT</div><div>${esc(l.product||'-')}</div></div>
