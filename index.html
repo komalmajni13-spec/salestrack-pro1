@@ -1795,7 +1795,7 @@ async function generateQuotationPrint(){
   const style=document.createElement('style');
   style.id='quot-print-style';
   style.textContent=`
-    #quot-preview-overlay .qpage{background:#fff;max-width:900px;margin:0 auto;padding:30px 36px;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px;}
+    #quot-preview-overlay .qpage{background:#fff;max-width:210mm;width:100%;margin:0 auto;padding:10mm 12mm;box-shadow:0 4px 24px rgba(0,0,0,0.12);border-radius:4px;}
     #quot-preview-overlay .qh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0;padding-bottom:16px;border-bottom:3px solid #1e3a5f;}
     #quot-preview-overlay .qcn{font-size:24px;font-weight:900;color:#1e3a5f;letter-spacing:0.5px;}
     #quot-preview-overlay .qci{font-size:11px;color:#555;margin-top:6px;line-height:1.8;}
@@ -1828,12 +1828,14 @@ async function generateQuotationPrint(){
     #quot-preview-overlay .tg{font-weight:900;font-size:14px;color:#1e3a5f;background:#dde8f7;margin:0 -14px -8px;padding:8px 14px;}
     #quot-preview-overlay .sa{margin-top:48px;display:flex;justify-content:space-between;font-size:12px;border-top:1px solid #ddd;padding-top:12px;}
     #quot-preview-overlay .divider{height:2px;background:linear-gradient(90deg,#1e3a5f,#4a90d9,#1e3a5f);margin:14px 0;border-radius:2px;}
+    @page{size:A4 portrait;margin:0;}
     @media print{
       #quot-preview-overlay .no-print{display:none!important;}
       #quot-preview-overlay{background:#fff!important;padding:0!important;position:static!important;overflow:visible!important;}
-      #quot-preview-overlay .qpage{box-shadow:none!important;padding:10px 16px!important;max-width:100%!important;}
+      #quot-preview-overlay .qpage{box-shadow:none!important;padding:8mm 10mm!important;max-width:210mm!important;min-height:297mm;margin:0 auto;}
       #quot-preview-overlay img{max-width:100%!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
       body > *:not(#quot-preview-overlay){display:none!important;}
+      html,body{width:210mm;height:297mm;margin:0;padding:0;}
     }
   `;
   document.head.appendChild(style);
