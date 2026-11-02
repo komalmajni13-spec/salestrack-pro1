@@ -33,6 +33,21 @@
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 h1,h2,h3,h4{font-family:'Poppins',sans-serif;}
 
+/* CRM */
+.crm-stage-btn{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.crm-stage-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.lead-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:pointer;transition:box-shadow 0.15s;}
+.lead-card:hover{box-shadow:var(--shadow-md);}
+.lead-card .lead-name{font-weight:700;font-size:15px;}
+.lead-card .lead-meta{font-size:12px;color:var(--text2);margin-top:3px;}
+.lead-stage-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.stage-new{background:#dbeafe;color:#1d4ed8;}
+.stage-discussion{background:#fef9c3;color:#854d0e;}
+.stage-quotation{background:#ede9fe;color:#6d28d9;}
+.stage-converted{background:#dcfce7;color:#15803d;}
+.stage-rejected{background:#fee2e2;color:#b91c1c;}
+.overdue-badge{background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+.discussion-item{background:var(--surface2);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;border-left:3px solid var(--primary);}
 /* LOGIN */
 #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e3a5f 0%,#1a5276 50%,#2563eb 100%);}
 .login-card{background:var(--surface);border-radius:16px;padding:40px;width:380px;box-shadow:var(--shadow-lg);}
@@ -234,6 +249,10 @@ tr:hover td{background:var(--surface2);}
         <div class="nav-item" onclick="showPage('new-order')" id="nav-new-order"><span class="nav-icon">➕</span> New Order</div>
         <div class="nav-item" onclick="showPage('orders')" id="nav-orders"><span class="nav-icon">📋</span> My Orders</div>
         <div class="nav-item" onclick="showPage('customers')" id="nav-customers"><span class="nav-icon">👥</span> Customers</div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">CRM</div>
+        <div class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon">🎯</span> Leads / CRM</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">Analytics</div>
@@ -458,6 +477,26 @@ tr:hover td{background:var(--surface2);}
           <div id="sources-content"></div>
         </div>
 
+        <!-- CRM PAGE -->
+        <div class="page" id="page-crm">
+          <div class="card-header" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-sm crm-stage-btn active" data-stage="all" onclick="setCRMStage('all',this)">All</button>
+              <button class="btn btn-sm crm-stage-btn" data-stage="new" onclick="setCRMStage('new',this)">🆕 New</button>
+              <button class="btn btn-sm crm-stage-btn" data-stage="discussion" onclick="setCRMStage('discussion',this)">💬 Discussion</button>
+              <button class="btn btn-sm crm-stage-btn" data-stage="quotation" onclick="setCRMStage('quotation',this)">📄 Quotation</button>
+              <button class="btn btn-sm crm-stage-btn" data-stage="converted" onclick="setCRMStage('converted',this)">✅ Converted</button>
+              <button class="btn btn-sm crm-stage-btn" data-stage="rejected" onclick="setCRMStage('rejected',this)">❌ Rejected</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input type="month" id="crm-month-filter" onchange="renderCRM()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;">
+              <select id="crm-emp-filter" onchange="renderCRM()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;display:none;"></select>
+              <button class="btn btn-primary btn-sm" onclick="openAddLead()">+ Add Lead</button>
+            </div>
+          </div>
+          <div id="crm-content"></div>
+        </div>
+
         <!-- USERS (Admin) -->
         <div class="page" id="page-users">
           <div style="margin-bottom:12px;padding:12px;background:var(--bg2);border-radius:10px;display:flex;align-items:center;gap:12px;">
@@ -514,6 +553,46 @@ tr:hover td{background:var(--surface2);}
       </div>
     </div>
   </div>
+</div>
+
+<!-- ADD LEAD MODAL -->
+<div class="modal-overlay" id="add-lead-modal" onclick="if(event.target===this)closeModal('add-lead-modal')">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header"><h3>Add New Lead</h3><button class="modal-close" onclick="closeModal('add-lead-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Name *</label><input class="form-control" id="lead-name" placeholder="Customer name"></div>
+      <div class="form-group"><label>Phone *</label><input class="form-control" id="lead-phone" placeholder="Mobile number" type="tel"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>State *</label><input class="form-control" id="lead-state" placeholder="State"></div>
+        <div class="form-group"><label>City *</label><input class="form-control" id="lead-city" placeholder="City"></div>
+      </div>
+      <div class="form-group"><label>Address (Optional)</label><input class="form-control" id="lead-address" placeholder="Address"></div>
+      <div class="form-group"><label>Source</label>
+        <select class="form-control" id="lead-source">
+          <option>IndiaMart</option><option>Google</option><option>Trade India</option><option>Website</option><option>Reference</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Product Interest</label><input class="form-control" id="lead-product" placeholder="e.g. HDPE Pipe 63mm"></div>
+      <div class="form-group"><label>Follow-up Date</label><input class="form-control" type="date" id="lead-followup"></div>
+      <div class="form-group"><label>Notes</label><textarea class="form-control" id="lead-notes" rows="2" placeholder="Initial notes..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('add-lead-modal')">Cancel</button><button class="btn btn-primary" onclick="saveLead()">Save Lead</button></div>
+  </div>
+</div>
+
+<!-- LEAD DETAIL MODAL -->
+<div class="modal-overlay" id="lead-detail-modal" onclick="if(event.target===this)closeModal('lead-detail-modal')">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header"><h3 id="ld-title">Lead Detail</h3><button class="modal-close" onclick="closeModal('lead-detail-modal')">✕</button></div>
+    <div class="modal-body" id="lead-detail-body"></div>
+  </div>
+</div>
+
+<!-- OVERDUE POPUP -->
+<div id="overdue-popup" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--danger);color:#fff;padding:14px 18px;border-radius:12px;box-shadow:var(--shadow-lg);max-width:320px;cursor:pointer;" onclick="document.getElementById('overdue-popup').style.display='none';showPage('crm')">
+  <div style="font-weight:700;font-size:14px;">⚠️ Overdue Leads!</div>
+  <div id="overdue-popup-msg" style="font-size:12px;margin-top:4px;opacity:0.9;"></div>
+  <div style="font-size:11px;margin-top:6px;opacity:0.7;">Click karke dekho →</div>
 </div>
 
 <!-- EDIT ORDER MODAL -->
@@ -590,9 +669,9 @@ firebase.initializeApp({
 });
 const db=firebase.firestore();
 
-let currentUser=null, reportPeriod='daily';
-let users=[], customers=[], orders=[];
-let unsubOrders=null, unsubCustomers=null;
+let currentUser=null, reportPeriod='daily', crmStageFilter='all';
+let users=[], customers=[], orders=[], leads=[];
+let unsubOrders=null, unsubCustomers=null, unsubLeads=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
@@ -654,13 +733,14 @@ function showLoading(show){
 
 async function loadAppData(){
   try{
-    [customers,orders]=await Promise.all([fsGetAll('customers'),fsGetAll('orders')]);
-  }catch(e){customers=[];orders=[];}
+    [customers,orders,leads]=await Promise.all([fsGetAll('customers'),fsGetAll('orders'),fsGetAll('leads')]);
+  }catch(e){customers=[];orders=[];leads=[];}
 }
 
 function startRealtime(){
   if(unsubOrders) unsubOrders();
   if(unsubCustomers) unsubCustomers();
+  if(unsubLeads) unsubLeads();
   unsubOrders=db.collection('orders').onSnapshot(snap=>{
     orders=snap.docs.map(d=>({id:d.id,...d.data()}));
     const pg=document.querySelector('.page.active');
@@ -671,6 +751,12 @@ function startRealtime(){
     customers=snap.docs.map(d=>({id:d.id,...d.data()}));
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-customers') renderCustomers();
+  });
+  unsubLeads=db.collection('leads').onSnapshot(snap=>{
+    leads=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-crm') renderCRM();
+    checkOverdueLeads();
   });
 }
 
@@ -775,6 +861,12 @@ function showPage(id){
   if(id==='reports')renderReport();
   if(id==='sources')renderSources();
   if(id==='users')renderUsers();
+  if(id==='crm'){
+    const mEl=document.getElementById('crm-month-filter');
+    if(mEl&&!mEl.value) mEl.value=new Date().toISOString().slice(0,7);
+    populateCRMEmpFilter();
+    renderCRM();
+  }
 }
 
 // ── DASHBOARD ─────────────────────────────────────────
@@ -1193,7 +1285,7 @@ async function fixGSTOrders(){
     });
     await batch.commit();
     toast(`${toFix.length} orders fix ho gaye! ✅`);
-    await loadData();
+    await loadAppData();
   }catch(e){toast('Error: '+e.message,'error');}
 }
 
@@ -1348,6 +1440,218 @@ function uploadFile(orderId, type){
 
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.querySelectorAll('.autocomplete-dropdown').forEach(d=>d.classList.remove('open'));});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
+
+// ── CRM ───────────────────────────────────────────────
+function getMyLeads(){
+  if(currentUser.role==='admin') return leads;
+  return leads.filter(l=>l.employeeId===currentUser.id);
+}
+
+function populateCRMEmpFilter(){
+  const el=document.getElementById('crm-emp-filter');
+  if(!el) return;
+  if(currentUser.role==='admin'){
+    el.style.display='';
+    const empIds=[...new Set(leads.map(l=>l.employeeId))];
+    const empList=empIds.map(id=>leads.find(l=>l.employeeId===id)).filter(Boolean);
+    el.innerHTML='<option value="">All Executives</option>'+empList.map(l=>`<option value="${l.employeeId}">${esc(l.employeeName)}</option>`).join('');
+  } else {
+    el.style.display='none';
+  }
+}
+
+function setCRMStage(stage, btn){
+  crmStageFilter=stage;
+  document.querySelectorAll('.crm-stage-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCRM();
+}
+
+const STAGE_LABEL={new:'🆕 New',discussion:'💬 Discussion',quotation:'📄 Quotation',converted:'✅ Converted',rejected:'❌ Rejected'};
+const STAGE_CLASS={new:'stage-new',discussion:'stage-discussion',quotation:'stage-quotation',converted:'stage-converted',rejected:'stage-rejected'};
+
+function renderCRM(){
+  const month=(document.getElementById('crm-month-filter')||{}).value||'';
+  const empF=(document.getElementById('crm-emp-filter')||{}).value||'';
+  let vis=getMyLeads();
+  if(empF) vis=vis.filter(l=>l.employeeId===empF);
+  if(month) vis=vis.filter(l=>l.createdAt&&new Date(l.createdAt).toISOString().slice(0,7)===month);
+  if(crmStageFilter!=='all') vis=vis.filter(l=>l.stage===crmStageFilter);
+  vis=[...vis].sort((a,b)=>b.createdAt-a.createdAt);
+  const today=new Date().toISOString().slice(0,10);
+  const counts={all:getMyLeads().length,new:0,discussion:0,quotation:0,converted:0,rejected:0};
+  getMyLeads().forEach(l=>{if(counts[l.stage]!==undefined)counts[l.stage]++;});
+  const content=document.getElementById('crm-content');
+  if(!content) return;
+  if(vis.length===0){content.innerHTML=`<div class="empty-state"><div class="icon">🎯</div><p>Koi lead nahi</p></div>`;return;}
+  content.innerHTML=`
+    <div class="stat-grid" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="stat-label">Total Leads</div><div class="stat-value">${counts.all}</div></div>
+      <div class="stat-card" style="border-left:3px solid #3b82f6;"><div class="stat-label">New</div><div class="stat-value" style="color:#1d4ed8;">${counts.new}</div></div>
+      <div class="stat-card" style="border-left:3px solid #f59e0b;"><div class="stat-label">Discussion</div><div class="stat-value" style="color:#854d0e;">${counts.discussion}</div></div>
+      <div class="stat-card" style="border-left:3px solid #8b5cf6;"><div class="stat-label">Quotation</div><div class="stat-value" style="color:#6d28d9;">${counts.quotation}</div></div>
+      <div class="stat-card" style="border-left:3px solid #16a34a;"><div class="stat-label">Converted</div><div class="stat-value" style="color:#15803d;">${counts.converted}</div></div>
+      <div class="stat-card" style="border-left:3px solid #dc2626;"><div class="stat-label">Rejected</div><div class="stat-value" style="color:#b91c1c;">${counts.rejected}</div></div>
+    </div>
+    <div class="card"><div class="table-wrap"><table><thead><tr>
+      <th>Name</th><th>Phone</th><th>City/State</th><th>Product</th><th>Source</th><th>Stage</th><th>Follow-up</th><th>Executive</th><th>Action</th>
+    </tr></thead><tbody>
+    ${vis.map(l=>{
+      const overdue=l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected';
+      return`<tr style="${overdue?'background:var(--danger-bg);':''}">
+        <td><strong>${esc(l.name)}</strong>${overdue?'<span class="overdue-badge" style="margin-left:6px;">Overdue</span>':''}</td>
+        <td>${esc(l.phone)}</td>
+        <td>${esc(l.city||'')}${l.state?', '+esc(l.state):''}</td>
+        <td style="font-size:12px;">${esc(l.product||'-')}</td>
+        <td><span class="badge ${srcBadge(l.source)}">${esc(l.source||'-')}</span></td>
+        <td><span class="lead-stage-badge ${STAGE_CLASS[l.stage]||'stage-new'}">${STAGE_LABEL[l.stage]||l.stage}</span></td>
+        <td style="font-size:12px;${overdue?'color:var(--danger);font-weight:700;':''}">${l.followUpDate||'-'}</td>
+        <td style="font-size:12px;">${esc(l.employeeName||'')}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="openLeadDetail('${l.id}')">View</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div></div>`;
+}
+
+function openAddLead(){
+  document.getElementById('lead-name').value='';
+  document.getElementById('lead-phone').value='';
+  document.getElementById('lead-state').value='';
+  document.getElementById('lead-city').value='';
+  document.getElementById('lead-address').value='';
+  document.getElementById('lead-product').value='';
+  document.getElementById('lead-notes').value='';
+  document.getElementById('lead-followup').value='';
+  document.getElementById('add-lead-modal').style.display='flex';
+}
+
+async function saveLead(){
+  const name=document.getElementById('lead-name').value.trim();
+  const phone=document.getElementById('lead-phone').value.trim();
+  const state=document.getElementById('lead-state').value.trim();
+  const city=document.getElementById('lead-city').value.trim();
+  if(!name){toast('Name bharo','error');return;}
+  if(!phone){toast('Phone bharo','error');return;}
+  if(!state){toast('State bharo','error');return;}
+  if(!city){toast('City bharo','error');return;}
+  const lead={
+    id:uid(),name,phone,state,city,
+    address:document.getElementById('lead-address').value.trim(),
+    source:document.getElementById('lead-source').value,
+    product:document.getElementById('lead-product').value.trim(),
+    followUpDate:document.getElementById('lead-followup').value||'',
+    notes:document.getElementById('lead-notes').value.trim(),
+    stage:'new',
+    discussions:[],
+    employeeId:currentUser.id,
+    employeeName:currentUser.name,
+    employeeDept:currentUser.dept||'',
+    createdAt:Date.now()
+  };
+  await fsSet('leads',lead.id,lead);
+  closeModal('add-lead-modal');
+  toast('Lead save ho gaya! ✅');
+}
+
+function openLeadDetail(id){
+  const l=leads.find(x=>x.id===id);
+  if(!l) return;
+  const today=new Date().toISOString().slice(0,10);
+  const overdue=l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected';
+  const canEdit=currentUser.role==='admin'||l.employeeId===currentUser.id;
+  document.getElementById('ld-title').textContent=l.name+' — '+( STAGE_LABEL[l.stage]||l.stage);
+  document.getElementById('lead-detail-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PHONE</div><div style="font-weight:600;">${esc(l.phone)}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">LOCATION</div><div>${esc(l.city||'')}${l.state?', '+esc(l.state):''}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">SOURCE</div><div>${esc(l.source||'-')}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PRODUCT</div><div>${esc(l.product||'-')}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">FOLLOW-UP</div><div style="${overdue?'color:var(--danger);font-weight:700;':''}">${l.followUpDate||'-'}${overdue?' ⚠️ Overdue':''}</div></div>
+      <div><div style="font-size:11px;color:var(--text2);font-weight:600;">EXECUTIVE</div><div>${esc(l.employeeName||'')}</div></div>
+    </div>
+    ${l.notes?`<div style="margin-bottom:14px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:13px;">${esc(l.notes)}</div>`:''}
+
+    ${canEdit?`
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:600;margin-bottom:8px;">Move Stage:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${['new','discussion','quotation','converted','rejected'].map(s=>`<button class="btn btn-sm ${l.stage===s?'btn-primary':'btn-ghost'}" onclick="updateLeadStage('${l.id}','${s}')">${STAGE_LABEL[s]}</button>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:600;margin-bottom:8px;">Update Follow-up Date:</div>
+      <div style="display:flex;gap:8px;">
+        <input type="date" id="ld-followup-inp" class="form-control" value="${l.followUpDate||''}" style="max-width:180px;">
+        <button class="btn btn-sm btn-primary" onclick="updateLeadFollowup('${l.id}')">Update</button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:600;margin-bottom:8px;">Add Discussion / Note:</div>
+      <textarea class="form-control" id="ld-disc-inp" rows="2" placeholder="Kya baat hui aaj..."></textarea>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="addDiscussion('${l.id}')">Add Note</button>
+    </div>
+    ${l.stage==='rejected'?`
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:600;margin-bottom:8px;">Rejection Reason:</div>
+      <div style="display:flex;gap:8px;">
+        <input class="form-control" id="ld-reject-inp" placeholder="Reason..." value="${esc(l.rejectionReason||'')}">
+        <button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="saveRejectReason('${l.id}')">Save</button>
+      </div>
+    </div>`:''}
+    `:''}
+
+    <div>
+      <div style="font-weight:600;margin-bottom:8px;">Discussion History (${(l.discussions||[]).length}):</div>
+      ${(l.discussions||[]).length===0?'<div style="color:var(--text3);font-size:13px;">Abhi koi discussion nahi</div>':
+        [...(l.discussions||[])].reverse().map(d=>`<div class="discussion-item"><div style="font-size:12px;color:var(--text2);">${d.date} — ${esc(d.by||'')}</div><div style="margin-top:4px;">${esc(d.note)}</div></div>`).join('')}
+    </div>`;
+  document.getElementById('lead-detail-modal').style.display='flex';
+}
+
+async function updateLeadStage(id, stage){
+  await fsUpdate('leads',id,{stage,updatedAt:Date.now()});
+  toast('Stage updated! ✅');
+  closeModal('lead-detail-modal');
+}
+
+async function updateLeadFollowup(id){
+  const val=document.getElementById('ld-followup-inp').value;
+  await fsUpdate('leads',id,{followUpDate:val,updatedAt:Date.now()});
+  toast('Follow-up date updated! ✅');
+  closeModal('lead-detail-modal');
+}
+
+async function addDiscussion(id){
+  const note=document.getElementById('ld-disc-inp').value.trim();
+  if(!note){toast('Note khali hai','error');return;}
+  const l=leads.find(x=>x.id===id);
+  if(!l) return;
+  const disc={date:new Date().toISOString().slice(0,10),note,by:currentUser.name,at:Date.now()};
+  const discussions=[...(l.discussions||[]),disc];
+  let newStage=l.stage;
+  if(l.stage==='new') newStage='discussion';
+  await fsUpdate('leads',id,{discussions,stage:newStage,updatedAt:Date.now()});
+  toast('Discussion add ho gaya! ✅');
+  closeModal('lead-detail-modal');
+}
+
+async function saveRejectReason(id){
+  const reason=document.getElementById('ld-reject-inp').value.trim();
+  await fsUpdate('leads',id,{rejectionReason:reason,updatedAt:Date.now()});
+  toast('Reason saved! ✅');
+}
+
+function checkOverdueLeads(){
+  const today=new Date().toISOString().slice(0,10);
+  const overdue=getMyLeads().filter(l=>l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const popup=document.getElementById('overdue-popup');
+  if(!popup) return;
+  if(overdue.length>0){
+    document.getElementById('overdue-popup-msg').textContent=overdue.length+' lead(s) ka follow-up overdue hai!';
+    popup.style.display='block';
+    setTimeout(()=>{popup.style.display='none';},8000);
+  }
+}
 
 init();
 </script>
