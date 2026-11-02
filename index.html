@@ -1270,7 +1270,7 @@ function downloadXLSX(rows,name){
 }
 
 // ── HELPERS ───────────────────────────────────────────
-function fmt(n){n=Math.round(Number(n)||0);if(n>=10000000)return(n/10000000).toFixed(2)+'Cr';if(n>=100000)return(n/100000).toFixed(2)+'L';if(n>=1000)return n.toLocaleString('en-IN');return n.toString();}
+function fmt(n){n=Math.round((Number(n)||0)*100)/100;if(n>=10000000)return(n/10000000).toFixed(2)+'Cr';if(n>=100000)return(n/100000).toFixed(2)+'L';if(n>=1000)return n.toLocaleString('en-IN',{maximumFractionDigits:2});return n%1?n.toFixed(2):n.toString();}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function srcBadge(s){const m={Google:'badge-blue',IndiaMart:'badge-amber','Trade India':'badge-green',Website:'badge-blue',Reference:'badge-green',Other:'badge-gray'};return m[s]||'badge-gray';}
 function formatDate(d){try{return new Date(d).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}catch(e){return d;}}
