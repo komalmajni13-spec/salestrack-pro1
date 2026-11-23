@@ -515,10 +515,12 @@ tr:hover td{background:var(--surface2);}
             <!-- Stage tabs -->
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
               <button class="crm-stage-btn active" data-stage="all" onclick="setCRMStage('all',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--primary);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All</button>
-              <button class="crm-stage-btn" data-stage="new" onclick="setCRMStage('new',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer;">🆕 New</button>
+              <button class="crm-stage-btn" data-stage="new_inquiry" onclick="setCRMStage('new_inquiry',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer;">🆕 New Inquiry</button>
               <button class="crm-stage-btn" data-stage="discussion" onclick="setCRMStage('discussion',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fde68a;background:#fffbeb;color:#92400e;font-size:12px;font-weight:600;cursor:pointer;">💬 Discussion</button>
+              <button class="crm-stage-btn" data-stage="short_listed" onclick="setCRMStage('short_listed',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #a5b4fc;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:600;cursor:pointer;">⭐ Short Listed</button>
               <button class="crm-stage-btn" data-stage="quotation" onclick="setCRMStage('quotation',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;font-size:12px;font-weight:600;cursor:pointer;">📄 Quotation</button>
-              <button class="crm-stage-btn" data-stage="converted" onclick="setCRMStage('converted',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #bbf7d0;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:600;cursor:pointer;">✅ Converted</button>
+              <button class="crm-stage-btn" data-stage="deal_closed" onclick="setCRMStage('deal_closed',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #bbf7d0;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:600;cursor:pointer;">✅ Deal Closed</button>
+              <button class="crm-stage-btn" data-stage="deal_lost" onclick="setCRMStage('deal_lost',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fed7aa;background:#fff7ed;color:#c2410c;font-size:12px;font-weight:600;cursor:pointer;">💔 Deal Lost</button>
               <button class="crm-stage-btn" data-stage="rejected" onclick="setCRMStage('rejected',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fecaca;background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:600;cursor:pointer;">❌ Rejected</button>
             </div>
             <!-- Filters row -->
@@ -527,6 +529,7 @@ tr:hover td{background:var(--surface2);}
               <input type="month" id="crm-month-filter" onchange="renderCRM()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;">
               <select id="crm-emp-filter" onchange="renderCRM()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;display:none;"></select>
               <button class="btn btn-primary btn-sm" onclick="openAddLead()" style="white-space:nowrap;">+ Add Lead</button>
+              <button id="btn-bulk-delete-rejected" class="btn btn-sm" style="display:none;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;white-space:nowrap;" onclick="bulkDeleteRejected()">🗑️ Delete All Rejected</button>
             </div>
           </div>
           <div id="crm-content"></div>
@@ -1831,7 +1834,7 @@ async function generateQuotationPrint(){
   // Auto-update lead stage to quotation + save amount
   if(currentQuotLeadId){
     const lead=leads.find(l=>l.id===currentQuotLeadId);
-    if(lead&&lead.stage!=='converted'){
+    if(lead&&lead.stage!=='deal_closed'&&lead.stage!=='converted'){
       const hist=[...(lead.stageHistory||[]),{from:lead.stage,to:'quotation',by:currentUser.name,at:new Date().toISOString().slice(0,16)}];
       await fsUpdate('leads',currentQuotLeadId,{stage:'quotation',quotationAmount:rounded,stageHistory:hist,updatedAt:Date.now()});
     }
@@ -2207,15 +2210,21 @@ function populateCRMEmpFilter(){
 }
 
 const STAGE_COLORS={
-  all:   {bg:'var(--primary)',color:'#fff',border:'var(--primary)'},
-  new:   {bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
-  discussion:{bg:'#fffbeb',color:'#92400e',border:'#fde68a'},
-  quotation:{bg:'#f5f3ff',color:'#6d28d9',border:'#ddd6fe'},
-  converted:{bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
-  rejected:{bg:'#fef2f2',color:'#b91c1c',border:'#fecaca'}
+  all:         {bg:'var(--primary)',color:'#fff',border:'var(--primary)'},
+  new_inquiry: {bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
+  new:         {bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
+  discussion:  {bg:'#fffbeb',color:'#92400e',border:'#fde68a'},
+  short_listed:{bg:'#eef2ff',color:'#4338ca',border:'#a5b4fc'},
+  quotation:   {bg:'#f5f3ff',color:'#6d28d9',border:'#ddd6fe'},
+  deal_closed: {bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+  converted:   {bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
+  deal_lost:   {bg:'#fff7ed',color:'#c2410c',border:'#fed7aa'},
+  rejected:    {bg:'#fef2f2',color:'#b91c1c',border:'#fecaca'}
 };
 function setCRMStage(stage, btn){
   crmStageFilter=stage;
+  const bulkBtn=document.getElementById('btn-bulk-delete-rejected');
+  if(bulkBtn) bulkBtn.style.display=(stage==='rejected'&&currentUser&&currentUser.role==='admin')?'inline-flex':'none';
   document.querySelectorAll('.crm-stage-btn').forEach(b=>{
     const s=b.dataset.stage;
     const c=STAGE_COLORS[s]||STAGE_COLORS.all;
@@ -2230,8 +2239,12 @@ function setCRMStage(stage, btn){
   renderCRM();
 }
 
-const STAGE_LABEL={new:'🆕 New',discussion:'💬 Discussion',quotation:'📄 Quotation',converted:'✅ Converted',rejected:'❌ Rejected'};
-const STAGE_CLASS={new:'stage-new',discussion:'stage-discussion',quotation:'stage-quotation',converted:'stage-converted',rejected:'stage-rejected'};
+const STAGE_LABEL={new_inquiry:'🆕 New Inquiry',discussion:'💬 Discussion',short_listed:'⭐ Short Listed',quotation:'📄 Quotation',deal_closed:'✅ Deal Closed',deal_lost:'💔 Deal Lost',rejected:'❌ Rejected'};
+const STAGE_CLASS={new_inquiry:'stage-new',discussion:'stage-discussion',short_listed:'stage-quotation',quotation:'stage-quotation',deal_closed:'stage-converted',deal_lost:'stage-rejected',rejected:'stage-rejected'};
+// Legacy mapping for old data
+const STAGE_LABEL_LEGACY={new:'🆕 New Inquiry',converted:'✅ Deal Closed'};
+function stageLabel(s){return STAGE_LABEL[s]||STAGE_LABEL_LEGACY[s]||s;}
+function stageClass(s){return STAGE_CLASS[s]||(s==='new'?'stage-new':s==='converted'?'stage-converted':'stage-new');}
 
 function renderCRM(){
   const month=(document.getElementById('crm-month-filter')||{}).value||'';
@@ -2240,15 +2253,25 @@ function renderCRM(){
   let vis=getMyLeads();
   if(empF) vis=vis.filter(l=>l.employeeId===empF);
   if(month) vis=vis.filter(l=>l.createdAt&&new Date(l.createdAt).toISOString().slice(0,7)===month);
-  if(crmStageFilter!=='all') vis=vis.filter(l=>l.stage===crmStageFilter);
+  if(crmStageFilter!=='all'){
+    vis=vis.filter(l=>{
+      const s=l.stage==='new'?'new_inquiry':l.stage==='converted'?'deal_closed':l.stage;
+      return s===crmStageFilter;
+    });
+  }
   if(search) vis=vis.filter(l=>(l.name||'').toLowerCase().includes(search)||(l.phone||'').includes(search)||(l.product||'').toLowerCase().includes(search)||(l.contact||'').toLowerCase().includes(search)||(l.city||'').toLowerCase().includes(search));
   vis=[...vis].sort((a,b)=>b.createdAt-a.createdAt);
   const today=new Date().toISOString().slice(0,10);
-  const counts={all:getMyLeads().length,new:0,discussion:0,quotation:0,converted:0,rejected:0};
-  getMyLeads().forEach(l=>{if(counts[l.stage]!==undefined)counts[l.stage]++;});
+  const allLeads=getMyLeads();
+  const counts={all:allLeads.length,new_inquiry:0,discussion:0,short_listed:0,quotation:0,deal_closed:0,deal_lost:0,rejected:0};
+  allLeads.forEach(l=>{
+    const s=l.stage==='new'?'new_inquiry':l.stage==='converted'?'deal_closed':l.stage;
+    if(counts[s]!==undefined)counts[s]++;
+  });
   const content=document.getElementById('crm-content');
   if(!content) return;
-  const todayFollowups=getMyLeads().filter(l=>l.followUpDate===today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const closedStages=['deal_closed','converted','deal_lost','rejected'];
+  const todayFollowups=getMyLeads().filter(l=>l.followUpDate===today&&!closedStages.includes(l.stage));
   const todayBanner=todayFollowups.length>0?`
     <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
       <div style="font-weight:700;color:#92400e;margin-bottom:8px;">📅 Today's Follow-ups (${todayFollowups.length})</div>
@@ -2258,7 +2281,7 @@ function renderCRM(){
           <span style="font-weight:600;min-width:160px;">${esc(l.name)}</span>
           <span style="color:#555;min-width:110px;">${esc(l.phone)}</span>
           <span style="color:#555;flex:1;">${esc(l.product||'-')}</span>
-          <span class="lead-stage-badge ${STAGE_CLASS[l.stage]||'stage-new'}">${STAGE_LABEL[l.stage]||l.stage}</span>
+          <span class="lead-stage-badge ${stageClass(l.stage)}">${stageLabel(l.stage)}</span>
           ${currentUser.role==='admin'?`<span style="font-size:11px;color:#92400e;">${esc(l.employeeName||'-')}</span>`:''}
         </div>`).join('')}
       </div>
@@ -2269,10 +2292,12 @@ function renderCRM(){
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
       <span style="font-size:13px;font-weight:700;color:var(--text);">Showing ${vis.length} leads</span>
       <span style="color:var(--text3);">·</span>
-      <span style="font-size:12px;color:#1d4ed8;background:#eff6ff;padding:2px 8px;border-radius:12px;font-weight:600;">🆕 ${counts.new}</span>
+      <span style="font-size:12px;color:#1d4ed8;background:#eff6ff;padding:2px 8px;border-radius:12px;font-weight:600;">🆕 ${counts.new_inquiry}</span>
       <span style="font-size:12px;color:#92400e;background:#fffbeb;padding:2px 8px;border-radius:12px;font-weight:600;">💬 ${counts.discussion}</span>
+      <span style="font-size:12px;color:#4338ca;background:#eef2ff;padding:2px 8px;border-radius:12px;font-weight:600;">⭐ ${counts.short_listed}</span>
       <span style="font-size:12px;color:#6d28d9;background:#f5f3ff;padding:2px 8px;border-radius:12px;font-weight:600;">📄 ${counts.quotation}</span>
-      <span style="font-size:12px;color:#15803d;background:#f0fdf4;padding:2px 8px;border-radius:12px;font-weight:600;">✅ ${counts.converted}</span>
+      <span style="font-size:12px;color:#15803d;background:#f0fdf4;padding:2px 8px;border-radius:12px;font-weight:600;">✅ ${counts.deal_closed}</span>
+      <span style="font-size:12px;color:#c2410c;background:#fff7ed;padding:2px 8px;border-radius:12px;font-weight:600;">💔 ${counts.deal_lost}</span>
       <span style="font-size:12px;color:#b91c1c;background:#fef2f2;padding:2px 8px;border-radius:12px;font-weight:600;">❌ ${counts.rejected}</span>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
@@ -2284,8 +2309,8 @@ function renderCRM(){
         <th>Next Follow-up</th><th>Requirements</th><th>Action</th>
       </tr></thead><tbody>
     ${vis.map(l=>{
-      const overdue=l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected';
-      const todayFU=l.followUpDate===today&&l.stage!=='converted'&&l.stage!=='rejected';
+      const overdue=l.followUpDate&&l.followUpDate<today&&!closedStages.includes(l.stage);
+      const todayFU=l.followUpDate===today&&!closedStages.includes(l.stage);
       const lastDisc=l.discussions&&l.discussions.length?l.discussions[l.discussions.length-1].date:'-';
       const sinceDate=l.createdAt?new Date(l.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}):'';
       const phone=l.phone?l.phone.replace(/\D/g,''):'';
@@ -2299,7 +2324,7 @@ function renderCRM(){
         <td style="color:var(--text2);font-size:12px;">${esc(l.contact||'-')}</td>
         <td style="font-weight:500;">${esc(l.phone)}</td>
         <td><span class="badge ${srcBadge(l.source)}" style="font-size:10px;">${esc(l.source||'-')}</span></td>
-        <td><span class="lead-stage-badge ${STAGE_CLASS[l.stage]||'stage-new'}">${STAGE_LABEL[l.stage]||l.stage}</span></td>
+        <td><span class="lead-stage-badge ${stageClass(l.stage)}">${stageLabel(l.stage)}</span></td>
         <td style="color:var(--text2);font-size:11px;">${sinceDate}</td>
         <td style="font-size:12px;">${esc(l.employeeName||'-')}</td>
         <td style="color:var(--text2);font-size:11px;">${lastDisc}</td>
@@ -2343,7 +2368,7 @@ async function saveLead(){
     product:document.getElementById('lead-product').value.trim(),
     followUpDate:document.getElementById('lead-followup').value||'',
     notes:document.getElementById('lead-notes').value.trim(),
-    stage:'new',
+    stage:'new_inquiry',
     discussions:[],
     employeeId:currentUser.id,
     employeeName:currentUser.name,
@@ -2359,9 +2384,9 @@ function openLeadDetail(id){
   const l=leads.find(x=>x.id===id);
   if(!l) return;
   const today=new Date().toISOString().slice(0,10);
-  const overdue=l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected';
+  const overdue=l.followUpDate&&l.followUpDate<today&&!['deal_closed','converted','deal_lost','rejected'].includes(l.stage);
   const canEdit=currentUser.role==='admin'||l.employeeId===currentUser.id;
-  document.getElementById('ld-title').textContent=l.name+' — '+( STAGE_LABEL[l.stage]||l.stage);
+  document.getElementById('ld-title').textContent=l.name+' — '+stageLabel(l.stage);
   document.getElementById('lead-detail-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PHONE</div><div style="font-weight:600;">${esc(l.phone)}</div></div>
@@ -2383,7 +2408,7 @@ function openLeadDetail(id){
     <div style="margin-bottom:14px;">
       <div style="font-weight:600;margin-bottom:8px;">Move Stage:</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${['new','discussion','quotation','converted','rejected'].map(s=>`<button class="btn btn-sm ${l.stage===s?'btn-primary':'btn-ghost'}" onclick="updateLeadStage('${l.id}','${s}')">${STAGE_LABEL[s]}</button>`).join('')}
+        ${['new_inquiry','discussion','short_listed','quotation','deal_closed','deal_lost','rejected'].map(s=>`<button class="btn btn-sm ${(l.stage===s||(s==='new_inquiry'&&l.stage==='new')||(s==='deal_closed'&&l.stage==='converted'))?'btn-primary':'btn-ghost'}" onclick="updateLeadStage('${l.id}','${s}')">${stageLabel(s)}</button>`).join('')}
       </div>
     </div>
     <div style="margin-bottom:14px;">
@@ -2399,12 +2424,14 @@ function openLeadDetail(id){
       <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="addDiscussion('${l.id}')">Add Note</button>
     </div>
     ${l.stage==='rejected'?`
-    <div style="margin-bottom:14px;">
-      <div style="font-weight:600;margin-bottom:8px;">Rejection Reason:</div>
-      <div style="display:flex;gap:8px;">
-        <input class="form-control" id="ld-reject-inp" placeholder="Reason..." value="${esc(l.rejectionReason||'')}">
-        <button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="saveRejectReason('${l.id}')">Save</button>
-      </div>
+    <div style="margin-bottom:14px;padding:10px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;">
+      <div style="font-weight:600;margin-bottom:4px;color:#b91c1c;">❌ Rejection Reason:</div>
+      <div style="font-size:13px;">${esc(l.rejectionReason||'—')}</div>
+    </div>`:''}
+    ${l.stage==='deal_lost'?`
+    <div style="margin-bottom:14px;padding:10px;background:#fff7ed;border-radius:8px;border:1px solid #fed7aa;">
+      <div style="font-weight:600;margin-bottom:4px;color:#c2410c;">💔 Deal Lost Reason:</div>
+      <div style="font-size:13px;">${esc(l.dealLostReason||'—')}</div>
     </div>`:''}
     `:''}
 
@@ -2419,9 +2446,9 @@ function openLeadDetail(id){
       <div style="display:flex;flex-direction:column;gap:4px;">
         ${[...(l.stageHistory||[])].reverse().map(h=>`<div style="font-size:12px;display:flex;gap:8px;align-items:center;">
           <span style="color:var(--text3);">${h.at||''}</span>
-          <span style="background:var(--surface2);border-radius:4px;padding:1px 6px;">${STAGE_LABEL[h.from]||h.from}</span>
+          <span style="background:var(--surface2);border-radius:4px;padding:1px 6px;">${stageLabel(h.from)}</span>
           <span style="color:var(--text3);">→</span>
-          <span style="background:var(--surface2);border-radius:4px;padding:1px 6px;">${STAGE_LABEL[h.to]||h.to}</span>
+          <span style="background:var(--surface2);border-radius:4px;padding:1px 6px;">${stageLabel(h.to)}</span>
           <span style="color:var(--text3);">by ${esc(h.by||'')}</span>
         </div>`).join('')}
       </div>
@@ -2449,6 +2476,14 @@ async function deleteLead(id){
   toast('Lead delete ho gaya! 🗑️');
 }
 
+async function bulkDeleteRejected(){
+  const rejected=getMyLeads().filter(l=>l.stage==='rejected');
+  if(rejected.length===0){toast('Koi rejected lead nahi hai');return;}
+  if(!confirm(`${rejected.length} rejected lead(s) permanently delete karna chahte ho? Yeh wapas nahi aayenge!`)) return;
+  for(const l of rejected) await fsDelete('leads',l.id);
+  toast(`${rejected.length} rejected lead(s) delete ho gaye! 🗑️`);
+}
+
 async function assignLead(id){
   const empId=document.getElementById('ld-assign-sel').value;
   if(!empId) return;
@@ -2463,10 +2498,9 @@ async function updateLeadStage(id, stage){
   const l=leads.find(x=>x.id===id);
   const prevStage=l?l.stage:'';
   const histEntry={from:prevStage,to:stage,by:currentUser.name,at:new Date().toISOString().slice(0,16)};
-  if(stage==='converted'){
+  if(stage==='deal_closed'||stage==='converted'){
     closeModal('lead-detail-modal');
     openConvertToOrder(id);
-    // stage history saved in convertToOrder
     return;
   }
   if(stage==='quotation'){
@@ -2474,6 +2508,22 @@ async function updateLeadStage(id, stage){
     await fsUpdate('leads',id,{stage,stageHistory:hist,updatedAt:Date.now()});
     closeModal('lead-detail-modal');
     openQuotationBuilder(id);
+    return;
+  }
+  if(stage==='deal_lost'){
+    const reason=prompt('Deal lost reason (optional):');
+    const hist=[...(l&&l.stageHistory||[]),histEntry];
+    await fsUpdate('leads',id,{stage,dealLostReason:reason||'',stageHistory:hist,updatedAt:Date.now()});
+    toast('Deal Lost marked 💔');
+    closeModal('lead-detail-modal');
+    return;
+  }
+  if(stage==='rejected'){
+    const reason=prompt('Rejection reason (optional):');
+    const hist=[...(l&&l.stageHistory||[]),histEntry];
+    await fsUpdate('leads',id,{stage,rejectionReason:reason||'',stageHistory:hist,updatedAt:Date.now()});
+    toast('Lead rejected ❌');
+    closeModal('lead-detail-modal');
     return;
   }
   const hist=[...(l&&l.stageHistory||[]),histEntry];
@@ -2570,7 +2620,7 @@ async function addDiscussion(id){
   const disc={date:new Date().toISOString().slice(0,10),note,by:currentUser.name,at:Date.now()};
   const discussions=[...(l.discussions||[]),disc];
   let newStage=l.stage;
-  if(l.stage==='new') newStage='discussion';
+  if(l.stage==='new_inquiry'||l.stage==='new') newStage='discussion';
   await fsUpdate('leads',id,{discussions,stage:newStage,updatedAt:Date.now()});
   toast('Discussion add ho gaya! ✅');
   closeModal('lead-detail-modal');
@@ -2602,26 +2652,30 @@ function renderCrmDashboard(){
   const viewingName=execFilter||( currentUser.role==='admin'?'All Executives':currentUser.name);
   const today=new Date().toISOString().slice(0,10);
   const stageData=[
-    {key:'new',label:'New',color:'#3b82f6',bg:'#eff6ff',icon:'🆕'},
+    {key:'new_inquiry',label:'New Inquiry',color:'#3b82f6',bg:'#eff6ff',icon:'🆕'},
     {key:'discussion',label:'Discussion',color:'#f59e0b',bg:'#fffbeb',icon:'💬'},
+    {key:'short_listed',label:'Short Listed',color:'#4338ca',bg:'#eef2ff',icon:'⭐'},
     {key:'quotation',label:'Quotation',color:'#8b5cf6',bg:'#f5f3ff',icon:'📄'},
-    {key:'converted',label:'Converted',color:'#16a34a',bg:'#f0fdf4',icon:'✅'},
+    {key:'deal_closed',label:'Deal Closed',color:'#16a34a',bg:'#f0fdf4',icon:'✅'},
+    {key:'deal_lost',label:'Deal Lost',color:'#c2410c',bg:'#fff7ed',icon:'💔'},
     {key:'rejected',label:'Rejected',color:'#dc2626',bg:'#fef2f2',icon:'❌'},
   ];
-  const overdue=myL.filter(l=>l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected');
-  const todayFU=myL.filter(l=>l.followUpDate===today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const closedS=['deal_closed','converted','deal_lost','rejected'];
+  const overdue=myL.filter(l=>l.followUpDate&&l.followUpDate<today&&!closedS.includes(l.stage));
+  const todayFU=myL.filter(l=>l.followUpDate===today&&!closedS.includes(l.stage));
   const quotPending=myL.filter(l=>l.stage==='quotation');
-  const converted=myL.filter(l=>l.stage==='converted');
+  const converted=myL.filter(l=>l.stage==='deal_closed'||l.stage==='converted');
 
   // Executive performance
   const execMap={};
   myL.forEach(l=>{
     const n=l.employeeName||'Unassigned';
-    if(!execMap[n]) execMap[n]={name:n,total:0,new:0,discussion:0,quotation:0,converted:0,rejected:0,overdue:0,todayFU:0};
+    if(!execMap[n]) execMap[n]={name:n,total:0,new_inquiry:0,discussion:0,short_listed:0,quotation:0,deal_closed:0,deal_lost:0,rejected:0,overdue:0,todayFU:0};
     execMap[n].total++;
-    execMap[n][l.stage]=(execMap[n][l.stage]||0)+1;
-    if(l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected') execMap[n].overdue++;
-    if(l.followUpDate===today&&l.stage!=='converted'&&l.stage!=='rejected') execMap[n].todayFU++;
+    const sk=l.stage==='new'?'new_inquiry':l.stage==='converted'?'deal_closed':l.stage;
+    execMap[n][sk]=(execMap[n][sk]||0)+1;
+    if(l.followUpDate&&l.followUpDate<today&&!closedS.includes(l.stage)) execMap[n].overdue++;
+    if(l.followUpDate===today&&!closedS.includes(l.stage)) execMap[n].todayFU++;
   });
   const execList=Object.values(execMap).sort((a,b)=>b.total-a.total);
 
@@ -2647,7 +2701,7 @@ function renderCrmDashboard(){
     <!-- Funnel Cards -->
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
       ${stageData.map(s=>{
-        const cnt=myL.filter(l=>l.stage===s.key).length;
+        const cnt=myL.filter(l=>(l.stage===s.key)||(s.key==='new_inquiry'&&l.stage==='new')||(s.key==='deal_closed'&&l.stage==='converted')).length;
         const pct=myL.length?Math.round(cnt/myL.length*100):0;
         return`<div onclick="showPage('crm');setTimeout(()=>{document.querySelector('[data-stage=\\'${s.key}\\']').click()},400)" style="flex:1;min-width:100px;background:${s.bg};border:1.5px solid ${s.color}33;border-top:4px solid ${s.color};border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;">
           <div style="font-size:24px;margin-bottom:4px;">${s.icon}</div>
@@ -2694,7 +2748,7 @@ function renderCrmDashboard(){
               <div style="font-weight:600;font-size:13px;">${esc(l.name)}</div>
               <div style="font-size:11px;color:var(--text2);">${esc(l.phone)} · ${esc(l.employeeName||'-')}</div>
             </div>
-            <span class="lead-stage-badge ${STAGE_CLASS[l.stage]||'stage-new'}" style="font-size:10px;">${STAGE_LABEL[l.stage]||l.stage}</span>
+            <span class="lead-stage-badge ${stageClass(l.stage)}" style="font-size:10px;">${stageLabel(l.stage)}</span>
           </div>`).join('')}
         ${todayFU.length>10?`<div style="font-size:12px;color:var(--text3);margin-top:6px;">+${todayFU.length-10} more...</div>`:''}
       </div>
@@ -2708,7 +2762,7 @@ function renderCrmDashboard(){
               <div style="font-weight:600;font-size:13px;">${esc(l.name)}</div>
               <div style="font-size:11px;color:var(--danger);">${l.followUpDate} · ${esc(l.employeeName||'-')}</div>
             </div>
-            <span class="lead-stage-badge ${STAGE_CLASS[l.stage]||'stage-new'}" style="font-size:10px;">${STAGE_LABEL[l.stage]||l.stage}</span>
+            <span class="lead-stage-badge ${stageClass(l.stage)}" style="font-size:10px;">${stageLabel(l.stage)}</span>
           </div>`).join('')}
         ${overdue.length>10?`<div style="font-size:12px;color:var(--text3);margin-top:6px;">+${overdue.length-10} more...</div>`:''}
       </div>
@@ -2720,13 +2774,13 @@ function renderCrmDashboard(){
       <div class="table-wrap"><table style="font-size:13px;"><thead><tr>
         <th>Executive</th><th>Total</th><th>🆕 New</th><th>💬 Discussion</th><th>📄 Quotation</th><th>✅ Converted</th><th>❌ Rejected</th><th>📈 Conv%</th><th>⚠️ Overdue</th><th>📅 Today</th>
       </tr></thead><tbody>
-        ${execList.map(e=>{const convPct=e.total>0?Math.round((e.converted||0)/e.total*100):0;return`<tr>
+        ${execList.map(e=>{const convPct=e.total>0?Math.round((e.deal_closed||0)/e.total*100):0;return`<tr>
           <td><strong>${esc(e.name)}</strong></td>
           <td><strong>${e.total}</strong></td>
-          <td style="color:#3b82f6;">${e.new||0}</td>
+          <td style="color:#3b82f6;">${e.new_inquiry||0}</td>
           <td style="color:#f59e0b;">${e.discussion||0}</td>
           <td style="color:#8b5cf6;">${e.quotation||0}</td>
-          <td style="color:#16a34a;">${e.converted||0}</td>
+          <td style="color:#16a34a;">${e.deal_closed||0}</td>
           <td style="color:#dc2626;">${e.rejected||0}</td>
           <td style="color:${convPct>=30?'#16a34a':convPct>=10?'#f59e0b':'#dc2626'};font-weight:700;">${convPct}%</td>
           <td style="color:#b45309;font-weight:${e.overdue>0?'700':'400'};">${e.overdue}</td>
@@ -2743,9 +2797,9 @@ function renderCrmAnalytics(){
   const today=new Date().toISOString().slice(0,10);
 
   // Stage counts
-  const stages=['new','discussion','quotation','converted','rejected'];
+  const stages=['new_inquiry','discussion','short_listed','quotation','deal_closed','deal_lost','rejected'];
   const stageCounts={};
-  stages.forEach(s=>stageCounts[s]=myLeads.filter(l=>l.stage===s).length);
+  stages.forEach(s=>stageCounts[s]=myLeads.filter(l=>(l.stage===s)||(s==='new_inquiry'&&l.stage==='new')||(s==='deal_closed'&&l.stage==='converted')).length);
 
   // Quotation pending
   const quotPending=myLeads.filter(l=>l.stage==='quotation');
@@ -2753,11 +2807,12 @@ function renderCrmAnalytics(){
   // Rejected with reasons
   const rejected=myLeads.filter(l=>l.stage==='rejected');
 
+  const closedSA=['deal_closed','converted','deal_lost','rejected'];
   // Overdue follow-ups
-  const overdue=myLeads.filter(l=>l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const overdue=myLeads.filter(l=>l.followUpDate&&l.followUpDate<today&&!closedSA.includes(l.stage));
 
   // Today's follow-ups
-  const todayFU=myLeads.filter(l=>l.followUpDate===today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const todayFU=myLeads.filter(l=>l.followUpDate===today&&!closedSA.includes(l.stage));
 
   // Recent discussions (last 7 days)
   const sevenDaysAgo=new Date(Date.now()-7*24*60*60*1000).toISOString().slice(0,10);
@@ -2847,8 +2902,9 @@ let _notifSentToday='';
 function checkOverdueLeads(){
   const today=new Date().toISOString().slice(0,10);
   const myL=getMyLeads();
-  const overdue=myL.filter(l=>l.followUpDate&&l.followUpDate<today&&l.stage!=='converted'&&l.stage!=='rejected');
-  const todayFU=myL.filter(l=>l.followUpDate===today&&l.stage!=='converted'&&l.stage!=='rejected');
+  const _cls=['deal_closed','converted','deal_lost','rejected'];
+  const overdue=myL.filter(l=>l.followUpDate&&l.followUpDate<today&&!_cls.includes(l.stage));
+  const todayFU=myL.filter(l=>l.followUpDate===today&&!_cls.includes(l.stage));
 
   // Nav badge
   const badge=document.getElementById('nav-overdue-badge');
