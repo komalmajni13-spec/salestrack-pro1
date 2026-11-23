@@ -263,7 +263,7 @@ input.leave-input:focus{border-color:var(--primary);outline:none;}
               </div>
             </div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Employee</th><th>Monthly Salary (₹)</th><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Leave Taken</th><th>Balance Leave</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net Salary (₹)</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Monthly Salary (₹)</th><th>Carry Fwd Leave</th><th>Monthly Allowance</th><th>Leave Taken</th><th>Balance Leave</th><th>Late</th><th>Unpaid Days</th><th>Deduction (₹)</th><th>Net Salary (₹)</th></tr></thead>
               <tbody id="dash-body"></tbody>
             </table></div>
           </div>
@@ -953,7 +953,7 @@ function renderDashboard(){
 
   const dashSearch=((document.getElementById('dash-search')||{}).value||'').toLowerCase();
   const filteredRows=dashSearch?rows.filter(r=>r.emp.name.toLowerCase().includes(dashSearch)):rows;
-  document.getElementById('dash-body').innerHTML=filteredRows.length===0?`<tr><td colspan="9"><div class="empty-state"><div class="icon">👤</div><p>No employees found</p></div></td></tr>`:
+  document.getElementById('dash-body').innerHTML=filteredRows.length===0?`<tr><td colspan="10"><div class="empty-state"><div class="icon">👤</div><p>No employees found</p></div></td></tr>`:
     filteredRows.map(r=>{
       const pct=Math.max(0,Math.min(100,(r.c.balance/(r.c.allowance+13.5||1))*100));
       const fillColor=r.c.balance<0?'var(--danger)':r.c.balance<1?'var(--warning)':'var(--success)';
@@ -964,6 +964,7 @@ function renderDashboard(){
       <td>${fmt(r.c.allowance)}</td>
       <td>${fmt(r.c.taken)}</td>
       <td><span class="badge ${r.c.balance<0?'badge-red':'badge-green'}">${fmt(r.c.balance)}</span><span class="mini-progress"><span class="mini-progress-fill" style="width:${pct}%;background:${fillColor};"></span></span></td>
+      <td><span class="badge ${r.c.lateCount>FREE_LATE_PER_MONTH?'badge-red':r.c.lateCount>0?'badge-amber':'badge-green'}" title="${FREE_LATE_PER_MONTH} free per month">${fmt(r.c.lateCount)}</span></td>
       <td>${r.c.totalUnpaidDays>0?`<span class="badge badge-amber">${fmt(r.c.totalUnpaidDays)}</span>${r.c.latePenaltyDays>0?` <span class="badge badge-red" title="${fmt(r.c.lateCount)} late, ${FREE_LATE_PER_MONTH} free">+${fmt(r.c.latePenaltyDays)} late</span>`:''}`:'<span class="badge badge-green">0</span>'}</td>
       <td class="amount" style="color:var(--danger);">₹${fmt(r.deduction)}</td>
       <td class="amount" style="color:var(--success);">₹${fmt(r.net)}</td>
