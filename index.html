@@ -1834,7 +1834,7 @@ async function generateQuotationPrint(){
   // Auto-update lead stage to quotation + save amount
   if(currentQuotLeadId){
     const lead=leads.find(l=>l.id===currentQuotLeadId);
-    if(lead&&lead.stage!=='deal_closed'&&lead.stage!=='converted'){
+    if(lead&&!['deal_closed','converted','deal_lost','rejected'].includes(lead.stage)){
       const hist=[...(lead.stageHistory||[]),{from:lead.stage,to:'quotation',by:currentUser.name,at:new Date().toISOString().slice(0,16)}];
       await fsUpdate('leads',currentQuotLeadId,{stage:'quotation',quotationAmount:rounded,stageHistory:hist,updatedAt:Date.now()});
     }
@@ -2599,10 +2599,10 @@ async function confirmConvertOrder(leadId){
   // Create order
   const order={id:uid(),customerId:custId,customerName:l.name,customerPhone:l.phone,amount:amountBase,gstPct,amountWithGST,source:l.source||'Other',payment,dispatch,employeeId:l.employeeId,employeeName:l.employeeName,employeeDept:l.employeeDept||'',notes:notes||(l.product?'Product: '+l.product:''),date,createdAt:Date.now(),convertedFromLead:leadId};
   await fsSet('orders',order.id,order);
-  // Mark lead converted
-  await fsUpdate('leads',leadId,{stage:'converted',convertedOrderId:order.id,updatedAt:Date.now()});
+  // Lead delete karo — customer segment mein chali gayi
+  await fsDelete('leads',leadId);
   document.getElementById('convert-order-modal').remove();
-  toast('Order ban gaya aur lead converted! ✅');
+  toast('Deal Closed! 🎉 Customer segment mein add ho gayi.');
 }
 
 async function updateLeadFollowup(id){
