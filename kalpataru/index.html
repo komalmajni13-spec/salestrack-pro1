@@ -219,7 +219,6 @@ tr:hover td{background:var(--surface2);}
         <div class="nav-item" onclick="showPage('new-order')" id="nav-new-order"><span class="nav-icon">➕</span> New Order</div>
         <div class="nav-item" onclick="showPage('orders')" id="nav-orders"><span class="nav-icon">📋</span> My Orders</div>
         <div class="nav-item" onclick="showPage('customers')" id="nav-customers"><span class="nav-icon">👥</span> Customers</div>
-        <div class="nav-item" onclick="showPage('followups')" id="nav-followups"><span class="nav-icon">📞</span> Follow-ups <span id="nav-followup-badge"></span></div>
       </div>
       <div class="nav-section">
         <div class="nav-label">Analytics</div>
@@ -381,18 +380,10 @@ tr:hover td{background:var(--surface2);}
               </div>
             </div>
             <div class="table-wrap">
-              <table><thead><tr><th>Name</th><th>Phone</th><th>Stage</th><th>Next Follow-up</th><th>Total Orders</th><th>Total Sales</th><th>Last Order</th><th>Actions</th></tr></thead>
+              <table><thead><tr><th>Name</th><th>Phone</th><th>Total Orders</th><th>Total Sales</th><th>Last Order</th></tr></thead>
               <tbody id="customers-body"></tbody></table>
             </div>
           </div>
-        </div>
-
-        <!-- FOLLOW-UPS -->
-        <div class="page" id="page-followups">
-          <div class="filter-bar">
-            <select id="fu-emp-filter" onchange="renderFollowups()"></select>
-          </div>
-          <div id="followups-content"></div>
         </div>
 
         <!-- REPORTS -->
@@ -518,41 +509,6 @@ tr:hover td{background:var(--surface2);}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('add-cust-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveNewCustomer()">Add Customer</button>
-    </div>
-  </div>
-</div>
-
-<!-- CALL LOG MODAL -->
-<div class="modal-overlay" id="call-log-modal">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Log Call / Follow-up</div><button class="modal-close" onclick="closeModal('call-log-modal')">✕</button></div>
-    <div class="modal-body">
-      <input type="hidden" id="cl-cust-id">
-      <div class="form-group"><label>Customer</label><input class="form-control" type="text" id="cl-cust-name" readonly style="opacity:0.7;"></div>
-      <div class="form-group"><label>Lead Stage</label>
-        <select class="form-control" id="cl-stage">
-          <option value="New">🆕 New</option>
-          <option value="Contacted">📞 Contacted</option>
-          <option value="Negotiation">🤝 Negotiation</option>
-          <option value="Won">✅ Won</option>
-          <option value="Lost">❌ Lost</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Call Outcome</label>
-        <select class="form-control" id="cl-outcome">
-          <option>Connected</option>
-          <option>Not Reachable</option>
-          <option>Call Back Later</option>
-          <option>Interested</option>
-          <option>Not Interested</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Next Follow-up Date</label><input class="form-control" type="date" id="cl-next-date"></div>
-      <div class="form-group"><label>Notes</label><textarea class="form-control" id="cl-note" rows="2" placeholder="Call summary, remarks..."></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('call-log-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveCallLog()">Save</button>
     </div>
   </div>
 </div>
@@ -744,7 +700,7 @@ function populateEmpFilters(){
   const empList=currentUser.role==='admin'?users.filter(u=>u.role==='employee').sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})):[currentUser];
   const allOpt='<option value="">All Executives</option>';
   const opts=allOpt+empList.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
-  ['ord-emp-filter','rep-emp-filter','src-emp-filter','fu-emp-filter'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
+  ['ord-emp-filter','rep-emp-filter','src-emp-filter'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts;});
 }
 
 // ── NAVIGATION ────────────────────────────────────────
@@ -755,7 +711,7 @@ function showPage(id){
   const nav=document.getElementById(`nav-${id}`);
   if(pg)pg.classList.add('active');
   if(nav)nav.classList.add('active');
-  const titles={dashboard:'Dashboard',orders:currentUser.role==='admin'?'All Orders':'My Orders','new-order':'New Order',customers:'Customers',followups:'Follow-ups',reports:'Sales Reports',sources:'Lead Sources',users:'Manage Users'};
+  const titles={dashboard:'Dashboard',orders:currentUser.role==='admin'?'All Orders':'My Orders','new-order':'New Order',customers:'Customers',reports:'Sales Reports',sources:'Lead Sources',users:'Manage Users'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='new-order'){
     clearOrderForm();
@@ -763,7 +719,6 @@ function showPage(id){
   if(id==='dashboard')renderDashboard();
   if(id==='orders')renderOrders();
   if(id==='customers')renderCustomers();
-  if(id==='followups')renderFollowups();
   if(id==='reports')renderReport();
   if(id==='sources')renderSources();
   if(id==='users')renderUsers();
@@ -779,20 +734,12 @@ function renderDashboard(){
   const todaySales=todayOrd.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
   const monthSales=monthOrd.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
 
-  const myFollowups=getMyFollowups();
-  const fuToday=myFollowups.filter(c=>c.nextFollowUp===today).length;
-  const fuOverdue=myFollowups.filter(c=>c.nextFollowUp&&c.nextFollowUp<today).length;
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card green"><div class="stat-label">Today's Sales</div><div class="stat-value">₹${fmt(todaySales)}</div><div class="stat-sub">${todayOrd.length} orders</div></div>
     <div class="stat-card blue"><div class="stat-label">Monthly Sales</div><div class="stat-value">₹${fmt(monthSales)}</div><div class="stat-sub">${monthOrd.length} orders</div></div>
     <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">${vis.length}</div><div class="stat-sub">All time</div></div>
     <div class="stat-card amber"><div class="stat-label">Pay Pending</div><div class="stat-value">${vis.filter(o=>(o.payment||'Pending')==='Pending').length}</div><div class="stat-sub">Orders</div></div>
-    <div class="stat-card"><div class="stat-label">Dispatch Pending</div><div class="stat-value">${vis.filter(o=>(o.dispatch||'Pending')==='Pending').length}</div><div class="stat-sub">Orders</div></div>
-    <div class="stat-card ${fuOverdue>0?'amber':''}"><div class="stat-label">Follow-ups Due Today</div><div class="stat-value">${fuToday}</div><div class="stat-sub">${fuOverdue} overdue</div></div>`;
-
-  const badge=document.getElementById('nav-followup-badge');
-  const fuCount=fuToday+fuOverdue;
-  if(badge) badge.innerHTML=fuCount>0?`<span class="badge badge-red" style="margin-left:4px;">${fuCount}</span>`:'';
+    <div class="stat-card"><div class="stat-label">Dispatch Pending</div><div class="stat-value">${vis.filter(o=>(o.dispatch||'Pending')==='Pending').length}</div><div class="stat-sub">Orders</div></div>`;
 
   // Executive table
   const execList=currentUser.role==='admin'?users.filter(u=>u.role==='employee').sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})):[currentUser];
@@ -983,101 +930,19 @@ async function submitOrder(){
 }
 
 // ── CUSTOMERS ─────────────────────────────────────────
-function stageBadge(s){const m={New:'badge-gray',Contacted:'badge-blue',Negotiation:'badge-amber',Won:'badge-green',Lost:'badge-red'};return m[s]||'badge-gray';}
-
-function waLink(phone,name){
-  const digits=(phone||'').replace(/\D/g,'');
-  const num=digits.length===10?'91'+digits:digits;
-  return `https://wa.me/${num}?text=${encodeURIComponent('Hi '+name+', ')}`;
-}
-
 function renderCustomers(){
   const search=(document.getElementById('cust-search')||{}).value||'';
   const myOrdCustIds=currentUser.role==='admin'?null:[...new Set(getMyOrders().map(o=>o.customerId))];
   let vis=currentUser.role==='admin'?customers:customers.filter(c=>myOrdCustIds.includes(c.id));
   if(search) vis=vis.filter(c=>(c.name+c.phone).toLowerCase().includes(search.toLowerCase()));
   vis=[...vis].sort((a,b)=>a.name.localeCompare(b.name));
-  document.getElementById('customers-body').innerHTML=vis.length===0?`<tr><td colspan="8"><div class="empty-state"><div class="icon">👥</div><p>No customers</p></div></td></tr>`:
+  document.getElementById('customers-body').innerHTML=vis.length===0?`<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div><p>No customers</p></div></td></tr>`:
     vis.map(c=>{
       const co=getMyOrders().filter(o=>o.customerId===c.id);
-      const total=co.reduce((s,o)=>s+Number(o.amountWithGST||o.amount),0);
+      const total=co.reduce((s,o)=>s+Number(o.amount),0);
       const last=[...co].sort((a,b)=>b.createdAt-a.createdAt)[0];
-      const stage=c.stage||'New';
-      const today=new Date().toISOString().slice(0,10);
-      const fuClass=c.nextFollowUp?(c.nextFollowUp<today?'badge-red':c.nextFollowUp===today?'badge-amber':'badge-gray'):'';
-      return `<tr>
-        <td><strong>${esc(c.name)}</strong></td>
-        <td>${esc(c.phone)}</td>
-        <td><span class="badge ${stageBadge(stage)}">${stage}</span></td>
-        <td>${c.nextFollowUp?`<span class="badge ${fuClass}">${c.nextFollowUp}</span>`:'-'}</td>
-        <td>${co.length}</td>
-        <td class="amount">₹${fmt(total)}</td>
-        <td class="date-chip">${last?last.date:'-'}</td>
-        <td style="white-space:nowrap;">
-          <a class="btn btn-ghost btn-sm" href="${waLink(c.phone,c.name)}" target="_blank" title="WhatsApp">💬</a>
-          <button class="btn btn-ghost btn-sm" onclick="openCallLog('${c.id}')" title="Log Call">📞</button>
-        </td>
-      </tr>`;
+      return `<tr><td><strong>${esc(c.name)}</strong></td><td>${esc(c.phone)}</td><td>${co.length}</td><td class="amount">₹${fmt(total)}</td><td class="date-chip">${last?last.date:'-'}</td></tr>`;
     }).join('');
-}
-
-// ── FOLLOW-UPS ────────────────────────────────────────
-function getMyFollowups(){
-  let list=customers.filter(c=>c.nextFollowUp);
-  if(currentUser.role!=='admin') list=list.filter(c=>c.nextFollowUpBy===currentUser.id);
-  return list;
-}
-
-function renderFollowups(){
-  const empF=(document.getElementById('fu-emp-filter')||{}).value||'';
-  let list=currentUser.role==='admin'?customers.filter(c=>c.nextFollowUp):getMyFollowups();
-  if(empF) list=list.filter(c=>c.nextFollowUpBy===empF);
-  list=[...list].sort((a,b)=>(a.nextFollowUp||'').localeCompare(b.nextFollowUp||''));
-  const today=new Date().toISOString().slice(0,10);
-  const overdue=list.filter(c=>c.nextFollowUp<today);
-  const dueToday=list.filter(c=>c.nextFollowUp===today);
-  const upcoming=list.filter(c=>c.nextFollowUp>today);
-  const row=c=>`<tr>
-    <td><strong>${esc(c.name)}</strong></td>
-    <td>${esc(c.phone)}</td>
-    <td><span class="badge ${stageBadge(c.stage||'New')}">${c.stage||'New'}</span></td>
-    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.lastCallNote||'')}</td>
-    <td>${esc(c.nextFollowUpByName||'')}</td>
-    <td style="white-space:nowrap;">
-      <a class="btn btn-ghost btn-sm" href="${waLink(c.phone,c.name)}" target="_blank" title="WhatsApp">💬</a>
-      <button class="btn btn-primary btn-sm" onclick="openCallLog('${c.id}')">📞 Log Call</button>
-    </td>
-  </tr>`;
-  const section=(title,rows,emptyMsg)=>`<div class="card"><div class="card-header"><div class="card-title">${title}</div></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Phone</th><th>Stage</th><th>Last Note</th><th>Owner</th><th>Actions</th></tr></thead><tbody>${rows.length?rows.map(row).join(''):`<tr><td colspan="6"><div class="empty-state" style="padding:16px;"><p>${emptyMsg}</p></div></td></tr>`}</tbody></table></div></div>`;
-  document.getElementById('followups-content').innerHTML=
-    section('🔴 Overdue',overdue,'No overdue follow-ups')+
-    section('🟡 Due Today',dueToday,'Nothing due today')+
-    section('⚪ Upcoming',upcoming,'No upcoming follow-ups');
-}
-
-function openCallLog(custId){
-  const c=customers.find(x=>x.id===custId);if(!c)return;
-  document.getElementById('cl-cust-id').value=custId;
-  document.getElementById('cl-cust-name').value=c.name;
-  document.getElementById('cl-stage').value=c.stage||'New';
-  document.getElementById('cl-outcome').value=c.lastCallOutcome||'Connected';
-  document.getElementById('cl-next-date').value='';
-  document.getElementById('cl-note').value='';
-  openModal('call-log-modal');
-}
-
-async function saveCallLog(){
-  const custId=document.getElementById('cl-cust-id').value;
-  const stage=document.getElementById('cl-stage').value;
-  const outcome=document.getElementById('cl-outcome').value;
-  const nextDate=document.getElementById('cl-next-date').value;
-  const note=document.getElementById('cl-note').value.trim();
-  const updates={stage,lastCallOutcome:outcome,lastCallNote:note,lastCallAt:Date.now(),lastCallBy:currentUser.name,nextFollowUp:nextDate||null,nextFollowUpBy:nextDate?currentUser.id:null,nextFollowUpByName:nextDate?currentUser.name:null};
-  await fsUpdate(COL.customers,custId,updates);
-  customers=customers.map(c=>c.id===custId?{...c,...updates}:c);
-  closeModal('call-log-modal');
-  renderCustomers();renderFollowups();renderDashboard();
-  toast('Call logged!');
 }
 
 function openAddCustomer(){openModal('add-cust-modal');}
