@@ -255,6 +255,7 @@ tr:hover td{background:var(--surface2);}
         <div class="nav-item" onclick="showPage('crm-dashboard')" id="nav-crm-dashboard"><span class="nav-icon">📊</span> CRM Dashboard</div>
         <div class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon">🎯</span> Leads <span id="nav-overdue-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px;">0</span></div>
         <div class="nav-item" onclick="showPage('cust-followup')" id="nav-cust-followup"><span class="nav-icon">👥</span> Customer Follow-up <span id="nav-custfu-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px;">0</span></div>
+        <div class="nav-item" onclick="showPage('rejected-leads')" id="nav-rejected-leads"><span class="nav-icon">❌</span> Rejected Leads</div>
         <div class="nav-item" onclick="showPage('quotations')" id="nav-quotations"><span class="nav-icon">📄</span> Quotations</div>
       </div>
       <div class="nav-section">
@@ -522,7 +523,6 @@ tr:hover td{background:var(--surface2);}
               <button class="crm-stage-btn" data-stage="quotation" onclick="setCRMStage('quotation',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📄 Quotation</button>
               <button class="crm-stage-btn" data-stage="negotiation" onclick="setCRMStage('negotiation',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #e9d5ff;background:#fdf4ff;color:#7e22ce;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🤝 Negotiation</button>
               <button class="crm-stage-btn" data-stage="deal_lost" onclick="setCRMStage('deal_lost',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fed7aa;background:#fff7ed;color:#c2410c;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">💔 Deal Lost</button>
-              <button class="crm-stage-btn" data-stage="rejected" onclick="setCRMStage('rejected',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fecaca;background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">❌ Rejected</button>
             </div>
             <!-- Filters row -->
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -534,6 +534,15 @@ tr:hover td{background:var(--surface2);}
             </div>
           </div>
           <div id="crm-content"></div>
+        </div>
+
+        <!-- REJECTED LEADS PAGE -->
+        <div class="page" id="page-rejected-leads">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div><h2 style="font-size:20px;font-weight:700;margin:0;">❌ Rejected Leads</h2><p style="font-size:13px;color:var(--text2);margin:2px 0 0;">Jo leads reject ho gayi hain</p></div>
+            <button id="btn-rejected-bulk-delete" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;display:none;" onclick="bulkDeleteRejected()">🗑️ Delete All</button>
+          </div>
+          <div id="rejected-content"></div>
         </div>
 
         <!-- CUSTOMER FOLLOW-UP PAGE -->
@@ -941,6 +950,7 @@ function startRealtime(){
     if(pg&&pg.id==='page-crm') renderCRM();
     if(pg&&pg.id==='page-crm-dashboard') renderCrmDashboard();
     if(pg&&pg.id==='page-crm-analytics') renderCrmAnalytics();
+    if(pg&&pg.id==='page-rejected-leads') renderRejected();
     checkOverdueLeads();
   });
   if(unsubQuotations) unsubQuotations();
@@ -1068,6 +1078,7 @@ function showPage(id){
     renderCRM();
   }
   if(id==='cust-followup') renderCustFollowup();
+  if(id==='rejected-leads') renderRejected();
   if(id==='settings') loadCompanySettingsForm();
   if(id==='quotations'){
     const mEl=document.getElementById('quot-month-filter');
@@ -2288,7 +2299,7 @@ function renderCRM(){
   const month=(document.getElementById('crm-month-filter')||{}).value||'';
   const empF=(document.getElementById('crm-emp-filter')||{}).value||'';
   const search=((document.getElementById('crm-search')||{}).value||'').toLowerCase().trim();
-  const HIDE_STAGES=['deal_closed','converted'];
+  const HIDE_STAGES=['deal_closed','converted','rejected'];
   let vis=getMyLeads().filter(l=>!HIDE_STAGES.includes(l.stage));
   if(empF) vis=vis.filter(l=>l.employeeId===empF);
   if(month) vis=vis.filter(l=>l.createdAt&&new Date(l.createdAt).toISOString().slice(0,7)===month);
@@ -2302,7 +2313,7 @@ function renderCRM(){
   vis=[...vis].sort((a,b)=>b.createdAt-a.createdAt);
   const today=new Date().toISOString().slice(0,10);
   const allLeads=getMyLeads().filter(l=>!HIDE_STAGES.includes(l.stage));
-  const counts={all:allLeads.length,new_inquiry:0,discussion:0,short_listed:0,quotation:0,negotiation:0,deal_lost:0,rejected:0};
+  const counts={all:allLeads.length,new_inquiry:0,discussion:0,short_listed:0,quotation:0,negotiation:0,deal_lost:0};
   allLeads.forEach(l=>{
     const s=l.stage==='new'?'new_inquiry':l.stage;
     if(counts[s]!==undefined)counts[s]++;
@@ -2337,7 +2348,6 @@ function renderCRM(){
       <span style="font-size:12px;color:#6d28d9;background:#f5f3ff;padding:2px 8px;border-radius:12px;font-weight:600;">📄 ${counts.quotation}</span>
       <span style="font-size:12px;color:#7e22ce;background:#fdf4ff;padding:2px 8px;border-radius:12px;font-weight:600;">🤝 ${counts.negotiation}</span>
       <span style="font-size:12px;color:#c2410c;background:#fff7ed;padding:2px 8px;border-radius:12px;font-weight:600;">💔 ${counts.deal_lost}</span>
-      <span style="font-size:12px;color:#b91c1c;background:#fef2f2;padding:2px 8px;border-radius:12px;font-weight:600;">❌ ${counts.rejected}</span>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
     <div class="table-wrap"><table style="font-size:12px;">
@@ -2447,7 +2457,8 @@ function openLeadDetail(id){
     <div style="margin-bottom:14px;">
       <div style="font-weight:600;margin-bottom:8px;">Move Stage:</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${['new_inquiry','short_listed','discussion','quotation','negotiation','deal_closed','deal_lost','rejected'].map(s=>`<button class="btn btn-sm ${(l.stage===s||(s==='new_inquiry'&&l.stage==='new')||(s==='deal_closed'&&l.stage==='converted'))?'btn-primary':'btn-ghost'}" onclick="updateLeadStage('${l.id}','${s}')">${stageLabel(s)}</button>`).join('')}
+        ${['new_inquiry','short_listed','discussion','quotation','negotiation','deal_closed','deal_lost'].map(s=>`<button class="btn btn-sm ${(l.stage===s||(s==='new_inquiry'&&l.stage==='new')||(s==='deal_closed'&&l.stage==='converted'))?'btn-primary':'btn-ghost'}" onclick="updateLeadStage('${l.id}','${s}')">${stageLabel(s)}</button>`).join('')}
+        <button class="btn btn-sm" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;" onclick="updateLeadStage('${l.id}','rejected')">❌ Rejected</button>
       </div>
     </div>
     <div style="margin-bottom:14px;">
@@ -2887,6 +2898,36 @@ function checkCustFollowupOverdue(){
     if(overdue.length>0){badge.textContent=overdue.length;badge.style.display='inline';}
     else badge.style.display='none';
   }
+}
+
+function renderRejected(){
+  const el=document.getElementById('rejected-content');
+  if(!el) return;
+  const list=getMyLeads().filter(l=>l.stage==='rejected');
+  const bulkBtn=document.getElementById('btn-rejected-bulk-delete');
+  if(bulkBtn) bulkBtn.style.display=(list.length>0&&currentUser&&currentUser.role==='admin')?'inline-flex':'none';
+  if(list.length===0){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);">Koi rejected lead nahi hai</div>';return;}
+  el.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;"><div class="table-wrap"><table style="font-size:12px;"><thead><tr style="background:var(--surface2);"><th style="padding:10px 12px;">Business</th><th>Contact</th><th>Mobile</th><th>Assigned to</th><th>Rejection Reason</th><th>Date</th><th>Action</th></tr></thead><tbody>'
+    +list.sort((a,b)=>b.createdAt-a.createdAt).map(l=>{
+      const date=l.createdAt?new Date(l.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):'';
+      return '<tr>'
+        +'<td style="padding:10px 12px;font-weight:600;">'+esc(l.name)+'</td>'
+        +'<td>'+esc(l.contact||'-')+'</td>'
+        +'<td>'+esc(l.phone||'-')+'</td>'
+        +'<td>'+esc(l.employeeName||'-')+'</td>'
+        +'<td style="color:#b91c1c;">'+esc(l.rejectionReason||'-')+'</td>'
+        +'<td>'+date+'</td>'
+        +'<td><button class="btn btn-sm btn-ghost" onclick="openLeadDetail(\''+l.id+'\')">View</button>'
+        +(currentUser&&currentUser.role==='admin'?'<button class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;margin-left:4px;" onclick="deleteSingleRejected(\''+l.id+'\')">🗑️</button>':'')
+        +'</td></tr>';
+    }).join('')
+    +'</tbody></table></div></div>';
+}
+
+async function deleteSingleRejected(id){
+  if(!confirm('Yeh lead permanently delete karna chahte ho?')) return;
+  await fsDelete('leads',id);
+  toast('Lead delete ho gayi 🗑️');
 }
 
 function renderCustFollowup(){
