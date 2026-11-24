@@ -2998,10 +2998,7 @@ function openAddCustFollowup(){
         <div class="form-group"><label>Phone</label><input class="form-control" id="custfu-add-phone" placeholder="Phone number"></div>
         <div class="form-group"><label>Next Follow-up Date</label><input class="form-control" type="date" id="custfu-add-date"></div>
         <div class="form-group"><label>Note</label><textarea class="form-control" id="custfu-add-note" rows="2" placeholder="Kya baat hui..."></textarea></div>
-        ${currentUser.role==='admin'?`<div class="form-group"><label>Assign To</label><select class="form-control" id="custfu-add-emp">
-          <option value="">-- Select Employee --</option>
-          ${users.filter(u=>u.role==='employee').map(u=>`<option value="${u.id}" data-name="${esc(u.name)}">${esc(u.name)}</option>`).join('')}
-        </select></div>`:''}
+        ${currentUser.role==='admin'?'<div class="form-group"><label>Assign To</label><select class="form-control" id="custfu-add-emp"><option value="">-- Select Employee --</option>'+users.filter(u=>u.role==='employee').map(u=>'<option value="'+u.id+'" data-name="'+esc(u.name)+'">'+esc(u.name)+'</option>').join('')+'</select></div>':''}
         <button class="btn btn-primary" style="width:100%;" onclick="saveAddCustFollowup()">Add Customer</button>
       </div>
     </div>`;
