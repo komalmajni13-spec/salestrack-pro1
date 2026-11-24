@@ -2536,7 +2536,7 @@ async function updateLeadStage(id, stage){
   const histEntry={from:prevStage,to:stage,by:currentUser.name,at:new Date().toISOString().slice(0,16)};
   if(stage==='deal_closed'||stage==='converted'){
     closeModal('lead-detail-modal');
-    openConvertToOrder(id);
+    await directConvertToOrder(id);
     return;
   }
   if(stage==='quotation'){
@@ -2566,6 +2566,37 @@ async function updateLeadStage(id, stage){
   await fsUpdate('leads',id,{stage,stageHistory:hist,updatedAt:Date.now()});
   toast('Stage updated! ✅');
   closeModal('lead-detail-modal');
+}
+
+async function directConvertToOrder(leadId){
+  const l=leads.find(x=>x.id===leadId);
+  if(!l) return;
+  let amount=l.quotationAmount||0;
+  if(!amount||amount<=0){
+    const inp=prompt('Order Amount (with GST) ₹ ?');
+    if(inp===null) return;
+    amount=parseFloat(inp);
+    if(!amount||amount<=0){toast('Valid amount daalo','error');return;}
+  }
+  const today=new Date().toISOString().slice(0,10);
+  const gstPct=18;
+  const amountWithGST=amount;
+  const amountBase=Math.round(amount/1.18*100)/100;
+  let custId=null;
+  const existing=customers.find(c=>c.phone===l.phone);
+  if(existing){custId=existing.id;}
+  else{const nc={id:uid(),name:l.name,phone:l.phone,address:l.address||'',createdAt:Date.now()};await fsSet('customers',nc.id,nc);customers.push(nc);custId=nc.id;}
+  const order={id:uid(),customerId:custId,customerName:l.name,customerPhone:l.phone,amount:amountBase,gstPct,amountWithGST,source:l.source||'Other',payment:'Pending',dispatch:'Pending',employeeId:l.employeeId,employeeName:l.employeeName,employeeDept:l.employeeDept||'',notes:l.product?'Product: '+l.product:'',date:today,createdAt:Date.now(),convertedFromLead:leadId};
+  await fsSet('orders',order.id,order);
+  await fsDelete('leads',leadId);
+  const existFU=custFollowups.find(f=>f.customerId===custId);
+  if(existFU){
+    await fsUpdate('custFollowups',existFU.id,{lastOrderId:order.id,lastOrderDate:today,lastOrderAmt:amountWithGST,updatedAt:Date.now()});
+  } else {
+    const fu={id:uid(),customerId:custId,customerName:l.name,phone:l.phone||'',employeeId:l.employeeId||'',employeeName:l.employeeName||'',nextFollowUpDate:'',notes:[],lastOrderId:order.id,lastOrderDate:today,lastOrderAmt:amountWithGST,createdAt:Date.now(),updatedAt:Date.now()};
+    await fsSet('custFollowups',fu.id,fu);
+  }
+  toast('🎉 Deal Closed! Order ₹'+fmt(amountWithGST)+' save ho gaya.');
 }
 
 function openConvertToOrder(leadId, overrideLead){
