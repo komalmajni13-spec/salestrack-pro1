@@ -254,6 +254,7 @@ tr:hover td{background:var(--surface2);}
         <div class="nav-label">CRM Pipeline</div>
         <div class="nav-item" onclick="showPage('crm-dashboard')" id="nav-crm-dashboard"><span class="nav-icon">📊</span> CRM Dashboard</div>
         <div class="nav-item" onclick="showPage('crm')" id="nav-crm"><span class="nav-icon">🎯</span> Leads <span id="nav-overdue-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px;">0</span></div>
+        <div class="nav-item" onclick="showPage('cust-followup')" id="nav-cust-followup"><span class="nav-icon">👥</span> Customer Follow-up <span id="nav-custfu-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px;">0</span></div>
         <div class="nav-item" onclick="showPage('quotations')" id="nav-quotations"><span class="nav-icon">📄</span> Quotations</div>
       </div>
       <div class="nav-section">
@@ -533,6 +534,18 @@ tr:hover td{background:var(--surface2);}
             </div>
           </div>
           <div id="crm-content"></div>
+        </div>
+
+        <!-- CUSTOMER FOLLOW-UP PAGE -->
+        <div class="page" id="page-cust-followup">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h2 style="font-size:20px;font-weight:700;margin:0;">👥 Customer Follow-up</h2>
+              <div style="font-size:13px;color:var(--text2);margin-top:2px;">Existing customers ka follow-up track karo</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openAddCustFollowup()">+ Add Customer</button>
+          </div>
+          <div id="custfu-content"></div>
         </div>
 
         <!-- COMPANY SETTINGS -->
@@ -841,8 +854,8 @@ firebase.initializeApp({
 const db=firebase.firestore();
 
 let currentUser=null, reportPeriod='daily', crmStageFilter='all';
-let users=[], customers=[], orders=[], leads=[], quotations=[];
-let unsubOrders=null, unsubCustomers=null, unsubLeads=null, unsubQuotations=null;
+let users=[], customers=[], orders=[], leads=[], quotations=[], custFollowups=[];
+let unsubOrders=null, unsubCustomers=null, unsubLeads=null, unsubQuotations=null, unsubCustFU=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
@@ -902,9 +915,9 @@ function showLoading(show){
 
 async function loadAppData(){
   try{
-    [customers,orders,leads,quotations]=await Promise.all([fsGetAll('customers'),fsGetAll('orders'),fsGetAll('leads'),fsGetAll('quotations')]);
+    [customers,orders,leads,quotations,custFollowups]=await Promise.all([fsGetAll('customers'),fsGetAll('orders'),fsGetAll('leads'),fsGetAll('quotations'),fsGetAll('custFollowups')]);
     await loadCompanyConfig();
-  }catch(e){customers=[];orders=[];leads=[];}
+  }catch(e){customers=[];orders=[];leads=[];custFollowups=[];}
 }
 
 function startRealtime(){
@@ -935,6 +948,13 @@ function startRealtime(){
     quotations=snap.docs.map(d=>({id:d.id,...d.data()}));
     const pg=document.querySelector('.page.active');
     if(pg&&pg.id==='page-quotations') renderQuotations();
+  });
+  if(unsubCustFU) unsubCustFU();
+  unsubCustFU=db.collection('custFollowups').onSnapshot(snap=>{
+    custFollowups=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-cust-followup') renderCustFollowup();
+    checkCustFollowupOverdue();
   });
 }
 
@@ -1022,7 +1042,7 @@ function showPage(id){
   const nav=document.getElementById(`nav-${id}`);
   if(pg)pg.classList.add('active');
   if(nav)nav.classList.add('active');
-  const titles={dashboard:'Dashboard',orders:currentUser.role==='admin'?'All Orders':'My Orders','new-order':'New Order',customers:'Customers',reports:'Sales Reports',sources:'Lead Sources',users:'Manage Users','crm-analytics':'CRM Analytics','crm-dashboard':'CRM Dashboard'};
+  const titles={dashboard:'Dashboard',orders:currentUser.role==='admin'?'All Orders':'My Orders','new-order':'New Order',customers:'Customers',reports:'Sales Reports',sources:'Lead Sources',users:'Manage Users','crm-analytics':'CRM Analytics','crm-dashboard':'CRM Dashboard','cust-followup':'Customer Follow-up'};
   document.getElementById('page-title').textContent=titles[id]||'';
   if(id==='new-order'){
     clearOrderForm();
@@ -1047,6 +1067,7 @@ function showPage(id){
     populateCRMEmpFilter();
     renderCRM();
   }
+  if(id==='cust-followup') renderCustFollowup();
   if(id==='settings') loadCompanySettingsForm();
   if(id==='quotations'){
     const mEl=document.getElementById('quot-month-filter');
@@ -1699,6 +1720,24 @@ function refreshCfgImagePreviews(){
 
 // ── QUOTATION BUILDER ──────────────────────────────────
 let quotItems=[], currentQuotLeadId=null;
+
+function openQuotationBuilderDirect(l){
+  currentQuotLeadId=l.id;
+  quotItems=[{desc:'',hsn:'',qty:1,unit:'pcs',rate:0,disc:0,gst:18}];
+  const today=new Date().toISOString().slice(0,10);
+  const validTill=new Date(Date.now()+(companyConfig.valid_days||365)*86400000).toISOString().slice(0,10);
+  document.getElementById('qb-no').value=companyConfig.quot_no||'';
+  document.getElementById('qb-date').value=today;
+  document.getElementById('qb-valid').value=validTill;
+  document.getElementById('qb-cust-name').value=l.name||'';
+  document.getElementById('qb-cust-company').value='';
+  document.getElementById('qb-cust-addr').value=l.address||'';
+  document.getElementById('qb-cust-city').value='';
+  document.getElementById('qb-cust-gstin').value='';
+  document.getElementById('qb-cust-phone').value=l.phone||'';
+  renderQuotItems();
+  document.getElementById('quot-builder-modal').style.display='flex';
+}
 
 function openQuotationBuilder(leadId){
   const l=leads.find(x=>x.id===leadId);
@@ -2530,8 +2569,8 @@ async function updateLeadStage(id, stage){
   closeModal('lead-detail-modal');
 }
 
-function openConvertToOrder(leadId){
-  const l=leads.find(x=>x.id===leadId);
+function openConvertToOrder(leadId, overrideLead){
+  const l=overrideLead||leads.find(x=>x.id===leadId);
   if(!l) return;
   const overlay=document.createElement('div');
   overlay.className='modal-overlay';
@@ -2577,7 +2616,10 @@ function calcConvGST(){
 }
 
 async function confirmConvertOrder(leadId){
-  const l=leads.find(x=>x.id===leadId);
+  const isCFU=leadId.startsWith('cfu_');
+  const fuId=isCFU?leadId.replace('cfu_',''):null;
+  const fuRec=fuId?custFollowups.find(x=>x.id===fuId):null;
+  const l=isCFU?(fuRec?{id:leadId,name:fuRec.customerName,phone:fuRec.phone,employeeId:fuRec.employeeId,employeeName:fuRec.employeeName,source:'Existing Customer',product:'',address:''}:null):leads.find(x=>x.id===leadId);
   if(!l) return;
   const amount=parseFloat(document.getElementById('conv-amount').value);
   if(!amount||amount<=0){toast('Amount bharo','error');return;}
@@ -2597,10 +2639,18 @@ async function confirmConvertOrder(leadId){
   // Create order
   const order={id:uid(),customerId:custId,customerName:l.name,customerPhone:l.phone,amount:amountBase,gstPct,amountWithGST,source:l.source||'Other',payment,dispatch,employeeId:l.employeeId,employeeName:l.employeeName,employeeDept:l.employeeDept||'',notes:notes||(l.product?'Product: '+l.product:''),date,createdAt:Date.now(),convertedFromLead:leadId};
   await fsSet('orders',order.id,order);
-  // Lead delete karo — customer segment mein chali gayi
-  await fsDelete('leads',leadId);
+  // Lead delete karo (sirf real leads ke liye)
+  if(!isCFU) await fsDelete('leads',leadId);
+  // Customer Follow-up record create/update karo
+  const existFU=fuRec||custFollowups.find(f=>f.customerId===custId);
+  if(existFU){
+    await fsUpdate('custFollowups',existFU.id,{lastOrderId:order.id,lastOrderDate:date,lastOrderAmt:amountWithGST,updatedAt:Date.now()});
+  } else {
+    const fu={id:uid(),customerId:custId,customerName:l.name,phone:l.phone||'',employeeId:l.employeeId||'',employeeName:l.employeeName||'',nextFollowUpDate:'',notes:[],lastOrderId:order.id,lastOrderDate:date,lastOrderAmt:amountWithGST,createdAt:Date.now(),updatedAt:Date.now()};
+    await fsSet('custFollowups',fu.id,fu);
+  }
   document.getElementById('convert-order-modal').remove();
-  toast('Deal Closed! 🎉 Customer segment mein add ho gayi.');
+  toast('Deal Closed! 🎉 Customer Follow-up mein add ho gayi.');
 }
 
 async function updateLeadFollowup(id){
@@ -2786,6 +2836,216 @@ function renderCrmDashboard(){
         </tr>`;}).join('')}
       </tbody></table></div>
     </div>`:''}`;
+}
+
+// ── CUSTOMER FOLLOW-UP ───────────────────────────────────────
+
+function getMyCustFollowups(){
+  if(currentUser.role==='admin') return custFollowups;
+  return custFollowups.filter(f=>f.employeeId===currentUser.id||!f.employeeId);
+}
+
+function checkCustFollowupOverdue(){
+  const today=new Date().toISOString().slice(0,10);
+  const myFU=getMyCustFollowups();
+  const overdue=myFU.filter(f=>f.nextFollowUpDate&&f.nextFollowUpDate<today);
+  const badge=document.getElementById('nav-custfu-badge');
+  if(badge){
+    if(overdue.length>0){badge.textContent=overdue.length;badge.style.display='inline';}
+    else badge.style.display='none';
+  }
+}
+
+function renderCustFollowup(){
+  const el=document.getElementById('custfu-content');
+  if(!el) return;
+  const today=new Date().toISOString().slice(0,10);
+  const myFU=getMyCustFollowups().sort((a,b)=>{
+    // overdue first, then by next follow-up date
+    const aOver=a.nextFollowUpDate&&a.nextFollowUpDate<today;
+    const bOver=b.nextFollowUpDate&&b.nextFollowUpDate<today;
+    if(aOver&&!bOver) return -1;
+    if(!aOver&&bOver) return 1;
+    return (a.nextFollowUpDate||'9999')>(b.nextFollowUpDate||'9999')?1:-1;
+  });
+  if(myFU.length===0){
+    el.innerHTML=`<div class="empty-state"><div class="icon">👥</div><p>Koi customer follow-up nahi<br><small>Deal Closed hone par ya manually add karo</small></p></div>`;
+    return;
+  }
+  const overdueFU=myFU.filter(f=>f.nextFollowUpDate&&f.nextFollowUpDate<today);
+  const todayFU=myFU.filter(f=>f.nextFollowUpDate===today);
+  el.innerHTML=`
+    ${overdueFU.length>0?`<div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+      <div style="font-weight:700;color:#92400e;margin-bottom:4px;">⚠️ Overdue Follow-ups (${overdueFU.length})</div>
+      <div style="font-size:13px;color:#92400e;">${overdueFU.map(f=>`<span style="margin-right:12px;">• ${esc(f.customerName)} (${f.nextFollowUpDate})</span>`).join('')}</div>
+    </div>`:''}
+    ${todayFU.length>0?`<div style="background:#e0f2fe;border:1.5px solid #38bdf8;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+      <div style="font-weight:700;color:#0369a1;margin-bottom:4px;">📅 Aaj ke Follow-ups (${todayFU.length})</div>
+      <div style="font-size:13px;color:#0369a1;">${todayFU.map(f=>`<span style="margin-right:12px;">• ${esc(f.customerName)}</span>`).join('')}</div>
+    </div>`:''}
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${myFU.map(f=>{
+        const overdue=f.nextFollowUpDate&&f.nextFollowUpDate<today;
+        const todayDue=f.nextFollowUpDate===today;
+        const lastOrder=f.lastOrderDate?`Last Order: ${f.lastOrderDate} · ₹${fmt(f.lastOrderAmt||0)}`:'No orders yet';
+        const lastNote=f.notes&&f.notes.length?f.notes[f.notes.length-1]:'';
+        return`<div style="background:var(--surface);border:1.5px solid ${overdue?'#f59e0b':todayDue?'#38bdf8':'var(--border)'};border-radius:12px;padding:16px;cursor:pointer;" onclick="openCustFollowupDetail('${f.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;">${(f.customerName||'?').charAt(0)}</div>
+              <div>
+                <div style="font-weight:700;font-size:15px;">${esc(f.customerName)}</div>
+                <div style="font-size:12px;color:var(--text2);">${esc(f.phone||'')} ${f.employeeName?'· '+esc(f.employeeName):''}</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px;">${lastOrder}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              ${f.nextFollowUpDate?`<div style="font-size:12px;font-weight:700;color:${overdue?'#dc2626':todayDue?'#0369a1':'#16a34a'};">${overdue?'⚠️ Overdue: ':todayDue?'📅 Today: '+'📅 '}${f.nextFollowUpDate}</div>`:'<div style="font-size:12px;color:var(--text3);">No follow-up set</div>'}
+              <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">
+                <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();openCustQuotation('${f.id}')">📄 Quotation</button>
+                <button class="btn btn-sm" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;" onclick="event.stopPropagation();openCustNewOrder('${f.id}')">🛒 Order</button>
+              </div>
+            </div>
+          </div>
+          ${lastNote?`<div style="margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:12px;color:var(--text2);">💬 ${esc(typeof lastNote==='object'?lastNote.note:lastNote)}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function openCustFollowupDetail(id){
+  const f=custFollowups.find(x=>x.id===id);
+  if(!f) return;
+  const today=new Date().toISOString().slice(0,10);
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  overlay.style.display='flex';
+  overlay.id='custfu-detail-modal';
+  overlay.innerHTML=`
+    <div class="modal" style="max-width:500px;">
+      <div class="modal-header"><h3>👥 ${esc(f.customerName)}</h3><button class="modal-close" onclick="document.getElementById('custfu-detail-modal').remove()">✕</button></div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div><div style="font-size:11px;color:var(--text2);font-weight:600;">PHONE</div><div style="font-weight:600;">${esc(f.phone||'-')}</div></div>
+          <div><div style="font-size:11px;color:var(--text2);font-weight:600;">ASSIGNED TO</div><div style="font-weight:600;">${esc(f.employeeName||'-')}</div></div>
+          <div><div style="font-size:11px;color:var(--text2);font-weight:600;">LAST ORDER DATE</div><div style="font-weight:600;">${f.lastOrderDate||'-'}</div></div>
+          <div><div style="font-size:11px;color:var(--text2);font-weight:600;">LAST ORDER AMT</div><div style="font-weight:600;color:var(--primary);">${f.lastOrderAmt?'₹'+fmt(f.lastOrderAmt):'-'}</div></div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-weight:600;margin-bottom:8px;">📅 Next Follow-up Date:</div>
+          <div style="display:flex;gap:8px;">
+            <input type="date" id="custfu-date-inp" class="form-control" value="${f.nextFollowUpDate||''}" style="max-width:200px;">
+            <button class="btn btn-sm btn-primary" onclick="saveCustFollowupDate('${f.id}')">Save</button>
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-weight:600;margin-bottom:8px;">💬 Add Note (kya baat hui):</div>
+          <textarea class="form-control" id="custfu-note-inp" rows="2" placeholder="Aaj ki discussion..."></textarea>
+          <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="addCustFollowupNote('${f.id}')">Add Note</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('custfu-detail-modal').remove();openCustQuotation('${f.id}')">📄 New Quotation</button>
+          <button class="btn btn-sm" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;" onclick="document.getElementById('custfu-detail-modal').remove();openCustNewOrder('${f.id}')">🛒 New Order</button>
+        </div>
+        <div>
+          <div style="font-weight:600;margin-bottom:8px;">Note History (${(f.notes||[]).length}):</div>
+          ${(f.notes||[]).length===0?'<div style="color:var(--text3);font-size:13px;">Koi note nahi</div>':
+            [...(f.notes||[])].reverse().map(n=>`<div class="discussion-item"><div style="font-size:12px;color:var(--text2);">${n.date||''} — ${esc(n.by||'')}</div><div style="margin-top:4px;">${esc(n.note||n)}</div></div>`).join('')}
+        </div>
+        ${currentUser.role==='admin'?`<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+          <button class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;" onclick="deleteCustFollowup('${f.id}')">🗑️ Remove from Follow-up</button>
+        </div>`:''}
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function saveCustFollowupDate(id){
+  const date=document.getElementById('custfu-date-inp').value;
+  await fsUpdate('custFollowups',id,{nextFollowUpDate:date,updatedAt:Date.now()});
+  toast('Follow-up date saved! ✅');
+  document.getElementById('custfu-detail-modal').remove();
+}
+
+async function addCustFollowupNote(id){
+  const note=document.getElementById('custfu-note-inp').value.trim();
+  if(!note){toast('Note likhna zaroori hai','error');return;}
+  const f=custFollowups.find(x=>x.id===id);
+  if(!f) return;
+  const notes=[...(f.notes||[]),{note,by:currentUser.name,date:new Date().toISOString().slice(0,10),at:Date.now()}];
+  await fsUpdate('custFollowups',id,{notes,updatedAt:Date.now()});
+  toast('Note add ho gaya! ✅');
+  document.getElementById('custfu-detail-modal').remove();
+}
+
+async function deleteCustFollowup(id){
+  if(!confirm('Is customer ko follow-up list se remove karna chahte ho?')) return;
+  await fsDelete('custFollowups',id);
+  document.getElementById('custfu-detail-modal').remove();
+  toast('Removed ✅');
+}
+
+function openAddCustFollowup(){
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  overlay.style.display='flex';
+  overlay.id='custfu-add-modal';
+  overlay.innerHTML=`
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header"><h3>+ Add Customer Follow-up</h3><button class="modal-close" onclick="document.getElementById('custfu-add-modal').remove()">✕</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Customer Name *</label><input class="form-control" id="custfu-add-name" placeholder="Customer name"></div>
+        <div class="form-group"><label>Phone</label><input class="form-control" id="custfu-add-phone" placeholder="Phone number"></div>
+        <div class="form-group"><label>Next Follow-up Date</label><input class="form-control" type="date" id="custfu-add-date"></div>
+        <div class="form-group"><label>Note</label><textarea class="form-control" id="custfu-add-note" rows="2" placeholder="Kya baat hui..."></textarea></div>
+        ${currentUser.role==='admin'?`<div class="form-group"><label>Assign To</label><select class="form-control" id="custfu-add-emp">
+          <option value="">-- Select Employee --</option>
+          ${users.filter(u=>u.role==='employee').map(u=>`<option value="${u.id}" data-name="${esc(u.name)}">${esc(u.name)}</option>`).join('')}
+        </select></div>`:''}
+        <button class="btn btn-primary" style="width:100%;" onclick="saveAddCustFollowup()">Add Customer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function saveAddCustFollowup(){
+  const name=document.getElementById('custfu-add-name').value.trim();
+  if(!name){toast('Customer name zaroori hai','error');return;}
+  const phone=document.getElementById('custfu-add-phone').value.trim();
+  const date=document.getElementById('custfu-add-date').value;
+  const note=document.getElementById('custfu-add-note').value.trim();
+  const empSel=document.getElementById('custfu-add-emp');
+  const empId=empSel?empSel.value:'';
+  const empName=empSel&&empSel.value?(empSel.options[empSel.selectedIndex].dataset.name||''):(currentUser.role==='employee'?currentUser.name:'');
+  const empIdFinal=empId||(currentUser.role==='employee'?currentUser.id:'');
+  // Find or create customer
+  let cust=customers.find(c=>c.name.toLowerCase()===name.toLowerCase()||(phone&&c.phone===phone));
+  if(!cust){cust={id:uid(),name,phone,createdAt:Date.now()};await fsSet('customers',cust.id,cust);}
+  const notes=note?[{note,by:currentUser.name,date:new Date().toISOString().slice(0,10),at:Date.now()}]:[];
+  const fu={id:uid(),customerId:cust.id,customerName:name,phone,employeeId:empIdFinal,employeeName:empName,nextFollowUpDate:date,notes,lastOrderId:'',lastOrderDate:'',lastOrderAmt:0,createdAt:Date.now(),updatedAt:Date.now()};
+  await fsSet('custFollowups',fu.id,fu);
+  document.getElementById('custfu-add-modal').remove();
+  toast('Customer follow-up add ho gaya! ✅');
+}
+
+function openCustQuotation(fuId){
+  const f=custFollowups.find(x=>x.id===fuId);
+  if(!f) return;
+  // Find lead or create temp lead obj for quotation builder
+  const tempLead={id:'cfu_'+f.id,name:f.customerName,phone:f.phone,employeeId:f.employeeId,employeeName:f.employeeName,source:'Existing Customer',stage:'quotation'};
+  currentQuotLeadId='cfu_'+f.id;
+  _custFUQuotRef=f.id;
+  openQuotationBuilderDirect(tempLead);
+}
+let _custFUQuotRef=null;
+
+function openCustNewOrder(fuId){
+  const f=custFollowups.find(x=>x.id===fuId);
+  if(!f) return;
+  // Find customer and open convert to order
+  const cust=customers.find(c=>c.id===f.customerId);
+  const fakeLead={id:'cfu_'+f.id,name:f.customerName,phone:f.phone,employeeId:f.employeeId,employeeName:f.employeeName,product:'',address:cust?cust.address||'':'',source:'Existing Customer'};
+  openConvertToOrder('cfu_'+f.id,fakeLead);
 }
 
 function renderCrmAnalytics(){
