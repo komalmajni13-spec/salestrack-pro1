@@ -257,6 +257,7 @@ tr:hover td{background:var(--surface2);}
         <div class="nav-item" onclick="showPage('cust-followup')" id="nav-cust-followup"><span class="nav-icon">👥</span> Customer Follow-up <span id="nav-custfu-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px;">0</span></div>
         <div class="nav-item" onclick="showPage('rejected-leads')" id="nav-rejected-leads"><span class="nav-icon">❌</span> Rejected Leads</div>
         <div class="nav-item" onclick="showPage('quotations')" id="nav-quotations"><span class="nav-icon">📄</span> Quotations</div>
+        <div class="nav-item" onclick="showPage('item-master')" id="nav-item-master"><span class="nav-icon">📦</span> Item Master</div>
       </div>
       <div class="nav-section">
         <div class="nav-label">Analytics</div>
@@ -545,6 +546,16 @@ tr:hover td{background:var(--surface2);}
           <div id="rejected-content"></div>
         </div>
 
+        <!-- ITEM MASTER PAGE -->
+        <div class="page" id="page-item-master">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div><h2 style="font-size:20px;font-weight:700;margin:0;">📦 Item Master</h2><p style="font-size:13px;color:var(--text2);margin:2px 0 0;">Products aur items ka database</p></div>
+            <button class="btn btn-primary btn-sm" onclick="openAddItem()">+ Add Item</button>
+          </div>
+          <div style="margin-bottom:12px;"><input class="form-control" id="item-search" placeholder="🔍 Item name ya HSN search..." oninput="renderItemMaster()" style="max-width:360px;"></div>
+          <div id="item-master-content"></div>
+        </div>
+
         <!-- CUSTOMER FOLLOW-UP PAGE -->
         <div class="page" id="page-cust-followup">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
@@ -749,10 +760,31 @@ tr:hover td{background:var(--surface2);}
           <div class="form-group"><label>Phone</label><input class="form-control" id="qb-cust-phone"></div>
         </div>
       </div>
+      <!-- Shipping Address -->
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="font-weight:600;">Shipping Address</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;font-weight:400;">
+            <input type="checkbox" id="qb-ship-same" checked onchange="toggleShipAddr()" style="width:15px;height:15px;">
+            Same as Billing
+          </label>
+        </div>
+        <div id="qb-ship-fields" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group"><label>Name</label><input class="form-control" id="qb-ship-name"></div>
+          <div class="form-group"><label>Phone</label><input class="form-control" id="qb-ship-phone"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label>Address</label><input class="form-control" id="qb-ship-addr"></div>
+          <div class="form-group"><label>City, State - PIN</label><input class="form-control" id="qb-ship-city"></div>
+          <div class="form-group"><label>GSTIN</label><input class="form-control" id="qb-ship-gstin"></div>
+        </div>
+      </div>
+      <!-- Items -->
       <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div style="font-weight:600;">Items</div>
-          <button class="btn btn-sm btn-ghost" onclick="addQuotItem()">+ Add Item</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-primary" onclick="openItemSearch()">🔍 Item Master</button>
+            <button class="btn btn-sm btn-ghost" onclick="addQuotItem()">+ Add Blank</button>
+          </div>
         </div>
         <div style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:12px;" id="qb-items-table">
@@ -773,10 +805,57 @@ tr:hover td{background:var(--surface2);}
         </div>
         <div style="margin-top:10px;text-align:right;font-size:13px;" id="qb-totals"></div>
       </div>
+      <!-- Notes -->
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+        <div style="font-weight:600;margin-bottom:8px;">Notes</div>
+        <textarea class="form-control" id="qb-notes" rows="2" placeholder="e.g. Place of Supply, Transport, Payment terms..."></textarea>
+      </div>
+      <!-- Terms & Conditions -->
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px;">
+        <div style="font-weight:600;margin-bottom:8px;">Terms &amp; Conditions</div>
+        <textarea class="form-control" id="qb-terms" rows="4" placeholder="Terms..."></textarea>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('quot-builder-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="generateQuotationPrint()">📄 Generate & Print</button>
+      <button class="btn btn-primary" onclick="generateQuotationPrint()">📄 Generate &amp; Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT ITEM MODAL -->
+<div class="modal-overlay" id="add-item-modal" onclick="if(event.target===this)closeModal('add-item-modal')">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header"><h3 id="aim-title">Add Item</h3><button class="modal-close" onclick="closeModal('add-item-modal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="aim-id">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group" style="grid-column:1/-1;"><label>Item Name *</label><input class="form-control" id="aim-name" placeholder="e.g. 75MM HDPE TEE"></div>
+        <div class="form-group"><label>HSN / SAC</label><input class="form-control" id="aim-hsn" placeholder="e.g. 39174000"></div>
+        <div class="form-group"><label>Unit</label><input class="form-control" id="aim-unit" placeholder="pcs / kg / mtr" value="pcs"></div>
+        <div class="form-group"><label>Rate (₹)</label><input class="form-control" type="number" id="aim-rate" placeholder="0"></div>
+        <div class="form-group"><label>GST %</label>
+          <select class="form-control" id="aim-gst">
+            <option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;"><label>Description (optional)</label><textarea class="form-control" id="aim-desc" rows="2" placeholder="Extra details..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('add-item-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveItemMaster()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM SEARCH MODAL (for quotation builder) -->
+<div class="modal-overlay" id="item-search-modal" onclick="if(event.target===this)closeModal('item-search-modal')">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header"><h3>🔍 Item Master se Add Karo</h3><button class="modal-close" onclick="closeModal('item-search-modal')">✕</button></div>
+    <div class="modal-body">
+      <input class="form-control" id="ism-search" placeholder="Item name ya HSN type karo..." oninput="renderItemSearch()" style="margin-bottom:12px;" autofocus>
+      <div id="ism-results" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
     </div>
   </div>
 </div>
@@ -863,8 +942,8 @@ firebase.initializeApp({
 const db=firebase.firestore();
 
 let currentUser=null, reportPeriod='daily', crmStageFilter='all';
-let users=[], customers=[], orders=[], leads=[], quotations=[], custFollowups=[];
-let unsubOrders=null, unsubCustomers=null, unsubLeads=null, unsubQuotations=null, unsubCustFU=null;
+let users=[], customers=[], orders=[], leads=[], quotations=[], custFollowups=[], itemMaster=[];
+let unsubOrders=null, unsubCustomers=null, unsubLeads=null, unsubQuotations=null, unsubCustFU=null, unsubItems=null;
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
@@ -924,9 +1003,9 @@ function showLoading(show){
 
 async function loadAppData(){
   try{
-    [customers,orders,leads,quotations,custFollowups]=await Promise.all([fsGetAll('customers'),fsGetAll('orders'),fsGetAll('leads'),fsGetAll('quotations'),fsGetAll('custFollowups')]);
+    [customers,orders,leads,quotations,custFollowups,itemMaster]=await Promise.all([fsGetAll('customers'),fsGetAll('orders'),fsGetAll('leads'),fsGetAll('quotations'),fsGetAll('custFollowups'),fsGetAll('itemMaster')]);
     await loadCompanyConfig();
-  }catch(e){customers=[];orders=[];leads=[];custFollowups=[];}
+  }catch(e){customers=[];orders=[];leads=[];custFollowups=[];itemMaster=[];}
 }
 
 function startRealtime(){
@@ -952,6 +1031,12 @@ function startRealtime(){
     if(pg&&pg.id==='page-crm-analytics') renderCrmAnalytics();
     if(pg&&pg.id==='page-rejected-leads') renderRejected();
     checkOverdueLeads();
+  });
+  if(unsubItems) unsubItems();
+  unsubItems=db.collection('itemMaster').onSnapshot(snap=>{
+    itemMaster=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const pg=document.querySelector('.page.active');
+    if(pg&&pg.id==='page-item-master') renderItemMaster();
   });
   if(unsubQuotations) unsubQuotations();
   unsubQuotations=db.collection('quotations').onSnapshot(snap=>{
@@ -1079,6 +1164,7 @@ function showPage(id){
   }
   if(id==='cust-followup') renderCustFollowup();
   if(id==='rejected-leads') renderRejected();
+  if(id==='item-master') renderItemMaster();
   if(id==='settings') loadCompanySettingsForm();
   if(id==='quotations'){
     const mEl=document.getElementById('quot-month-filter');
@@ -1746,6 +1832,10 @@ function openQuotationBuilderDirect(l){
   document.getElementById('qb-cust-city').value='';
   document.getElementById('qb-cust-gstin').value='';
   document.getElementById('qb-cust-phone').value=l.phone||'';
+  document.getElementById('qb-notes').value='';
+  document.getElementById('qb-terms').value=companyConfig.terms||'Above rate are Ex-Factory\n30% payment with PO & 70% payment before dispatch\nGoods once sold will not be accepted return\nIn case of late payment interest 18% P.A. will be levied\nSubject to Rajkot Jurisdiction. E & O.E';
+  document.getElementById('qb-ship-same').checked=true;
+  toggleShipAddr();
   renderQuotItems();
   document.getElementById('quot-builder-modal').style.display='flex';
 }
@@ -1766,6 +1856,10 @@ function openQuotationBuilder(leadId){
   document.getElementById('qb-cust-city').value=(l.city?l.city+', ':'')+( l.state||'');
   document.getElementById('qb-cust-gstin').value='';
   document.getElementById('qb-cust-phone').value=l.phone||'';
+  document.getElementById('qb-notes').value='';
+  document.getElementById('qb-terms').value=companyConfig.terms||'Above rate are Ex-Factory\n30% payment with PO & 70% payment before dispatch\nGoods once sold will not be accepted return\nIn case of late payment interest 18% P.A. will be levied\nSubject to Rajkot Jurisdiction. E & O.E';
+  document.getElementById('qb-ship-same').checked=true;
+  toggleShipAddr();
   closeModal('lead-detail-modal');
   renderQuotItems();
   document.getElementById('quot-builder-modal').style.display='flex';
@@ -1863,6 +1957,14 @@ async function generateQuotationPrint(){
   const custCity=document.getElementById('qb-cust-city').value.trim();
   const custGstin=document.getElementById('qb-cust-gstin').value.trim();
   const custPhone=document.getElementById('qb-cust-phone').value.trim();
+  const notes=document.getElementById('qb-notes').value.trim();
+  const terms=document.getElementById('qb-terms').value.trim();
+  const shipSame=document.getElementById('qb-ship-same').checked;
+  const shipName=shipSame?custName:document.getElementById('qb-ship-name').value.trim();
+  const shipAddr=shipSame?custAddr:document.getElementById('qb-ship-addr').value.trim();
+  const shipCity=shipSame?custCity:document.getElementById('qb-ship-city').value.trim();
+  const shipGstin=shipSame?custGstin:document.getElementById('qb-ship-gstin').value.trim();
+  const shipPhone=shipSame?custPhone:document.getElementById('qb-ship-phone').value.trim();
   if(!custName){toast('Customer name bharo','error');return;}
   if(quotItems.length===0){toast('Kam se kam ek item daalo','error');return;}
   const taxable=quotItems.reduce((s,it)=>s+calcRowTaxable(it),0);
@@ -1880,7 +1982,7 @@ async function generateQuotationPrint(){
   const isEdit=!!(window._editingQuotId);
   const quotId=isEdit?window._editingQuotId:uid();
   const existing=isEdit?quotations.find(x=>x.id===quotId):null;
-  const quot={id:quotId,quotNo:qNo,date:qDate,validTill:qValid,custName,custCompany,custAddr,custCity,custGstin,custPhone,items:quotItems,taxable,gstAmt,total,rounded,leadId:currentQuotLeadId||existing?.leadId||null,employeeId:(leads.find(l=>l.id===currentQuotLeadId)||existing||{}).employeeId||currentUser.id,createdAt:existing?existing.createdAt:Date.now(),updatedAt:Date.now()};
+  const quot={id:quotId,quotNo:qNo,date:qDate,validTill:qValid,custName,custCompany,custAddr,custCity,custGstin,custPhone,notes,terms,shipSame,shipName,shipAddr,shipCity,shipGstin,shipPhone,items:quotItems,taxable,gstAmt,total,rounded,leadId:currentQuotLeadId||existing?.leadId||null,employeeId:(leads.find(l=>l.id===currentQuotLeadId)||existing||{}).employeeId||currentUser.id,createdAt:existing?existing.createdAt:Date.now(),updatedAt:Date.now()};
   await fsSet('quotations',quot.id,quot);
   window._editingQuotId=null;
   if(isEdit) toast('Quotation updated ✅');
@@ -1894,6 +1996,7 @@ async function generateQuotationPrint(){
   }
   // Generate print window
   const addrBlock=`${custCompany?'<br><strong>'+esc(custCompany)+'</strong>':''}${custAddr?'<br>'+esc(custAddr):''}${custCity?'<br>'+esc(custCity):''}${custGstin?'<br>GSTIN : '+esc(custGstin):''}${custPhone?'<br>Phone : '+esc(custPhone):''}`;
+  const shipAddrBlock=`${shipAddr?'<br>'+esc(shipAddr):''}${shipCity?'<br>'+esc(shipCity):''}${shipGstin?'<br>GSTIN : '+esc(shipGstin):''}${shipPhone?'<br>Phone : '+esc(shipPhone):''}`;
   // Render quotation in full-screen overlay (no popup blocker issues)
   let qDiv=document.getElementById('quot-preview-overlay');
   if(qDiv) qDiv.remove();
@@ -1946,7 +2049,7 @@ async function generateQuotationPrint(){
   document.head.appendChild(style);
   const execName=esc((leads.find(l=>l.id===currentQuotLeadId)||{}).employeeName||currentUser.name);
   const DEFAULT_TERMS=`Above rate are Ex-Factory\n30% payment with PO & 70% payment before dispatch\nGoods once sold will not be accepted return\nIn case of late payment interest 18% P.A. will be levied\nSubject to Rajkot Jurisdiction. E & O.E`;
-  const termsText=c.terms||DEFAULT_TERMS;
+  const termsText=terms||c.terms||DEFAULT_TERMS;
   const quotHTML=`
   <div class="no-print" style="max-width:800px;margin:0 auto 14px;display:flex;gap:8px;justify-content:flex-end;">
     <button onclick="window.print()" style="padding:9px 22px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">🖨️ Print / Save PDF</button>
@@ -1980,7 +2083,7 @@ async function generateQuotationPrint(){
     </div>
     <div class="ab">
       <div class="ac"><div class="al">Billing Address</div>${esc(custName)}${addrBlock}</div>
-      <div class="ac"><div class="al">Shipping Address</div>${esc(custName)}${addrBlock}</div>
+      <div class="ac"><div class="al">Shipping Address</div>${esc(shipName||custName)}${shipAddrBlock||addrBlock}</div>
     </div>
     <table class="itbl">
       <thead><tr>
@@ -2039,7 +2142,7 @@ async function generateQuotationPrint(){
     </div>
     <div class="tc-section">
       <div style="margin-bottom:6px;"><strong>Terms &amp; Conditions :</strong><br>${termsText.split('\n').map((l,i)=>l.trim()?`<span style="display:block;">(${i+1}) ${esc(l.trim())}</span>`:'').join('')}</div>
-      ${c.quot_notes?`<div><strong>Notes :</strong> ${esc(c.quot_notes)}</div>`:''}
+      ${(notes||c.quot_notes)?`<div style="margin-top:6px;"><strong>Notes :</strong> ${esc(notes||c.quot_notes)}</div>`:''}
     </div>
     <div class="sa">
       <div style="text-align:center;"><div style="border-top:1px solid #333;width:160px;margin-top:40px;padding-top:5px;font-size:11px;">Customer Signature</div></div>
@@ -2127,6 +2230,10 @@ function openDirectQuotation(){
   document.getElementById('qb-date').value=today;
   document.getElementById('qb-valid').value=validTill;
   ['qb-cust-name','qb-cust-company','qb-cust-addr','qb-cust-city','qb-cust-gstin','qb-cust-phone'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('qb-notes').value='';
+  document.getElementById('qb-terms').value=companyConfig.terms||'Above rate are Ex-Factory\n30% payment with PO & 70% payment before dispatch\nGoods once sold will not be accepted return\nIn case of late payment interest 18% P.A. will be levied\nSubject to Rajkot Jurisdiction. E & O.E';
+  document.getElementById('qb-ship-same').checked=true;
+  toggleShipAddr();
   renderQuotItems();
   document.getElementById('quot-builder-modal').style.display='flex';
 }
@@ -2145,6 +2252,18 @@ function loadQuotIntoBuilder(q, overrideNo){
   document.getElementById('qb-cust-city').value=q.custCity||'';
   document.getElementById('qb-cust-gstin').value=q.custGstin||'';
   document.getElementById('qb-cust-phone').value=q.custPhone||'';
+  document.getElementById('qb-notes').value=q.notes||'';
+  document.getElementById('qb-terms').value=q.terms||companyConfig.terms||'';
+  const shipSame=q.shipSame!==false;
+  document.getElementById('qb-ship-same').checked=shipSame;
+  if(!shipSame){
+    document.getElementById('qb-ship-name').value=q.shipName||'';
+    document.getElementById('qb-ship-phone').value=q.shipPhone||'';
+    document.getElementById('qb-ship-addr').value=q.shipAddr||'';
+    document.getElementById('qb-ship-city').value=q.shipCity||'';
+    document.getElementById('qb-ship-gstin').value=q.shipGstin||'';
+  }
+  toggleShipAddr();
   renderQuotItems();
   document.getElementById('quot-builder-modal').style.display='flex';
 }
@@ -2974,6 +3093,101 @@ async function deleteSingleRejected(id){
   if(!confirm('Yeh lead permanently delete karna chahte ho?')) return;
   await fsDelete('leads',id);
   toast('Lead delete ho gayi 🗑️');
+}
+
+// ── ITEM MASTER ─────────────────────────────────────────
+function renderItemMaster(){
+  const el=document.getElementById('item-master-content');
+  if(!el) return;
+  const q=((document.getElementById('item-search')||{}).value||'').toLowerCase().trim();
+  let list=q?itemMaster.filter(it=>(it.name||'').toLowerCase().includes(q)||(it.hsn||'').includes(q)):itemMaster;
+  list=[...list].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  if(list.length===0){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);">'+(q?'Koi item nahi mila':'Koi item nahi — + Add Item se shuru karo')+'</div>';return;}
+  el.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;"><div class="table-wrap"><table style="font-size:13px;"><thead><tr style="background:var(--surface2);"><th style="padding:10px 12px;">Item Name</th><th>HSN</th><th>Unit</th><th>Rate (₹)</th><th>GST%</th><th>Description</th><th>Action</th></tr></thead><tbody>'
+    +list.map(it=>'<tr>'
+      +'<td style="padding:10px 12px;font-weight:600;">'+esc(it.name)+'</td>'
+      +'<td>'+esc(it.hsn||'-')+'</td>'
+      +'<td>'+esc(it.unit||'-')+'</td>'
+      +'<td>₹'+fmt(it.rate||0)+'</td>'
+      +'<td>'+((it.gst||0))+'%</td>'
+      +'<td style="font-size:12px;color:var(--text2);">'+esc(it.desc||'-')+'</td>'
+      +'<td style="white-space:nowrap;">'
+      +'<button class="btn btn-sm btn-ghost" onclick="openEditItem(\''+it.id+'\')">✏️</button>'
+      +'<button class="btn btn-sm" style="color:var(--danger);background:none;border:none;cursor:pointer;" onclick="deleteItemMaster(\''+it.id+'\')">🗑️</button>'
+      +'</td></tr>').join('')
+    +'</tbody></table></div></div>';
+}
+
+function openAddItem(){
+  document.getElementById('aim-title').textContent='Add Item';
+  document.getElementById('aim-id').value='';
+  ['aim-name','aim-hsn','aim-unit','aim-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=id==='aim-unit'?'pcs':'';});
+  document.getElementById('aim-rate').value='';
+  document.getElementById('aim-gst').value='18';
+  document.getElementById('add-item-modal').classList.add('open');
+  document.getElementById('add-item-modal').style.display='flex';
+}
+
+function openEditItem(id){
+  const it=itemMaster.find(x=>x.id===id);
+  if(!it) return;
+  document.getElementById('aim-title').textContent='Edit Item';
+  document.getElementById('aim-id').value=it.id;
+  document.getElementById('aim-name').value=it.name||'';
+  document.getElementById('aim-hsn').value=it.hsn||'';
+  document.getElementById('aim-unit').value=it.unit||'pcs';
+  document.getElementById('aim-rate').value=it.rate||'';
+  document.getElementById('aim-gst').value=String(it.gst||18);
+  document.getElementById('aim-desc').value=it.desc||'';
+  document.getElementById('add-item-modal').style.display='flex';
+}
+
+async function saveItemMaster(){
+  const name=document.getElementById('aim-name').value.trim();
+  if(!name){toast('Item name bharo','error');return;}
+  const id=document.getElementById('aim-id').value||uid();
+  const item={id,name,hsn:document.getElementById('aim-hsn').value.trim(),unit:document.getElementById('aim-unit').value.trim()||'pcs',rate:parseFloat(document.getElementById('aim-rate').value)||0,gst:parseInt(document.getElementById('aim-gst').value)||18,desc:document.getElementById('aim-desc').value.trim(),updatedAt:Date.now()};
+  await fsSet('itemMaster',id,item);
+  closeModal('add-item-modal');
+  toast('Item saved ✅');
+}
+
+async function deleteItemMaster(id){
+  if(!confirm('Yeh item delete karna chahte ho?')) return;
+  await fsDelete('itemMaster',id);
+  toast('Item delete ho gaya 🗑️');
+}
+
+function openItemSearch(){
+  document.getElementById('ism-search').value='';
+  renderItemSearch();
+  document.getElementById('item-search-modal').style.display='flex';
+}
+
+function renderItemSearch(){
+  const q=((document.getElementById('ism-search')||{}).value||'').toLowerCase().trim();
+  const list=q?itemMaster.filter(it=>(it.name||'').toLowerCase().includes(q)||(it.hsn||'').includes(q)):itemMaster;
+  const el=document.getElementById('ism-results');
+  if(!el) return;
+  if(list.length===0){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);">'+(q?'Koi item nahi mila':'Item Master khali hai — pehle items add karo')+'</div>';return;}
+  el.innerHTML=list.map(it=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;" onclick="addItemFromMaster(\''+it.id+'\')">'
+    +'<div><div style="font-weight:600;">'+esc(it.name)+'</div><div style="font-size:12px;color:var(--text2);">HSN: '+esc(it.hsn||'-')+' · '+esc(it.unit)+' · GST '+it.gst+'%</div></div>'
+    +'<div style="font-weight:700;color:var(--primary);">₹'+fmt(it.rate||0)+'</div>'
+    +'</div>').join('');
+}
+
+function addItemFromMaster(id){
+  const it=itemMaster.find(x=>x.id===id);
+  if(!it) return;
+  quotItems.push({desc:it.name,hsn:it.hsn||'',qty:1,unit:it.unit||'pcs',rate:it.rate||0,disc:0,gst:it.gst||18,photo:''});
+  renderQuotItems();
+  closeModal('item-search-modal');
+  toast(esc(it.name)+' add ho gaya ✅');
+}
+
+function toggleShipAddr(){
+  const same=document.getElementById('qb-ship-same').checked;
+  document.getElementById('qb-ship-fields').style.display=same?'none':'grid';
 }
 
 function renderCustFollowup(){
