@@ -517,8 +517,8 @@ tr:hover td{background:var(--surface2);}
             <div style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:thin;">
               <button class="crm-stage-btn active" data-stage="all" onclick="setCRMStage('all',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--primary);color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">All</button>
               <button class="crm-stage-btn" data-stage="new_inquiry" onclick="setCRMStage('new_inquiry',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🆕 New Inquiry</button>
-              <button class="crm-stage-btn" data-stage="discussion" onclick="setCRMStage('discussion',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fde68a;background:#fffbeb;color:#92400e;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">💬 Discussion</button>
               <button class="crm-stage-btn" data-stage="short_listed" onclick="setCRMStage('short_listed',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #a5b4fc;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">⭐ Short Listed</button>
+              <button class="crm-stage-btn" data-stage="discussion" onclick="setCRMStage('discussion',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fde68a;background:#fffbeb;color:#92400e;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">💬 Discussion</button>
               <button class="crm-stage-btn" data-stage="quotation" onclick="setCRMStage('quotation',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📄 Quotation</button>
               <button class="crm-stage-btn" data-stage="negotiation" onclick="setCRMStage('negotiation',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #e9d5ff;background:#fdf4ff;color:#7e22ce;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🤝 Negotiation</button>
               <button class="crm-stage-btn" data-stage="deal_lost" onclick="setCRMStage('deal_lost',this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid #fed7aa;background:#fff7ed;color:#c2410c;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">💔 Deal Lost</button>
@@ -2332,8 +2332,8 @@ function renderCRM(){
       <span style="font-size:13px;font-weight:700;color:var(--text);">Showing ${vis.length} leads</span>
       <span style="color:var(--text3);">·</span>
       <span style="font-size:12px;color:#1d4ed8;background:#eff6ff;padding:2px 8px;border-radius:12px;font-weight:600;">🆕 ${counts.new_inquiry}</span>
-      <span style="font-size:12px;color:#92400e;background:#fffbeb;padding:2px 8px;border-radius:12px;font-weight:600;">💬 ${counts.discussion}</span>
       <span style="font-size:12px;color:#4338ca;background:#eef2ff;padding:2px 8px;border-radius:12px;font-weight:600;">⭐ ${counts.short_listed}</span>
+      <span style="font-size:12px;color:#92400e;background:#fffbeb;padding:2px 8px;border-radius:12px;font-weight:600;">💬 ${counts.discussion}</span>
       <span style="font-size:12px;color:#6d28d9;background:#f5f3ff;padding:2px 8px;border-radius:12px;font-weight:600;">📄 ${counts.quotation}</span>
       <span style="font-size:12px;color:#7e22ce;background:#fdf4ff;padding:2px 8px;border-radius:12px;font-weight:600;">🤝 ${counts.negotiation}</span>
       <span style="font-size:12px;color:#c2410c;background:#fff7ed;padding:2px 8px;border-radius:12px;font-weight:600;">💔 ${counts.deal_lost}</span>
@@ -2447,7 +2447,7 @@ function openLeadDetail(id){
     <div style="margin-bottom:14px;">
       <div style="font-weight:600;margin-bottom:8px;">Move Stage:</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${['new_inquiry','discussion','short_listed','quotation','negotiation','deal_closed','deal_lost','rejected'].map(s=>`<button class="btn btn-sm ${(l.stage===s||(s==='new_inquiry'&&l.stage==='new')||(s==='deal_closed'&&l.stage==='converted'))?'btn-primary':'btn-ghost'}" onclick="updateLeadStage('${l.id}','${s}')">${stageLabel(s)}</button>`).join('')}
+        ${['new_inquiry','short_listed','discussion','quotation','negotiation','deal_closed','deal_lost','rejected'].map(s=>`<button class="btn btn-sm ${(l.stage===s||(s==='new_inquiry'&&l.stage==='new')||(s==='deal_closed'&&l.stage==='converted'))?'btn-primary':'btn-ghost'}" onclick="updateLeadStage('${l.id}','${s}')">${stageLabel(s)}</button>`).join('')}
       </div>
     </div>
     <div style="margin-bottom:14px;">
